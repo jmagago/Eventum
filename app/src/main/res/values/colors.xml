@@ -1,15 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <color name="accent">#FF4081</color>
-    <color name="accent_dark">#F50057</color>
+    <!-- Colores principales -->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorPrimaryLight">#BBDEFB</color>
+    <color name="colorAccent">#FF4081</color>
+    
+    <!-- Colores básicos -->
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colorBlack">#000000</color>
+    
+    <!-- Colores de fondo -->
+    <color name="colorBackground">#FAFAFA</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+    
+    <!-- Colores de texto -->
+    <color name="colorPrimaryText">#212121</color>
+    <color name="colorSecondaryText">#757575</color>
+    
+    <!-- Colores de estado -->
+    <color name="colorError">#B00020</color>
+    <color name="colorSuccess">#4CAF50</color>
+    <color name="colorWarning">#FFC107</color>
+    
+    <!-- Colores de iconos -->
+    <color name="colorIcon">#757575</color>
+    <color name="colorIconActive">#2196F3</color>
+    
+    <!-- Colores de bordes y divisores -->
+    <color name="colorDivider">#BDBDBD</color>
+    <color name="colorBorder">#E0E0E0</color>
+    
+    <!-- Colores de acento -->
+    <color name="colorAccentLight">#FF80AB</color>
+    <color name="colorAccentDark">#C60055</color>
+    
+    <!-- Colores de fondo de elementos -->
+    <color name="colorCardBackground">#FFFFFF</color>
+    <color name="colorInputBackground">#F5F5F5</color>
+    
+    <!-- Colores de estado de elementos -->
+    <color name="colorRipple">#1A2196F3</color>
+    <color name="colorPressed">#E3F2FD</color>
+    
+    <!-- Colores adicionales -->
+    <color name="primary">#FF6200EE</color>
+    <color name="primary_dark">#FF3700B3</color>
+    <color name="accent">#FF03DAC5</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="error">#B00020</color>
-    <color name="success">#4CAF50</color>
-    <color name="background">#F5F5F5</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
 </resources>

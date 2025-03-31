@@ -11,11 +11,9 @@ public class EventumApplication extends Application {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Inicializando aplicación");
-        try {
-            FirebaseApp.initializeApp(this);
-            Log.d(TAG, "Firebase inicializado correctamente");
-        } catch (Exception e) {
-            Log.e(TAG, "Error al inicializar Firebase", e);
-        }
+        
+        // Inicializar Firebase antes de cualquier otra operación
+        FirebaseApp.initializeApp(this);
+        Log.d(TAG, "Firebase inicializado correctamente");
     }
 } 

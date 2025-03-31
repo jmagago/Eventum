@@ -15,6 +15,16 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.us.eventum.config.AppConfig;
+import com.us.eventum.utils.PasswordValidator;
+import androidx.annotation.NonNull;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 
 public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
@@ -25,6 +35,8 @@ public class LoginActivity extends AppCompatActivity {
     private MaterialCheckBox rememberMeCheckBox;
     private View progressBar;
     private SharedPreferences sharedPreferences;
+    private int loginAttempts = 0;
+    private static final int MAX_LOGIN_ATTEMPTS = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +45,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Inicializar Firebase Auth
         mAuth = FirebaseAuth.getInstance();
-        sharedPreferences = getSharedPreferences("EventumPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(AppConfig.APP_PREFS_NAME, MODE_PRIVATE);
 
         // Inicializar vistas
         initializeViews();
@@ -60,6 +72,12 @@ public class LoginActivity extends AppCompatActivity {
     private void setupListeners() {
         loginButton.setOnClickListener(v -> loginUser());
         registerButton.setOnClickListener(v -> navigateToRegister());
+        
+        // Listener para el texto de olvidaste tu contraseña
+        findViewById(R.id.forgotPasswordTextView).setOnClickListener(v -> {
+            Intent intent = new Intent(this, ResetPasswordActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void loadSavedData() {
@@ -113,26 +131,58 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        // Verificar intentos de inicio de sesión
+        if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+            Toast.makeText(this, 
+                "Demasiados intentos fallidos. Por favor, espera unos minutos.", 
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+
         showProgress(true);
 
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this, task -> {
                 if (task.isSuccessful()) {
                     FirebaseUser user = mAuth.getCurrentUser();
-                    if (rememberMeCheckBox.isChecked()) {
-                        saveCredentials(email, password);
-                    } else {
-                        clearSavedCredentials();
+                    if (user != null) {
+                        if (!user.isEmailVerified()) {
+                            // Si el email no está verificado, mostrar mensaje y cerrar sesión
+                            Toast.makeText(LoginActivity.this,
+                                "Por favor, verifica tu email antes de iniciar sesión",
+                                Toast.LENGTH_LONG).show();
+                            mAuth.signOut();
+                            showProgress(false);
+                            return;
+                        }
+
+                        // Resetear intentos de inicio de sesión
+                        loginAttempts = 0;
+                        
+                        if (rememberMeCheckBox.isChecked()) {
+                            saveCredentials(email, password);
+                        } else {
+                            clearSavedCredentials();
+                        }
+                        
+                        Toast.makeText(LoginActivity.this, 
+                            "Bienvenido " + user.getEmail(), 
+                            Toast.LENGTH_SHORT).show();
+                            
+                        // Navegar a HomeActivity y limpiar el stack
+                        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
                     }
-                    // TODO: Navegar a la pantalla principal
-                    Toast.makeText(LoginActivity.this, 
-                        "Inicio de sesión exitoso", 
-                        Toast.LENGTH_SHORT).show();
                 } else {
+                    loginAttempts++;
                     showProgress(false);
-                    Toast.makeText(LoginActivity.this, 
-                        "Error al iniciar sesión: " + task.getException().getMessage(), 
-                        Toast.LENGTH_SHORT).show();
+                    String errorMessage = "Error al iniciar sesión";
+                    if (task.getException() != null) {
+                        errorMessage = task.getException().getMessage();
+                    }
+                    Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
             });
     }
@@ -149,16 +199,21 @@ public class LoginActivity extends AppCompatActivity {
             isValid = false;
         }
 
-        if (password.isEmpty()) {
-            showError(passwordEditText, "La contraseña es requerida");
-            isValid = false;
-        }
-
         return isValid;
     }
 
     private boolean validateEmail(String email) {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private void validatePassword(String password) {
+        PasswordValidator.PasswordValidationResult result = 
+            PasswordValidator.validatePassword(password);
+        if (!result.isValid) {
+            showError(passwordEditText, result.errorMessage);
+        } else {
+            clearError(passwordEditText);
+        }
     }
 
     private void showError(TextInputEditText editText, String message) {

@@ -1,45 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    
-    <!-- Fondo del QR -->
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Fondo del círculo -->
+    <path
+        android:fillColor="@color/colorPrimary"
+        android:pathData="M60,60m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"/>
+
+    <!-- QR Code estilizado -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M0,0h24v24h-24z"/>
-    
-    <!-- Patrón del QR -->
+        android:pathData="M30,30h60v60h-60z"/>
+
+    <!-- Patrones internos del QR -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M4,4h6v6h-6z"/>
+        android:fillColor="@color/colorPrimary"
+        android:pathData="M35,35h50v50h-50z"/>
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M14,4h6v6h-6z"/>
+        android:fillColor="@color/colorPrimary"
+        android:pathData="M40,40h40v40h-40z"/>
+
+    <!-- Patrones decorativos -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M4,14h6v6h-6z"/>
-    
-    <!-- Patrón central estilizado -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M45,45h30v30h-30z"/>
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M10,10h4v4h-4z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,50h20v20h-20z"/>
+
+    <!-- Texto "EVENTUM" -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M14,14h4v4h-4z"/>
-    
-    <!-- Líneas decorativas -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,95h15v5h-15z"/>
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M8,8h8v1h-8z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,95h15v5h-15z"/>
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M8,15h8v1h-8z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,95h15v5h-15z"/>
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M15,8h1v8h-1z"/>
-    <path
-        android:fillColor="#2196F3"
-        android:pathData="M8,8h1v8h-1z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M80,95h15v5h-15z"/>
+
 </vector> 
