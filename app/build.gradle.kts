@@ -1,7 +1,28 @@
+import java.io.File
+import java.util.Properties
+
 plugins {
-    id("com.android.application") version "8.11.1"
+    id("com.android.application") version "8.9.1"
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
+}
+
+// Función para leer y actualizar el número de build
+fun getNextBuildNumber(): Int {
+    val versionFile = File("version.properties")
+    val properties = Properties()
+    
+    if (versionFile.exists()) {
+        properties.load(versionFile.inputStream())
+    }
+    
+    val currentBuildNumber = properties.getProperty("buildNumber", "1").trim().toInt()
+    val nextBuildNumber = currentBuildNumber + 1
+    
+    properties.setProperty("buildNumber", nextBuildNumber.toString())
+    versionFile.outputStream().use { properties.store(it, "Build number for Eventum app") }
+    
+    return currentBuildNumber
 }
 
 android {
@@ -10,10 +31,25 @@ android {
 
     defaultConfig {
         applicationId = "com.us.eventum"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        
+        // Versión de la aplicación
+        val majorVersion = 0  // Cambiado a 0 para indicar desarrollo temprano
+        val minorVersion = 1  // Incrementado a 1 para indicar primera versión de desarrollo
+        val patchVersion = 0
+        val buildNumber = getNextBuildNumber() // Obtener el siguiente número de build automáticamente
+        
+        // El versionCode debe ser único y creciente
+        versionCode = buildNumber
+        
+        // El versionName muestra la versión semántica con sufijo -alpha para indicar prelanzamiento
+        versionName = "$majorVersion.$minorVersion.$patchVersion-alpha"
+        
+        println("Configuración de versión:")
+        println("versionCode: $versionCode")
+        println("versionName: $versionName")
+        println("Build Number: $buildNumber")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
