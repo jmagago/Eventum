@@ -51,6 +51,26 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/logoImageView" />
+            
+        <!-- Eslogan debajo del título -->
+        <TextView
+            android:id="@+id/sloganTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Simplifica lo complejo, potencia lo simple"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:textStyle="italic"
+            android:letterSpacing="0.02"
+            android:shadowColor="#40000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            android:alpha="0.9"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/titleTextView" />
 
         <!-- Tarjeta para el formulario -->
         <androidx.cardview.widget.CardView
@@ -75,20 +95,10 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Simplifica lo complejo, potencia lo simple"
-                    android:textSize="16sp"
-                    android:textColor="@color/colorPrimary"
-                    android:textStyle="italic"
-                    android:letterSpacing="0.02"
-                    android:layout_marginBottom="16dp"
-                    android:textAlignment="center" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Ingresa tus datos para continuar"
-                    android:textSize="14sp"
-                    android:textColor="@color/colorSecondaryText"
+                    android:text="Inicia sesión en tu cuenta"
+                    android:textSize="20sp"
+                    android:textColor="@color/colorPrimaryText"
+                    android:textStyle="bold"
                     android:layout_marginBottom="24dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
