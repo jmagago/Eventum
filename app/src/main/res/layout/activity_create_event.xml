@@ -9,17 +9,18 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:background="@color/colorPrimary"
+        app:elevation="4dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/transparent"
-            app:navigationIcon="@drawable/ic_back"
-            app:title="Crear Evento"
-            app:titleTextColor="@color/colorPrimary" />
+            android:background="@color/colorPrimary"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="Crear un nuevo Evento"
+            app:titleTextAppearance="@style/ToolbarTitleStyle"
+            app:titleTextColor="@color/colorWhite" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -28,104 +29,172 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <LinearLayout
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_margin="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/nombreEventoLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Nombre del Evento">
+                android:orientation="vertical"
+                android:padding="24dp">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/nombreEventoEditText"
+                <!-- Sección: Información Básica -->
+                <TextView
+                    style="@style/FormSectionTitle"
+                    android:text="Información Básica"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Nombre del evento -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/nombreEventoLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapWords|textNoSuggestions"
-                    android:maxLines="1" />
+                    android:layout_marginBottom="12dp"
+                    android:hint="Nombre del Evento"
+                    app:startIconDrawable="@drawable/ic_title"
+                    app:startIconTint="@color/colorPrimary">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/nombreEventoEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords|textNoSuggestions"
+                        android:maxLines="1" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/fechaEventoLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="Fecha del Evento">
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/fechaEventoEditText"
+                <!-- Tipo de evento -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tipoEventoLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
-                    android:inputType="none" />
+                    android:layout_marginBottom="12dp"
+                    android:hint="Tipo de Evento"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:hintTextColor="@color/colorPrimary"
+                    app:errorTextColor="@android:color/holo_red_light"
+                    app:startIconDrawable="@drawable/ic_check_circle"
+                    app:startIconTint="@color/colorPrimary">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <AutoCompleteTextView
+                        android:id="@+id/tipoEventoAutoComplete"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/maxParticipantesLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="Número Máximo de Participantes">
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/maxParticipantesEditText"
+                <!-- Fecha del evento -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/fechaEventoLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number" />
+                    android:layout_marginBottom="16dp"
+                    android:hint="Fecha del Evento"
+                    app:startIconDrawable="@drawable/ic_calendar"
+                    app:startIconTint="@color/colorPrimary">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/fechaEventoEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:inputType="none" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/lugarEventoLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="Lugar del Evento">
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/lugarEventoEditText"
+                <!-- Separador visual sutil -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/colorBorder"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Sección: Detalles del Evento -->
+                <TextView
+                    style="@style/FormSectionTitle"
+                    android:text="Detalles del Evento"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Lugar del evento -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lugarEventoLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapWords|textNoSuggestions"
-                    android:maxLines="1" />
+                    android:layout_marginBottom="12dp"
+                    android:hint="Lugar del Evento"
+                    app:startIconDrawable="@drawable/ic_location"
+                    app:startIconTint="@color/colorPrimary">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/lugarEventoEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords|textNoSuggestions" />
 
-            <!-- Eliminar o comentar el botón de seleccionar ubicación -->
-            <!-- <com.google.android.material.button.MaterialButton
-                android:id="@+id/seleccionarUbicacionButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Seleccionar Ubicación en el Mapa"
-                app:icon="@drawable/ic_map"
-                app:iconGravity="textStart" /> -->
+                </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Eliminar o comentar el MapView -->
-            <!-- <org.osmdroid.views.MapView
-                android:id="@+id/mapView"
-                android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:layout_marginTop="16dp" /> -->
+                <!-- Máximo asistentes -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/maxParticipantesLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="N.º máximo de asistentes"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="@color/colorPrimary">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/crearEventoButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Crear Evento" />
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/maxParticipantesEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number" />
 
-        </LinearLayout>
+                </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Descripción del evento (opcional) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/descripcionEventoLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:hint="Descripción del Evento (opcional)"
+                    app:startIconDrawable="@drawable/ic_description"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/descripcionEventoEditText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:minLines="3"
+                        android:gravity="top|start" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Botón de crear evento -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/crearEventoButton"
+                    style="@style/Widget.Eventum.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Crear Evento"
+                    app:icon="@drawable/ic_check_circle"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
     </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.progressindicator.CircularProgressIndicator

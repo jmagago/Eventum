@@ -1,105 +1,275 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@android:color/transparent"
+    android:clipToPadding="false"
+    android:clipChildren="false">
 
-    <TextView
-        android:id="@+id/detailNameTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="@color/colorPrimaryText"
-        android:layout_marginBottom="16dp"/>
-
+    <!-- Contenedor principal con esquinas redondeadas -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
+        android:orientation="vertical"
+        android:clipToPadding="false"
+        android:clipChildren="false">
 
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_email"
-            android:tint="@color/colorPrimary"
-            android:layout_gravity="center_vertical"/>
-
-        <TextView
-            android:id="@+id/detailEmailTextView"
+        <!-- Cabecera con nombre -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/colorSecondaryText"/>
-    </LinearLayout>
+            android:background="@drawable/dialog_header_background"
+            android:padding="16dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
+            <TextView
+                android:id="@+id/detailNameTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorWhite"/>
+        </LinearLayout>
 
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_phone"
-            android:tint="@color/colorPrimary"
-            android:layout_gravity="center_vertical"/>
-
-        <TextView
-            android:id="@+id/detailPhoneTextView"
+        <!-- Contenido principal -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/colorSecondaryText"/>
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="@drawable/dialog_content_background">
+
+            <!-- Email -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_email"
+                    android:tint="@color/colorPrimary"
+                    android:layout_gravity="center_vertical"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Email"
+                        android:textSize="12sp"
+                        android:textColor="@color/colorSecondaryText"
+                        android:alpha="0.7"/>
+
+                    <TextView
+                        android:id="@+id/detailEmailTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textColor="@color/colorPrimaryText"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Teléfono -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_phone"
+                    android:tint="@color/colorPrimary"
+                    android:layout_gravity="center_vertical"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Teléfono"
+                        android:textSize="12sp"
+                        android:textColor="@color/colorSecondaryText"
+                        android:alpha="0.7"/>
+
+                    <TextView
+                        android:id="@+id/detailPhoneTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textColor="@color/colorPrimaryText"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Fecha de nacimiento -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_calendar"
+                    android:tint="@color/colorPrimary"
+                    android:layout_gravity="center_vertical"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fecha de nacimiento"
+                        android:textSize="12sp"
+                        android:textColor="@color/colorSecondaryText"
+                        android:alpha="0.7"/>
+
+                    <TextView
+                        android:id="@+id/detailBirthDateTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textColor="@color/colorPrimaryText"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Autorización parental -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_check_circle"
+                    android:tint="@color/colorPrimary"
+                    android:layout_gravity="center_vertical"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Estado de autorización"
+                        android:textSize="12sp"
+                        android:textColor="@color/colorSecondaryText"
+                        android:alpha="0.7"/>
+
+                    <TextView
+                        android:id="@+id/detailParentalAuthTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textColor="@color/colorPrimaryText"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Separador -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/colorDivider"
+                android:layout_marginBottom="20dp"/>
+
+            <!-- Sección QR -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CÓDIGO QR DE ACCESO"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorPrimary"
+                android:gravity="center"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Marco para el código QR -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                android:layout_marginBottom="24dp">
+                
+                <ImageView
+                    android:id="@+id/detailQRCodeImageView"
+                    android:layout_width="220dp"
+                    android:layout_height="220dp"
+                    android:layout_gravity="center"
+                    android:padding="12dp"
+                    android:background="@color/colorWhite"/>
+            </androidx.cardview.widget.CardView>
+            
+            <!-- Botones de acción -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="8dp"
+                android:gravity="center">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dialog_cancel_button"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Cancelar"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    app:cornerRadius="20dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    app:strokeColor="@color/colorPrimary"
+                    android:textColor="@color/colorPrimary"
+                    android:layout_marginEnd="8dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dialog_delete_button"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Eliminar"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    app:cornerRadius="20dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:backgroundTint="@color/colorError"
+                    android:textColor="@color/colorWhite"/>
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_calendar"
-            android:tint="@color/colorPrimary"
-            android:layout_gravity="center_vertical"/>
-
-        <TextView
-            android:id="@+id/detailBirthDateTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/colorSecondaryText"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_check_circle"
-            android:tint="@color/colorPrimary"
-            android:layout_gravity="center_vertical"/>
-
-        <TextView
-            android:id="@+id/detailParentalAuthTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/colorSecondaryText"/>
-    </LinearLayout>
-
 </LinearLayout> 

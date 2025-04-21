@@ -9,7 +9,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="12dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:minHeight="72dp">
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/attendeeAvatar"
@@ -18,6 +19,7 @@
             android:src="@drawable/ic_person"
             android:scaleType="centerCrop"
             android:background="@color/colorPrimary"
+            app:tint="@android:color/white"
             app:shapeAppearanceOverlay="@style/CircleImageView"/>
 
         <LinearLayout
@@ -33,7 +35,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                android:textColor="@android:color/black"
+                android:textColor="@color/colorPrimary"
                 android:textStyle="bold"
                 android:ellipsize="end"
                 android:maxLines="1"/>
@@ -43,7 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="@color/colorSecondaryText"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:layout_marginTop="2dp"/>
@@ -63,8 +65,9 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
             android:src="@drawable/ic_chevron_right"
-            android:alpha="0.5"
+            android:tint="@color/colorPrimary"
             android:contentDescription="Ver detalles"/>
 
     </LinearLayout>

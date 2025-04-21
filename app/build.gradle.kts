@@ -36,7 +36,7 @@ android {
         
         // Versión de la aplicación
         val majorVersion = 0  // Cambiado a 0 para indicar desarrollo temprano
-        val minorVersion = 1  // Incrementado a 1 para indicar primera versión de desarrollo
+        val minorVersion = 2  // Incrementado a 1 para indicar primera versión de desarrollo
         val patchVersion = 0
         val buildNumber = getNextBuildNumber() // Obtener el siguiente número de build automáticamente
         
@@ -93,6 +93,12 @@ dependencies {
     // Google Play Services
     implementation("com.google.android.gms:play-services-base:18.3.0")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
+    
+    // ML Kit para escanear códigos de barras
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    
+    // ZXing para generar códigos QR
+    implementation("com.google.zxing:core:3.5.1")
     
     // Testing
     testImplementation("junit:junit:4.13.2")

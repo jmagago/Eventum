@@ -3,39 +3,27 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/transparent"
-            app:contentInsetStartWithNavigation="0dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ajustes"
-                android:textColor="@color/colorPrimaryText"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-        </androidx.appcompat.widget.Toolbar>
+            android:background="?attr/colorPrimary"
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+            app:title="Ajustes"
+            app:titleTextAppearance="@style/ToolbarTitleStyle"
+            app:menu="@menu/settings_menu"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:scrollbars="none"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -44,112 +32,105 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
+            <!-- Sección de Cuenta -->
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Notificaciones"
-                        android:textColor="@color/colorPrimaryText"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/notificationsSwitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Activar notificaciones"
-                        android:textColor="@color/colorPrimaryText" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+                android:text="Cuenta"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="8dp"/>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Privacidad"
-                        android:textColor="@color/colorPrimaryText"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/privateProfileSwitch"
+                        android:id="@+id/btnEditProfile"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Perfil privado"
-                        android:textColor="@color/colorPrimaryText" />
+                        android:text="Editar perfil"
+                        android:drawableStart="@drawable/ic_edit"
+                        android:drawablePadding="16dp"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground"/>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider"/>
+
+                    <TextView
+                        android:id="@+id/btnChangePassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cambiar contraseña"
+                        android:drawableStart="@drawable/ic_lock"
+                        android:drawablePadding="16dp"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground"/>
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Sección de Seguridad -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Seguridad"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="8dp"/>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:layout_marginBottom="16dp"
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Cuenta"
-                        android:textColor="@color/colorPrimaryText"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/logoutButton"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:id="@+id/btnDeleteAccount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Cerrar sesión"
-                        android:textColor="@color/colorPrimary" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/deleteAccountButton"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
                         android:text="Eliminar cuenta"
-                        android:textColor="@color/colorError" />
+                        android:drawableStart="@drawable/ic_delete"
+                        android:drawablePadding="16dp"
+                        android:padding="16dp"
+                        android:textColor="@android:color/holo_red_dark"
+                        android:background="?attr/selectableItemBackground"/>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider"/>
+
+                    <TextView
+                        android:id="@+id/btnLogout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cerrar sesión"
+                        android:drawableStart="@drawable/ic_logout"
+                        android:drawablePadding="16dp"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground"/>
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>

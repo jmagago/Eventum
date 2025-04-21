@@ -1,63 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/transparent"
-            app:contentInsetStartWithNavigation="0dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Registro"
-                android:textColor="@color/colorPrimaryText"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-        </androidx.appcompat.widget.Toolbar>
+            android:background="?attr/colorPrimary"
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+            app:title="Registro"
+            app:titleTextAppearance="@style/ToolbarTitleStyle"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:scrollbars="none"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="24dp">
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/usernameLayout"
+                android:id="@+id/nameLayout"
                 style="@style/Widget.Eventum.TextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Nombre de usuario">
+                android:hint="Nombre">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/usernameInput"
+                    android:id="@+id/nameInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:maxLines="1" />
+                    android:inputType="textPersonName"/>
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/surnameLayout"
+                style="@style/Widget.Eventum.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Apellidos">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/surnameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"/>
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -73,8 +74,7 @@
                     android:id="@+id/emailInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress"
-                    android:maxLines="1" />
+                    android:inputType="textEmailAddress"/>
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -91,8 +91,7 @@
                     android:id="@+id/passwordInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:maxLines="1" />
+                    android:inputType="textPassword"/>
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -101,7 +100,7 @@
                 style="@style/Widget.Eventum.TextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="24dp"
                 android:hint="Confirmar contraseña"
                 app:endIconMode="password_toggle">
 
@@ -109,48 +108,24 @@
                     android:id="@+id/confirmPasswordInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:maxLines="1" />
+                    android:inputType="textPassword"/>
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="16dp">
-
-                <ProgressBar
-                    android:id="@+id/passwordStrengthIndicator"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:progressTint="@color/colorPrimary" />
-
-                <TextView
-                    android:id="@+id/passwordStrengthText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/colorSecondaryText"
-                    android:textSize="12sp" />
-
-            </LinearLayout>
-
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/registerButton"
-                style="@style/Widget.Eventum.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="Registrarse" />
+                android:text="Registrarse"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/loginButton"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/loginLink"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ya tienes cuenta? Inicia sesión" />
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:text="¿Ya tienes cuenta? Inicia sesión"
+                android:textColor="?attr/colorPrimary"/>
 
         </LinearLayout>
 

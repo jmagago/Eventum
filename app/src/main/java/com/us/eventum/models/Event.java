@@ -11,6 +11,8 @@ public class Event implements Serializable {
     private String location;
     private String userId;
     private int maxParticipants;
+    private String eventType;
+    private int currentParticipants;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -23,6 +25,19 @@ public class Event implements Serializable {
         this.location = location;
         this.userId = userId;
         this.maxParticipants = maxParticipants;
+        this.eventType = "Otro"; // Valor predeterminado
+        this.currentParticipants = 0;
+    }
+
+    public Event(String title, String description, Date date, String location, String userId, int maxParticipants, String eventType) {
+        this.title = title;
+        this.description = description;
+        this.date = date;
+        this.location = location;
+        this.userId = userId;
+        this.maxParticipants = maxParticipants;
+        this.eventType = eventType;
+        this.currentParticipants = 0;
     }
 
     // Getters y Setters
@@ -81,4 +96,20 @@ public class Event implements Serializable {
     public void setMaxParticipants(int maxParticipants) {
         this.maxParticipants = maxParticipants;
     }
-} 
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public int getCurrentParticipants() {
+        return currentParticipants;
+    }
+
+    public void setCurrentParticipants(int currentParticipants) {
+        this.currentParticipants = currentParticipants;
+    }
+}

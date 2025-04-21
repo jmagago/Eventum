@@ -3,6 +3,8 @@ package com.us.eventum.presentation.activities;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -11,6 +13,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -87,10 +90,16 @@ public class SettingsActivity extends AppCompatActivity {
             buildText.setText("Compilación: No disponible");
         }
 
-        new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this, R.style.CustomTransparentDialog)
                 .setView(dialogView)
-                .setPositiveButton("Aceptar", null)
-                .show();
+                .create();
+        
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        
+        // Configurar el botón de cerrar
+        dialogView.findViewById(R.id.closeButton).setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.show();
     }
 
     private void editProfile() {

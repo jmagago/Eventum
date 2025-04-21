@@ -6,6 +6,7 @@
     android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:elevation="4dp">
@@ -16,112 +17,132 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:titleTextAppearance="@style/ToolbarTitleStyle">
-
-            <ImageButton
-                android:id="@+id/editEventButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="end"
-                android:layout_marginEnd="16dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_edit"
-                android:contentDescription="Editar evento"
-                android:tint="@android:color/white"/>
-
-        </androidx.appcompat.widget.Toolbar>
+            app:popupTheme="@style/PopupMenuStyle"
+            app:titleTextAppearance="@style/ToolbarTitleStyle"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <LinearLayout
+        <!-- Información fija del evento -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
 
-            <TextView
-                android:id="@+id/eventTitleTextView"
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:padding="16dp"/>
+                android:layout_height="wrap_content">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                <ImageButton
+                    android:id="@+id/eventMenuButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_more_vert"
+                    android:tint="@color/colorPrimary"
+                    android:contentDescription="Menú del evento"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp"
+                    android:layout_marginEnd="48dp">
+
+                    <TextView
+                        android:id="@+id/eventTitleTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="32sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/colorPrimary"
+                        android:layout_marginBottom="16dp"/>
 
                     <TextView
                         android:id="@+id/eventDateTextView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="16sp"
-                        android:textColor="#333333"
-                        android:paddingBottom="12dp"
-                        android:drawablePadding="12dp"/>
+                        android:textColor="@color/colorSecondaryText"
+                        android:layout_marginBottom="12dp"/>
 
                     <TextView
                         android:id="@+id/eventCapacityTextView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="16sp"
-                        android:textColor="#333333"
-                        android:paddingBottom="12dp"
-                        android:drawablePadding="12dp"/>
+                        android:textColor="@color/colorSecondaryText"
+                        android:layout_marginBottom="12dp"/>
 
                     <TextView
                         android:id="@+id/eventLocationTextView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="16sp"
-                        android:textColor="#333333"
-                        android:drawablePadding="12dp"/>
+                        android:textColor="@color/colorSecondaryText"/>
 
                 </LinearLayout>
 
-            </com.google.android.material.card.MaterialCardView>
+            </RelativeLayout>
 
-            <TextView
-                android:id="@+id/eventDescriptionTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="16dp"
-                android:visibility="gone"/>
+        </com.google.android.material.card.MaterialCardView>
 
-            <Button
-                android:id="@+id/addAttendeeButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="AÑADIR ASISTENTE"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="16dp"/>
+        <TextView
+            android:id="@+id/eventDescriptionTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="16dp"
+            android:visibility="gone"/>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/attendeesRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:paddingHorizontal="16dp"
-                android:clipToPadding="false"/>
+        <!-- Mensaje cuando no hay asistentes -->
+        <TextView
+            android:id="@+id/emptyAttendeesTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No hay asistentes registrados para este evento"
+            android:textColor="@color/colorPrimary"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:padding="24dp"
+            android:layout_margin="16dp"
+            android:visibility="gone"/>
 
-        </LinearLayout>
+        <!-- Lista de asistentes con scroll -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/attendeesRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingHorizontal="16dp"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp"/>
 
-    </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
+
+    <!-- Botón flotante para añadir asistentes -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addAttendeeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_add"
+        app:fabSize="normal"
+        app:elevation="6dp"
+        android:backgroundTint="@color/colorPrimary"
+        app:tint="@android:color/white"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

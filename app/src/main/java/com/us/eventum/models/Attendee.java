@@ -14,6 +14,8 @@ public class Attendee implements Serializable {
     private Timestamp birthDate;
     private boolean requiresParentalAuthorization;
     private Date registrationDate;
+    private long confirmationTime;
+    private boolean scanned;
 
     public Attendee() {
         // Constructor vacío requerido para Firestore
@@ -24,12 +26,25 @@ public class Attendee implements Serializable {
         this.lastName = lastName;
         this.email = email;
         this.phone = phone;
-        this.birthDate = Timestamp.now(); // Por defecto, usamos la fecha actual
+        this.requiresParentalAuthorization = false;
+        this.registrationDate = new Date();
+        this.confirmationTime = 0;
+        this.scanned = false;
+    }
+
+    public Attendee(String id, String eventId, String name, String lastName, String email, String phone, long confirmationTime, boolean scanned) {
+        this.id = id;
+        this.eventId = eventId;
+        this.name = name;
+        this.lastName = lastName;
+        this.email = email;
+        this.phone = phone;
+        this.confirmationTime = confirmationTime;
+        this.scanned = scanned;
         this.requiresParentalAuthorization = false;
         this.registrationDate = new Date();
     }
 
-    // Getters y Setters
     public String getId() {
         return id;
     }
@@ -101,4 +116,20 @@ public class Attendee implements Serializable {
     public void setRegistrationDate(Date registrationDate) {
         this.registrationDate = registrationDate;
     }
-} 
+
+    public long getConfirmationTime() {
+        return confirmationTime;
+    }
+
+    public void setConfirmationTime(long confirmationTime) {
+        this.confirmationTime = confirmationTime;
+    }
+
+    public boolean isScanned() {
+        return scanned;
+    }
+
+    public void setScanned(boolean scanned) {
+        this.scanned = scanned;
+    }
+}

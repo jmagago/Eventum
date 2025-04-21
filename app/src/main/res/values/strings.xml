@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">Eventum</string>
+    
+    <!-- Información de la app -->
+    <string name="app_info_title">Información de la app</string>
+    <string name="app_info_description"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
+    <string name="app_info_desc"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
+    <string name="app_info_contact">Información de Contacto</string>
+    <string name="app_info_technical">Información Técnica</string>
+    <string name="app_info_email">juagagpoy@alum.us.es</string>
+    <string name="app_info_tutor">Álvarez García, Juan Antonio</string>
+    <string name="app_info_copyright">© 2025 Eventum</string>
+    <string name="app_info_version">Versión: %1$s</string>
+    <string name="app_info_build">Compilación: %1$d</string>
+    <string name="app_info_version_placeholder">Versión: -</string>
+    <string name="app_info_build_placeholder">Compilación: -</string>
+    <string name="email_icon_desc">Icono de email</string>
+    <string name="tutor_icon_desc">Icono de tutor</string>
+    <string name="accept">Aceptar</string>
+
+    <!-- Pantalla de Login -->
+    <string name="login_title">Eventum</string>
+
+    <!-- Pantalla de Restablecimiento de Contraseña -->
+    <string name="reset_password_title">Restablecer Contraseña</string>
+    <string name="reset_password_subtitle">¿Has olvidado tu contraseña?</string>
+    <string name="reset_password_description">Introduce tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</string>
+    <string name="reset_password_button">Enviar Enlace</string>
+    <string name="back_to_login">Volver al Inicio de Sesión</string>
 </resources>
