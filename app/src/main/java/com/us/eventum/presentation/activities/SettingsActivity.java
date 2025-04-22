@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,7 +24,7 @@ import com.us.eventum.R;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    private TextView btnEditProfile, btnChangePassword, btnDeleteAccount, btnLogout;
+    private LinearLayout btnEditProfile, btnChangePassword, btnDeleteAccount, btnLogout;
     private FirebaseAuth mAuth;
 
     @Override
@@ -113,40 +114,73 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void deleteAccount() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Eliminar cuenta")
-                .setMessage("¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.")
-                .setPositiveButton("Eliminar", (dialog, which) -> {
-                    if (mAuth.getCurrentUser() != null) {
-                        mAuth.getCurrentUser().delete()
-                                .addOnCompleteListener(task -> {
-                                    if (task.isSuccessful()) {
-                                        Toast.makeText(SettingsActivity.this, 
-                                                     "Cuenta eliminada correctamente", 
-                                                     Toast.LENGTH_SHORT).show();
-                                        goToLogin();
-                                    } else {
-                                        Toast.makeText(SettingsActivity.this, 
-                                                     "Error al eliminar la cuenta", 
-                                                     Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                    }
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
+        // Crear el diálogo personalizado
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_delete_account, null);
+        builder.setView(dialogView);
+        
+        // Crear el diálogo
+        AlertDialog dialog = builder.create();
+        
+        // Configurar fondo transparente
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        
+        // Configurar botones
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
+        
+        dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
+            if (mAuth.getCurrentUser() != null) {
+                // Mostrar un indicador de progreso
+                Toast.makeText(SettingsActivity.this, "Eliminando cuenta...", Toast.LENGTH_SHORT).show();
+                
+                mAuth.getCurrentUser().delete()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(SettingsActivity.this, 
+                                          "Cuenta eliminada correctamente", 
+                                          Toast.LENGTH_SHORT).show();
+                            goToLogin();
+                        } else {
+                            Toast.makeText(SettingsActivity.this, 
+                                          "Error al eliminar la cuenta", 
+                                          Toast.LENGTH_SHORT).show();
+                        }
+                    });
+            }
+            dialog.dismiss();
+        });
+        
+        // Mostrar el diálogo
+        dialog.show();
     }
 
     private void logout() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Cerrar sesión")
-                .setMessage("¿Estás seguro de que quieres cerrar sesión?")
-                .setPositiveButton("Sí", (dialog, which) -> {
-                    mAuth.signOut();
-                    goToLogin();
-                })
-                .setNegativeButton("No", null)
-                .show();
+        // Crear el diálogo personalizado
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_logout, null);
+        builder.setView(dialogView);
+        
+        // Crear el diálogo
+        AlertDialog dialog = builder.create();
+        
+        // Configurar fondo transparente
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        
+        // Configurar botones
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
+        
+        dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
+            mAuth.signOut();
+            goToLogin();
+            dialog.dismiss();
+        });
+        
+        // Mostrar el diálogo
+        dialog.show();
     }
 
     private void goToLogin() {

@@ -3,11 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:elevation="4dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -30,108 +32,291 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
-            <!-- Sección de Cuenta -->
+            <!-- Sección de Cuenta con nuevo diseño -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Cuenta"
                 android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginBottom="8dp"/>
+                android:textSize="18sp"
+                android:textColor="@color/colorPrimary"
+                android:letterSpacing="0.05"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="12dp"/>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="8dp">
+                android:layout_marginBottom="24dp"
+                app:cardElevation="3dp"
+                app:cardCornerRadius="12dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@android:color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
                         android:id="@+id/btnEditProfile"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Editar perfil"
-                        android:drawableStart="@drawable/ic_edit"
-                        android:drawablePadding="16dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:padding="16dp"
-                        android:background="?attr/selectableItemBackground"/>
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_edit"
+                            android:tint="@color/colorPrimary"
+                            android:contentDescription="Editar perfil"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Editar perfil"
+                                android:textSize="16sp"
+                                android:textColor="@color/colorPrimaryText"/>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Actualiza tu información personal"
+                                android:textSize="14sp"
+                                android:textColor="@color/colorSecondaryText"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_arrow_right"
+                            android:tint="@color/colorPrimary"
+                            android:layout_marginStart="8dp"
+                            android:contentDescription="Ir a editar perfil"/>
+                    </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="?android:attr/listDivider"/>
+                        android:layout_marginStart="56dp"
+                        android:background="#EEEEEE"/>
 
-                    <TextView
+                    <LinearLayout
                         android:id="@+id/btnChangePassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Cambiar contraseña"
-                        android:drawableStart="@drawable/ic_lock"
-                        android:drawablePadding="16dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:padding="16dp"
-                        android:background="?attr/selectableItemBackground"/>
+                        android:background="?attr/selectableItemBackground">
 
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_change_password"
+                            android:tint="@color/colorPrimary"
+                            android:contentDescription="Cambiar contraseña"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Cambiar contraseña"
+                                android:textSize="16sp"
+                                android:textColor="@color/colorPrimaryText"/>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Actualiza tu contraseña por seguridad"
+                                android:textSize="14sp"
+                                android:textColor="@color/colorSecondaryText"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_arrow_right"
+                            android:tint="@color/colorPrimary"
+                            android:layout_marginStart="8dp"
+                            android:contentDescription="Ir a cambiar contraseña"/>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Sección de Seguridad -->
+            <!-- Sección de Seguridad con nuevo diseño -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Seguridad"
                 android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginBottom="8dp"/>
+                android:textSize="18sp"
+                android:textColor="@color/colorPrimary"
+                android:letterSpacing="0.05"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="12dp"/>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="8dp">
+                app:cardElevation="3dp"
+                app:cardCornerRadius="12dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@android:color/white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
                         android:id="@+id/btnDeleteAccount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Eliminar cuenta"
-                        android:drawableStart="@drawable/ic_delete"
-                        android:drawablePadding="16dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:padding="16dp"
-                        android:textColor="@android:color/holo_red_dark"
-                        android:background="?attr/selectableItemBackground"/>
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_delete"
+                            android:tint="@android:color/holo_red_dark"
+                            android:contentDescription="Eliminar cuenta"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Eliminar cuenta"
+                                android:textSize="16sp"
+                                android:textColor="@android:color/holo_red_dark"/>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Elimina permanentemente tus datos"
+                                android:textSize="14sp"
+                                android:textColor="@color/colorSecondaryText"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_arrow_right"
+                            android:tint="@color/colorPrimary"
+                            android:layout_marginStart="8dp"
+                            android:contentDescription="Ir a eliminar cuenta"/>
+                    </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="?android:attr/listDivider"/>
+                        android:layout_marginStart="56dp"
+                        android:background="#EEEEEE"/>
 
-                    <TextView
+                    <LinearLayout
                         android:id="@+id/btnLogout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Cerrar sesión"
-                        android:drawableStart="@drawable/ic_logout"
-                        android:drawablePadding="16dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:padding="16dp"
-                        android:background="?attr/selectableItemBackground"/>
+                        android:background="?attr/selectableItemBackground">
 
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_logout"
+                            android:tint="@color/colorPrimary"
+                            android:contentDescription="Cerrar sesión"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="16dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Cerrar sesión"
+                                android:textSize="16sp"
+                                android:textColor="@color/colorPrimaryText"/>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Finalizar sesión actual en este dispositivo"
+                                android:textSize="14sp"
+                                android:textColor="@color/colorSecondaryText"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_arrow_right"
+                            android:tint="@color/colorPrimary"
+                            android:layout_marginStart="8dp"
+                            android:contentDescription="Ir a cerrar sesión"/>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            
+            <!-- Versión de la aplicación -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="40dp">
+                
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_qr_logo"
+                    android:alpha="0.7"
+                    android:contentDescription="Logo de la aplicación" />
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Eventum v1.0"
+                    android:textSize="14sp"
+                    android:textColor="@color/colorSecondaryText"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
 
         </LinearLayout>
 
