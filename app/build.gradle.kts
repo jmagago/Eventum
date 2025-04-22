@@ -2,7 +2,7 @@ import java.io.File
 import java.util.Properties
 
 plugins {
-    id("com.android.application") version "8.9.1"
+    id("com.android.application") version "8.9.2"
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
 }
