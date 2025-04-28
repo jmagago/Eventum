@@ -32,6 +32,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import com.us.eventum.utils.ToastUtils;
 
 public class CreateEventActivity extends AppCompatActivity {
     private TextInputEditText nombreEventoEditText, fechaEventoEditText, maxParticipantesEditText, 
@@ -228,11 +229,11 @@ public class CreateEventActivity extends AppCompatActivity {
             .add(event)
             .addOnSuccessListener(documentReference -> {
                 event.setId(documentReference.getId());
-                Toast.makeText(this, "Evento creado exitosamente", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Evento creado exitosamente", ToastUtils.ToastType.SUCCESS);
                 finish();
             })
             .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error al crear el evento: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error al crear el evento: " + e.getMessage(), ToastUtils.ToastType.ERROR);
                 progressBar.setVisibility(View.GONE);
                 crearEventoButton.setEnabled(true);
             });

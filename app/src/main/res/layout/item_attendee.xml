@@ -2,72 +2,71 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/AttendeeItemStyle">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="20dp"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="3dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical"
-        android:minHeight="72dp">
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/attendeeAvatar"
+        <ImageView
+            android:id="@+id/attendeeIcon"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_person"
-            android:scaleType="centerCrop"
-            android:background="@color/colorPrimary"
-            app:tint="@android:color/white"
-            app:shapeAppearanceOverlay="@style/CircleImageView"/>
+            android:tint="@color/colorPrimary"
+            android:padding="4dp"
+            android:contentDescription="Icono de asistente"/>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp">
+            android:layout_marginStart="16dp">
 
             <TextView
-                android:id="@+id/attendeeName"
+                android:id="@+id/attendeeNameTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                android:textColor="@color/colorPrimary"
-                android:textStyle="bold"
-                android:ellipsize="end"
-                android:maxLines="1"/>
+                android:textColor="@color/colorPrimaryText"
+                android:textStyle="bold"/>
 
             <TextView
-                android:id="@+id/attendeeEmail"
+                android:id="@+id/attendeeEmailTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
                 android:textColor="@color/colorSecondaryText"
-                android:ellipsize="end"
-                android:maxLines="1"
                 android:layout_marginTop="2dp"/>
 
             <TextView
-                android:id="@+id/attendeePhone"
+                android:id="@+id/attendeePhoneTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
-                android:textColor="#757575"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:layout_marginTop="2dp"/>
+                android:textColor="@color/colorSecondaryText"
+                android:layout_marginTop="2dp"
+                android:visibility="gone"/>
 
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/chevronIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_gravity="center_vertical"
             android:src="@drawable/ic_chevron_right"
             android:tint="@color/colorPrimary"
+            android:layout_marginStart="8dp"
             android:contentDescription="Ver detalles"/>
 
     </LinearLayout>

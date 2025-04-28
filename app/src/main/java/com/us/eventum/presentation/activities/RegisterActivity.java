@@ -7,7 +7,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -19,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.R;
+import com.us.eventum.utils.ToastUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -200,9 +200,9 @@ public class RegisterActivity extends AppCompatActivity {
                                                 .addOnCompleteListener(emailTask -> {
                                                     registerButton.setEnabled(true);
                                                     if (emailTask.isSuccessful()) {
-                                                        Toast.makeText(RegisterActivity.this,
+                                                        ToastUtils.showCustomToast(RegisterActivity.this,
                                                                 "Registro exitoso. Por favor, verifica tu email antes de iniciar sesión",
-                                                                Toast.LENGTH_LONG).show();
+                                                                ToastUtils.ToastType.SUCCESS);
 
                                                         // Cerrar sesión y redirigir al login
                                                         mAuth.signOut();
@@ -211,24 +211,24 @@ public class RegisterActivity extends AppCompatActivity {
                                                         startActivity(intent);
                                                         finish();
                                                     } else {
-                                                        Toast.makeText(RegisterActivity.this,
+                                                        ToastUtils.showCustomToast(RegisterActivity.this,
                                                                 "Error al enviar email de verificación",
-                                                                Toast.LENGTH_SHORT).show();
+                                                                ToastUtils.ToastType.ERROR);
                                                     }
                                                 });
                                     })
                                     .addOnFailureListener(e -> {
                                         registerButton.setEnabled(true);
-                                        Toast.makeText(RegisterActivity.this,
+                                        ToastUtils.showCustomToast(RegisterActivity.this,
                                                 "Error al guardar los datos: " + e.getMessage(),
-                                                Toast.LENGTH_SHORT).show();
+                                                ToastUtils.ToastType.ERROR);
                                     });
                         }
                     } else {
                         registerButton.setEnabled(true);
-                        Toast.makeText(RegisterActivity.this,
+                        ToastUtils.showCustomToast(RegisterActivity.this,
                                 "Error en el registro: " + task.getException().getMessage(),
-                                Toast.LENGTH_SHORT).show();
+                                ToastUtils.ToastType.ERROR);
                     }
                 });
     }

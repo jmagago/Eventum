@@ -3,6 +3,7 @@ package com.us.eventum.presentation.activities;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,18 +49,21 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import android.widget.ImageView;
 import com.us.eventum.utils.QRCodeGenerator;
+import com.us.eventum.utils.ToastUtils;
 
 public class EventDetailsActivity extends AppCompatActivity {
+    private static final String TAG = "EventDetailsActivity";
     private Event event;
     private FirebaseFirestore db;
     private AttendeeAdapter attendeeAdapter;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
     private List<Attendee> attendees = new ArrayList<>();
-    private TextView titleTextView, dateTextView, locationTextView, descriptionTextView;
+    private TextView dateTextView, locationTextView, descriptionTextView;
     private TextView emptyAttendeesTextView;
     private FloatingActionButton addAttendeeButton;
     private RecyclerView attendeesRecyclerView;
     private ImageButton eventMenuButton;
+    private static final int QR_SCANNER_REQUEST_CODE = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,34 +73,42 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Inicializar Firestore
         db = FirebaseFirestore.getInstance();
 
-        // Obtener el evento de los extras
-        event = (Event) getIntent().getSerializableExtra("event");
-        if (event == null) {
-            Toast.makeText(this, "Error al cargar el evento", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        // Configurar toolbar
+        // Configurar Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setDisplayShowTitleEnabled(true);
-            getSupportActionBar().setTitle(event.getTitle());
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // Inicializar vistas
-        initializeViews();
-        setupRecyclerView();
-        displayEventDetails();
+        // Configurar botón de retroceso
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> onBackPressed());
+
+        // Obtener el evento y configurar el título
+        event = (Event) getIntent().getSerializableExtra("event");
+        TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
         
-        // Cargar asistentes y actualizar la interfaz
-        loadAttendees();
+        if (event != null) {
+            toolbarTitleTextView.setText(event.getTitle());
+            // Inicializar el resto de la UI
+            initializeViews();
+            setupRecyclerView();
+            displayEventDetails();
+            loadAttendees();
+
+            // Manejar extras para mostrar diálogos
+            if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
+                showClearAttendeeListConfirmation();
+            } else if (getIntent().getBooleanExtra("show_delete_dialog", false)) {
+                showDeleteEventDialog();
+            }
+        } else {
+            ToastUtils.showCustomToast(this, "Error al cargar el evento", ToastUtils.ToastType.ERROR);
+            finish();
+        }
     }
 
     private void initializeViews() {
-        titleTextView = findViewById(R.id.eventTitleTextView);
         dateTextView = findViewById(R.id.eventDateTextView);
         locationTextView = findViewById(R.id.eventLocationTextView);
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
@@ -116,19 +128,22 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     private void displayEventDetails() {
-        // El título ya no es necesario aquí ya que se muestra en la barra superior
-        titleTextView.setVisibility(View.GONE);
+        if (event == null) return;
         
         // Crear formato de fecha más completo
         SimpleDateFormat fullDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
         String formattedDate = fullDateFormat.format(event.getDate());
         formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
         
+        // Contar asistentes verificados
+        long verifiedCount = attendees.stream().filter(Attendee::isVerified).count();
+        
         // Formato más profesional para fecha, capacidad y ubicación
         String dateText = String.format("📅  %s", formattedDate);
         String capacityText = String.format("👥  %d de %d plazas ocupadas", 
             attendees.size(),
             event.getMaxParticipants());
+        String verifiedText = String.format("%d asistentes verificados", verifiedCount);
         String locationText = String.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
@@ -140,12 +155,34 @@ public class EventDetailsActivity extends AppCompatActivity {
             capacityTextView.setText(capacityText);
             capacityTextView.setVisibility(View.VISIBLE);
         }
+
+        // Mostrar el número de asistentes verificados
+        View verifiedLayout = findViewById(R.id.verifiedLayout);
+        TextView verifiedTextView = findViewById(R.id.verifiedTextView);
         
+        if (verifiedLayout != null && verifiedTextView != null) {
+            verifiedTextView.setText(verifiedText);
+            verifiedLayout.setVisibility(View.VISIBLE);
+        }
+        
+        // Mostrar descripción si existe
+        View descriptionLayout = findViewById(R.id.descriptionLayout);
+        View descriptionSpacer = findViewById(R.id.descriptionSpacer);
         if (event.getDescription() != null && !event.getDescription().isEmpty()) {
             descriptionTextView.setText(event.getDescription());
-            descriptionTextView.setVisibility(View.VISIBLE);
+            if (descriptionLayout != null) {
+                descriptionLayout.setVisibility(View.VISIBLE);
+                if (descriptionSpacer != null) {
+                    descriptionSpacer.setVisibility(View.VISIBLE);
+                }
+            }
         } else {
-            descriptionTextView.setVisibility(View.GONE);
+            if (descriptionLayout != null) {
+                descriptionLayout.setVisibility(View.GONE);
+                if (descriptionSpacer != null) {
+                    descriptionSpacer.setVisibility(View.GONE);
+                }
+            }
         }
     }
 
@@ -173,8 +210,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 }
             })
             .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error al cargar asistentes: " + e.getMessage(), 
-                    Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error al cargar asistentes: " + e.getMessage(), ToastUtils.ToastType.ERROR);
             });
     }
 
@@ -231,7 +267,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
             // Validar campos obligatorios
             if (name.isEmpty() || email.isEmpty() || phone.isEmpty()) {
-                Toast.makeText(this, "Por favor, completa los campos obligatorios", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Por favor, completa los campos obligatorios", ToastUtils.ToastType.INFO);
                 return;
             }
 
@@ -253,12 +289,16 @@ public class EventDetailsActivity extends AppCompatActivity {
                 .add(attendee)
                 .addOnSuccessListener(documentReference -> {
                     attendee.setId(documentReference.getId());
-                    loadAttendees(); // Recargar la lista de asistentes
+                    getSharedPreferences("eventum_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putBoolean("events_updated", true)
+                        .apply();
+                    loadAttendees();
                     dialog.dismiss();
-                    Toast.makeText(this, "Asistente agregado con éxito", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(this, "Asistente agregado con éxito", ToastUtils.ToastType.SUCCESS);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error al agregar asistente: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(this, "Error al agregar asistente: " + e.getMessage(), ToastUtils.ToastType.ERROR);
                 });
         });
 
@@ -341,14 +381,17 @@ public class EventDetailsActivity extends AppCompatActivity {
                     .document(attendee.getId())
                     .delete()
                     .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Asistente eliminado correctamente", Toast.LENGTH_SHORT).show();
-                        loadAttendees(); // Recargar la lista de asistentes
-                        dialog.dismiss(); // Cerrar el diálogo original también
-                        confirmDialog.dismiss(); // Cerrar diálogo de confirmación
+                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("events_updated", true)
+                            .apply();
+                        ToastUtils.showCustomToast(this, "Asistente eliminado correctamente", ToastUtils.ToastType.SUCCESS);
+                        loadAttendees();
+                        dialog.dismiss();
+                        confirmDialog.dismiss();
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error al eliminar asistente: " + e.getMessage(), 
-                            Toast.LENGTH_SHORT).show();
+                        ToastUtils.showCustomToast(this, "Error al eliminar asistente: " + e.getMessage(), ToastUtils.ToastType.ERROR);
                     });
             });
             
@@ -402,20 +445,22 @@ public class EventDetailsActivity extends AppCompatActivity {
                 db.collection("events").document(event.getId())
                     .delete()
                     .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Evento eliminado correctamente", Toast.LENGTH_SHORT).show();
+                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("events_updated", true)
+                            .apply();
+                        ToastUtils.showCustomToast(this, "Evento eliminado correctamente", ToastUtils.ToastType.SUCCESS);
                         // Volver a la pantalla principal
                         Intent intent = new Intent(this, HomeActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error al eliminar el evento: " + e.getMessage(), 
-                            Toast.LENGTH_SHORT).show();
+                        ToastUtils.showCustomToast(this, "Error al eliminar el evento: " + e.getMessage(), ToastUtils.ToastType.ERROR);
                     });
             })
             .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error al eliminar asistentes: " + e.getMessage(), 
-                    Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error al eliminar asistentes: " + e.getMessage(), ToastUtils.ToastType.ERROR);
             });
     }
 
@@ -466,7 +511,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             String maxParticipantsStr = maxParticipantsInput.getText().toString().trim();
             
             if (title.isEmpty() || location.isEmpty() || dateStr.isEmpty() || maxParticipantsStr.isEmpty()) {
-                Toast.makeText(this, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Todos los campos son obligatorios", ToastUtils.ToastType.INFO);
                 return;
             }
             
@@ -475,7 +520,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 int maxParticipants = Integer.parseInt(maxParticipantsStr);
                 
                 if (maxParticipants < attendees.size()) {
-                    Toast.makeText(this, "El número de plazas no puede ser menor que el número actual de asistentes", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(this, "El número de plazas no puede ser menor que el número actual de asistentes", ToastUtils.ToastType.INFO);
                     return;
                 }
                 
@@ -501,16 +546,20 @@ public class EventDetailsActivity extends AppCompatActivity {
                         }
                         displayEventDetails();
                         
-                        Toast.makeText(this, "Evento actualizado correctamente", Toast.LENGTH_SHORT).show();
+                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("events_updated", true)
+                            .apply();
+                        ToastUtils.showCustomToast(this, "Evento actualizado correctamente", ToastUtils.ToastType.SUCCESS);
                         dialog.dismiss();
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error al actualizar el evento: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        ToastUtils.showCustomToast(this, "Error al actualizar el evento: " + e.getMessage(), ToastUtils.ToastType.ERROR);
                     });
             } catch (ParseException e) {
-                Toast.makeText(this, "Error en el formato de fecha", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error en el formato de fecha", ToastUtils.ToastType.INFO);
             } catch (NumberFormatException e) {
-                Toast.makeText(this, "El número de plazas debe ser un número válido", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "El número de plazas debe ser un número válido", ToastUtils.ToastType.INFO);
             }
         });
         
@@ -542,10 +591,10 @@ public class EventDetailsActivity extends AppCompatActivity {
                 showEditEventDialog();
                 return true;
             } else if (id == R.id.action_send_invitations) {
-                Toast.makeText(this, "Enviar invitaciones", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Enviar invitaciones", ToastUtils.ToastType.INFO);
                 return true;
             } else if (id == R.id.action_verify_attendees) {
-                Toast.makeText(this, "Verificar asistentes", Toast.LENGTH_SHORT).show();
+                startQRScanner();
                 return true;
             } else if (id == R.id.action_clear_list) {
                 showClearAttendeeListConfirmation();
@@ -597,7 +646,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 int totalToDelete = queryDocumentSnapshots.size();
                 
                 if (totalToDelete == 0) {
-                    Toast.makeText(this, "No hay asistentes para eliminar", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(this, "No hay asistentes para eliminar", ToastUtils.ToastType.INFO);
                     return;
                 }
                 
@@ -614,18 +663,40 @@ public class EventDetailsActivity extends AppCompatActivity {
                 emptyAttendeesTextView.setVisibility(View.VISIBLE);
                 attendeesRecyclerView.setVisibility(View.GONE);
                 
-                Toast.makeText(this, "Lista de asistentes vaciada", Toast.LENGTH_SHORT).show();
+                getSharedPreferences("eventum_prefs", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("events_updated", true)
+                    .apply();
+                ToastUtils.showCustomToast(this, "Lista de asistentes vaciada", ToastUtils.ToastType.SUCCESS);
             })
             .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error al vaciar la lista: " + e.getMessage(), 
-                    Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error al vaciar la lista: " + e.getMessage(), ToastUtils.ToastType.ERROR);
             });
+    }
+
+    private void startQRScanner() {
+        Intent intent = new Intent(this, QRScannerActivity.class);
+        intent.putExtra("eventId", event.getId());
+        startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == QR_SCANNER_REQUEST_CODE && resultCode == RESULT_OK) {
+            // Recargar la lista de asistentes
+            loadAttendees();
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             onBackPressed();
+            return true;
+        }
+        if (item.getItemId() == R.id.action_verify_attendees) {
+            startQRScanner();
             return true;
         }
         return super.onOptionsItemSelected(item);

@@ -23,6 +23,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.us.eventum.config.AppConfig;
 import com.us.eventum.utils.PasswordValidator;
+import com.us.eventum.utils.ToastUtils;
 import androidx.annotation.NonNull;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
@@ -140,9 +141,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Verificar intentos de inicio de sesión
         if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-            Toast.makeText(this, 
-                "Demasiados intentos fallidos. Por favor, espera unos minutos.", 
-                Toast.LENGTH_LONG).show();
+            ToastUtils.showCustomToast(this, "Demasiados intentos fallidos. Por favor, espera unos minutos.", ToastUtils.ToastType.WARNING);
             return;
         }
 
@@ -186,9 +185,7 @@ public class LoginActivity extends AppCompatActivity {
                                 }
                                 
                                 // Mostrar toast personalizado con el nombre
-                                Toast.makeText(LoginActivity.this, 
-                                    "¡Bienvenido/a " + userName + "!", 
-                                    Toast.LENGTH_SHORT).show();
+                                ToastUtils.showWelcomeToast(LoginActivity.this, "¡Bienvenido/a " + userName + "!");
                                 
                                 // Navegar a HomeActivity y limpiar el stack
                                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
@@ -198,9 +195,7 @@ public class LoginActivity extends AppCompatActivity {
                             })
                             .addOnFailureListener(e -> {
                                 // En caso de error, mostrar mensaje genérico y continuar
-                                Toast.makeText(LoginActivity.this, 
-                                    "¡Bienvenido/a a Eventum!", 
-                                    Toast.LENGTH_SHORT).show();
+                                ToastUtils.showWelcomeToast(LoginActivity.this, "¡Bienvenido/a a Eventum!");
                                 
                                 // Navegar a HomeActivity y limpiar el stack
                                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
@@ -228,6 +223,7 @@ public class LoginActivity extends AppCompatActivity {
                             }
                         }
                     }
+                    ToastUtils.showCustomToast(this, "Error al iniciar sesión", ToastUtils.ToastType.ERROR);
                 }
             });
     }

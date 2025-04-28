@@ -9,17 +9,122 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="4dp">
+        android:background="@android:color/transparent"
+        android:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-            app:title="Ajustes"
-            app:titleTextAppearance="@style/ToolbarTitleStyle"
-            app:menu="@menu/settings_menu"/>
+            android:layout_height="wrap_content"
+            style="@style/CustomToolbar">
+
+            <LinearLayout
+                style="@style/ToolbarProfileContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_arrow_back"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="@color/colorPrimary"
+                    android:padding="12dp"
+                    android:contentDescription="Volver atrás"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ajustes"
+                    android:layout_marginStart="8dp"
+                    style="@style/ToolbarTitleStyle"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/infoButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_info"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="@color/warning"
+                    android:padding="12dp"
+                    android:contentDescription="Información de la app"/>
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+        <!-- Contenedor de perfil -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/white"
+            android:padding="16dp">
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/profileImageView"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:src="@drawable/default_profile"
+                    app:civ_border_width="2dp"
+                    app:civ_border_color="@color/colorPrimary"/>
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progressIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    app:indicatorSize="48dp"
+                    app:trackThickness="4dp"
+                    app:indicatorColor="@color/colorPrimary"/>
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/editProfileImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|bottom"
+                    android:src="@drawable/ic_edit"
+                    app:fabSize="mini"
+                    app:tint="@color/white"
+                    android:layout_marginStart="-24dp"
+                    android:contentDescription="Editar foto de perfil"/>
+
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/userNameTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorPrimary"
+                android:layout_marginTop="12dp"/>
+
+            <TextView
+                android:id="@+id/userEmailTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textSize="14sp"
+                android:textColor="@color/colorSecondaryText"
+                android:layout_marginTop="4dp"/>
+
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -111,7 +216,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
+                        android:layout_marginHorizontal="16dp"
                         android:background="#EEEEEE"/>
 
                     <LinearLayout
@@ -241,7 +346,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
+                        android:layout_marginHorizontal="16dp"
                         android:background="#EEEEEE"/>
 
                     <LinearLayout
@@ -293,30 +398,6 @@
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-            
-            <!-- Versión de la aplicación -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginTop="40dp">
-                
-                <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_qr_logo"
-                    android:alpha="0.7"
-                    android:contentDescription="Logo de la aplicación" />
-                    
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Eventum v1.0"
-                    android:textSize="14sp"
-                    android:textColor="@color/colorSecondaryText"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
 
         </LinearLayout>
 

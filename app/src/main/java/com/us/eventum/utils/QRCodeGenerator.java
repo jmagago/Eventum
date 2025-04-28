@@ -23,21 +23,17 @@ public class QRCodeGenerator {
      */
     public static Bitmap generateQRCode(Attendee attendee, int size) {
         try {
-            // Crear un objeto JSON con los datos del asistente
-            JSONObject attendeeData = new JSONObject();
-            attendeeData.put("id", attendee.getId());
-            attendeeData.put("name", attendee.getName());
-            attendeeData.put("lastName", attendee.getLastName());
-            attendeeData.put("email", attendee.getEmail());
-            attendeeData.put("phone", attendee.getPhone());
-            attendeeData.put("eventId", attendee.getEventId());
+            // Crear un objeto JSON solo con los datos necesarios para la verificación
+            JSONObject qrData = new JSONObject();
+            qrData.put("eventId", attendee.getEventId());
+            qrData.put("attendeeId", attendee.getId());
             
             // Convertir el JSON a string
-            String attendeeJson = attendeeData.toString();
+            String qrContent = qrData.toString();
             
             // Generar el código QR
             QRCodeWriter writer = new QRCodeWriter();
-            BitMatrix bitMatrix = writer.encode(attendeeJson, BarcodeFormat.QR_CODE, size, size);
+            BitMatrix bitMatrix = writer.encode(qrContent, BarcodeFormat.QR_CODE, size, size);
             
             // Convertir la matriz de bits a un bitmap
             Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);

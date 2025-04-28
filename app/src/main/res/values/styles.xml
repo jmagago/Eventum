@@ -77,11 +77,38 @@
 
     <!-- Estilo para el título del Toolbar -->
     <style name="ToolbarTitleStyle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
-        <item name="android:textSize">24sp</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textColor">@color/colorPrimary</item>
         <item name="android:letterSpacing">0.02</item>
-        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Estilo para el Toolbar -->
+    <style name="CustomToolbar">
+        <item name="android:background">@color/white</item>
+        <item name="android:elevation">4dp</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
+    <!-- Estilo para el contenedor del perfil en Toolbar -->
+    <style name="ToolbarProfileContainer">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <!-- Estilo para subtítulos en el Toolbar -->
+    <style name="ToolbarSubtitleStyle" parent="TextAppearance.Widget.AppCompat.Toolbar.Subtitle">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/colorSecondaryText</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:fontFamily">sans-serif</item>
     </style>
 
     <!-- Estilo para los iconos del menú -->

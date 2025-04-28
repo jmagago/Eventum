@@ -1,5 +1,6 @@
 package com.us.eventum.adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,13 +28,14 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     public interface OnEventClickListener {
         void onEventClick(Event event);
+        void onEventLongClick(View view, Event event);
     }
 
     /**
      * Constructor con listener para eventos de clic
      */
-    public EventAdapter(OnEventClickListener listener) {
-        this.events = new ArrayList<>();
+    public EventAdapter(List<Event> events, OnEventClickListener listener) {
+        this.events = events;
         this.listener = listener;
         this.db = FirebaseFirestore.getInstance();
         this.dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
@@ -75,13 +77,13 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public EventViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_event, parent, false);
-        return new EventViewHolder(view, listener);
+        return new EventViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
         Event event = events.get(position);
-        holder.bind(event, useDynamicParticipantCount);
+        holder.bind(event);
     }
 
     @Override
@@ -95,31 +97,41 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         private TextView locationText;
         private TextView participantsText;
         private SimpleDateFormat displayDateFormat;
-        private OnEventClickListener listener;
 
-        public EventViewHolder(@NonNull View itemView, OnEventClickListener listener) {
+        public EventViewHolder(@NonNull View itemView) {
             super(itemView);
-            this.listener = listener;
             titleText = itemView.findViewById(R.id.eventTitleTextView);
             dateText = itemView.findViewById(R.id.eventDateTextView);
             locationText = itemView.findViewById(R.id.eventLocationTextView);
             participantsText = itemView.findViewById(R.id.eventParticipantsTextView);
             displayDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
 
+            // Configurar los clics usando el listener del adaptador
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && this.listener != null) {
-                    this.listener.onEventClick(events.get(position));
+                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null) {
+                    Log.d("EventAdapter", "Click normal en posición: " + position);
+                    EventAdapter.this.listener.onEventClick(events.get(position));
                 }
+            });
+
+            itemView.setOnLongClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null) {
+                    Log.d("EventAdapter", "Click largo en posición: " + position);
+                    EventAdapter.this.listener.onEventLongClick(v, events.get(position));
+                    return true;
+                }
+                return false;
             });
         }
 
-        public void bind(Event event, boolean useDynamicCount) {
+        public void bind(Event event) {
             titleText.setText(event.getTitle());
             dateText.setText(displayDateFormat.format(event.getDate()));
             locationText.setText(event.getLocation());
             
-            if (useDynamicCount) {
+            if (useDynamicParticipantCount) {
                 // Obtener el número de asistentes desde Firestore
                 FirebaseFirestore.getInstance()
                     .collection("attendees")

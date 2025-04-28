@@ -110,6 +110,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Email"
+                        android:layout_marginBottom="0dp"
                         app:startIconDrawable="@drawable/ic_email"
                         app:startIconTint="@color/colorPrimary"
                         app:errorEnabled="true">
@@ -141,7 +142,8 @@
                         style="@style/Widget.Eventum.TextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="4dp"
                         android:hint="Contraseña"
                         app:startIconDrawable="@drawable/ic_lock"
                         app:startIconTint="@color/colorPrimary"
@@ -168,15 +170,15 @@
                         android:visibility="invisible"
                         android:layout_marginStart="4dp"
                         android:layout_marginTop="-8dp"
-                        android:layout_marginBottom="8dp"/>
+                        android:layout_marginBottom="0dp"/>
 
                     <!-- Contenedor de "Recordarme" y "¿Olvidaste tu contraseña?" -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="24dp">
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="16dp">
 
                         <com.google.android.material.checkbox.MaterialCheckBox
                             android:id="@+id/rememberMeCheckBox"
@@ -205,17 +207,17 @@
                             android:layout_gravity="center_vertical"/>
                     </LinearLayout>
 
-                    <!-- Botón de inicio de sesión -->
+                    <!-- Botón de Iniciar Sesión -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/loginButton"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="wrap_content"
                         android:text="Iniciar Sesión"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
+                        android:textAllCaps="false"
+                        android:layout_marginBottom="16dp"
+                        android:paddingVertical="12dp"
                         app:cornerRadius="12dp"
-                        android:elevation="2dp"
-                        android:stateListAnimator="@null" />
+                        style="@style/Widget.MaterialComponents.Button" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

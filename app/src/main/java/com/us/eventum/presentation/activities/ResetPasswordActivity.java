@@ -3,7 +3,6 @@ package com.us.eventum.presentation.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -11,6 +10,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.R;
+import com.us.eventum.utils.ToastUtils;
 
 public class ResetPasswordActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
@@ -61,18 +61,14 @@ public class ResetPasswordActivity extends AppCompatActivity {
         mAuth.sendPasswordResetEmail(email)
             .addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
-                    Toast.makeText(ResetPasswordActivity.this,
-                        "Se ha enviado un enlace de restablecimiento a tu email",
-                        Toast.LENGTH_LONG).show();
+                    ToastUtils.showCustomToast(ResetPasswordActivity.this, "Correo de recuperación enviado", ToastUtils.ToastType.SUCCESS);
                     finish();
                 } else {
                     String errorMessage = "Error al enviar el email de restablecimiento";
                     if (task.getException() != null) {
                         errorMessage = task.getException().getMessage();
                     }
-                    Toast.makeText(ResetPasswordActivity.this,
-                        errorMessage,
-                        Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(ResetPasswordActivity.this, errorMessage, ToastUtils.ToastType.ERROR);
                 }
                 showProgress(false);
             });

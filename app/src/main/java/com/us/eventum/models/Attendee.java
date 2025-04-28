@@ -16,6 +16,7 @@ public class Attendee implements Serializable {
     private Date registrationDate;
     private long confirmationTime;
     private boolean scanned;
+    private boolean verified;
 
     public Attendee() {
         // Constructor vacío requerido para Firestore
@@ -30,6 +31,7 @@ public class Attendee implements Serializable {
         this.registrationDate = new Date();
         this.confirmationTime = 0;
         this.scanned = false;
+        this.verified = false;
     }
 
     public Attendee(String id, String eventId, String name, String lastName, String email, String phone, long confirmationTime, boolean scanned) {
@@ -43,6 +45,7 @@ public class Attendee implements Serializable {
         this.scanned = scanned;
         this.requiresParentalAuthorization = false;
         this.registrationDate = new Date();
+        this.verified = false;
     }
 
     public String getId() {
@@ -131,5 +134,13 @@ public class Attendee implements Serializable {
 
     public void setScanned(boolean scanned) {
         this.scanned = scanned;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

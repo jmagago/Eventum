@@ -67,6 +67,13 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             holder.phoneTextView.setVisibility(View.GONE);
         }
 
+        // Cambiar el borde según el estado de verificación
+        if (attendee.isVerified()) {
+            holder.itemView.setBackgroundResource(R.drawable.bg_card_verified);
+        } else {
+            holder.itemView.setBackgroundResource(R.drawable.bg_card_normal);
+        }
+
         holder.itemView.setOnClickListener(v -> {
             if (onAttendeeClickListener != null) {
                 onAttendeeClickListener.onAttendeeClick(attendee);
@@ -86,9 +93,9 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            nameTextView = itemView.findViewById(R.id.attendeeName);
-            emailTextView = itemView.findViewById(R.id.attendeeEmail);
-            phoneTextView = itemView.findViewById(R.id.attendeePhone);
+            nameTextView = itemView.findViewById(R.id.attendeeNameTextView);
+            emailTextView = itemView.findViewById(R.id.attendeeEmailTextView);
+            phoneTextView = itemView.findViewById(R.id.attendeePhoneTextView);
         }
     }
 

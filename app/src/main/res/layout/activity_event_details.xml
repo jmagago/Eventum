@@ -9,16 +9,52 @@
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="4dp">
+        android:background="@android:color/transparent"
+        android:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/PopupMenuStyle"
-            app:titleTextAppearance="@style/ToolbarTitleStyle"/>
+            android:layout_height="wrap_content"
+            style="@style/CustomToolbar">
+
+            <LinearLayout
+                style="@style/ToolbarProfileContainer">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_arrow_back"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="@color/colorPrimary"
+                    android:padding="12dp"
+                    android:contentDescription="Volver atrás"/>
+
+                <TextView
+                    android:id="@+id/toolbarTitleTextView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    style="@style/ToolbarTitleStyle"/>
+
+                <ImageButton
+                    android:id="@+id/eventMenuButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_more_vert"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="@color/colorPrimary"
+                    android:padding="12dp"
+                    android:contentDescription="Menú del evento"/>
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -35,77 +71,100 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#F0F8FF"
+            app:strokeWidth="0dp">
 
-            <RelativeLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:background="@drawable/card_background_ripple">
 
-                <ImageButton
-                    android:id="@+id/eventMenuButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_margin="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_more_vert"
-                    android:tint="@color/colorPrimary"
-                    android:contentDescription="Menú del evento"/>
+                <TextView
+                    android:id="@+id/eventDateTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:id="@+id/eventCapacityTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"
+                    android:layout_marginBottom="12dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:layout_marginEnd="48dp">
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    android:layout_marginBottom="12dp"
+                    android:id="@+id/verifiedLayout">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_verified"
+                        android:layout_gravity="center_vertical"/>
 
                     <TextView
-                        android:id="@+id/eventTitleTextView"
-                        android:layout_width="match_parent"
+                        android:id="@+id/verifiedTextView"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:textSize="32sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/colorPrimary"
-                        android:layout_marginBottom="16dp"/>
-
-                    <TextView
-                        android:id="@+id/eventDateTextView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="16sp"
-                        android:textColor="@color/colorSecondaryText"
-                        android:layout_marginBottom="12dp"/>
-
-                    <TextView
-                        android:id="@+id/eventCapacityTextView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="16sp"
-                        android:textColor="@color/colorSecondaryText"
-                        android:layout_marginBottom="12dp"/>
-
-                    <TextView
-                        android:id="@+id/eventLocationTextView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
                         android:textSize="16sp"
                         android:textColor="@color/colorSecondaryText"/>
-
                 </LinearLayout>
 
-            </RelativeLayout>
+                <TextView
+                    android:id="@+id/eventLocationTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:visibility="gone"
+                    android:id="@+id/descriptionSpacer"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    android:id="@+id/descriptionLayout">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_description"
+                        android:tint="@color/colorPrimary"
+                        android:layout_gravity="center_vertical"/>
+
+                    <TextView
+                        android:id="@+id/eventDescriptionTextView"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:textSize="16sp"
+                        android:textColor="@color/colorSecondaryText"/>
+                </LinearLayout>
+
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:id="@+id/eventDescriptionTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="16dp"
-            android:visibility="gone"/>
 
         <!-- Mensaje cuando no hay asistentes -->
         <TextView
@@ -138,11 +197,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="24dp"
         android:src="@drawable/ic_add"
+        app:backgroundTint="@color/colorPrimary"
+        app:tint="@color/colorWhite"
         app:fabSize="normal"
-        app:elevation="6dp"
-        android:backgroundTint="@color/colorPrimary"
-        app:tint="@android:color/white"/>
+        app:maxImageSize="32dp"
+        app:borderWidth="0dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 
