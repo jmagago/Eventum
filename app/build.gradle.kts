@@ -1,8 +1,8 @@
-import java.io.File
+    import java.io.File
 import java.util.Properties
 
 plugins {
-    id("com.android.application") version "8.9.2"
+    id("com.android.application") version "8.13.0"
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
 }
@@ -52,6 +52,11 @@ android {
         println("Build Number: $buildNumber")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Configuración para compatibilidad con 16 KB page size
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
     }
 
     buildTypes {
@@ -76,6 +81,13 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    
+    // Configuración para compatibilidad con 16 KB page size
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 dependencies {
@@ -96,7 +108,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     
     // ML Kit para escanear códigos de barras
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
     
     // ZXing para generar códigos QR

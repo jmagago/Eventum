@@ -398,7 +398,7 @@
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
+            
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

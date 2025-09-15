@@ -128,28 +128,23 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
         public void bind(Event event) {
             titleText.setText(event.getTitle());
-            dateText.setText(displayDateFormat.format(event.getDate()));
+            
+            // Formatear la fecha
+            String formattedDate = displayDateFormat.format(event.getDate());
+            formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
+            dateText.setText(formattedDate);
+            
             locationText.setText(event.getLocation());
             
-            if (useDynamicParticipantCount) {
-                // Obtener el número de asistentes desde Firestore
-                FirebaseFirestore.getInstance()
-                    .collection("attendees")
-                    .whereEqualTo("eventId", event.getId())
-                    .get()
-                    .addOnSuccessListener(queryDocumentSnapshots -> {
-                        int numAttendees = queryDocumentSnapshots.size();
-                        participantsText.setText(String.format(Locale.getDefault(), 
-                            "Asistentes: %d/%d", numAttendees, event.getMaxParticipants()));
-                    })
-                    .addOnFailureListener(e -> {
-                        participantsText.setText(String.format(Locale.getDefault(), 
-                            "Asistentes: 0/%d", event.getMaxParticipants()));
-                    });
+            // Mostrar el número de participantes o mensaje de error
+            if (event.getCurrentParticipants() == -1) {
+                participantsText.setText("Error al cargar asistentes");
+                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorError));
             } else {
-                // Usar el contador estático
-                participantsText.setText(String.format(Locale.getDefault(),
-                    "Participantes: %d/%d", event.getCurrentParticipants(), event.getMaxParticipants()));
+                participantsText.setText(String.format("%d/%d asistentes", 
+                    event.getCurrentParticipants(), 
+                    event.getMaxParticipants()));
+                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorSecondaryText));
             }
         }
     }

@@ -74,7 +74,7 @@ public class ToastUtils {
         toastText.setText(message);
         
         Toast toast = new Toast(activity);
-        toast.setDuration(Toast.LENGTH_SHORT);
+        toast.setDuration(Toast.LENGTH_LONG);
         toast.setView(toastView);
         toast.show();
     }

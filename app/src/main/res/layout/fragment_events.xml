@@ -14,14 +14,42 @@
         android:paddingHorizontal="12dp"
         android:paddingTop="8dp">
 
-        <TextView
-            android:id="@+id/noEventsText"
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="64dp"
+            android:indeterminateTint="@color/colorPrimary"
+            android:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/noEventsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textColor="@color/colorSecondaryText"
-            android:textSize="16sp"
-            android:visibility="gone" />
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="32dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@drawable/ic_calendar"
+                android:tint="@color/colorPrimary"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:id="@+id/noEventsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/colorPrimary"
+                android:textSize="18sp"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:paddingHorizontal="32dp"/>
+
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/eventsRecyclerView"

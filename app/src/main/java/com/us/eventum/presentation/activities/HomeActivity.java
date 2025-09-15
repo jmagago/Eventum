@@ -16,6 +16,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.models.Event;
 import com.us.eventum.R;
+import com.us.eventum.presentation.fragments.EventsFragment;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,8 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import com.google.android.material.button.MaterialButton;
 import com.us.eventum.utils.ToastUtils;
-import android.content.SharedPreferences;
+import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import androidx.fragment.app.Fragment;
 
 public class HomeActivity extends AppCompatActivity implements EventsPagerAdapter.EventContextMenuListener {
     private static final String TAG = "HomeActivity";
@@ -63,6 +65,8 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
     private CircleImageView profileImageView;
     private FirebaseStorage storage;
     private SimpleDateFormat dateFormat;
+    private SharedViewModel sharedViewModel;
+    private boolean isLoadingEvents = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +81,9 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
 
         dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
+        // Inicializar ViewModel
+        sharedViewModel = SharedViewModel.getInstance();
+
         // Inicializar vistas
         initializeViews();
         setupClickListeners();
@@ -88,20 +95,25 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
     @Override
     protected void onResume() {
         super.onResume();
-        // Solo recargar eventos si hubo cambios
-        SharedPreferences prefs = getSharedPreferences("eventum_prefs", MODE_PRIVATE);
-        boolean eventsUpdated = prefs.getBoolean("events_updated", false);
-        if (eventsUpdated) {
-            loadEvents();
-            prefs.edit().putBoolean("events_updated", false).apply();
-        }
-        // Solo recargar la foto si fue actualizada
-        boolean profileImageUpdated = prefs.getBoolean("profile_image_updated", false);
-        if (profileImageUpdated) {
-            loadProfileImage();
-            prefs.edit().putBoolean("profile_image_updated", false).apply();
-        }
-        // Si no, Glide y la lista en memoria mostrarán lo cacheado
+        // Observar cambios en los flags de actualización
+        sharedViewModel.getEventsUpdated().observe(this, eventsUpdated -> {
+            Log.d(TAG, "HomeActivity recibió notificación del ViewModel: " + eventsUpdated);
+            if (eventsUpdated) {
+                Log.d(TAG, "Recargando eventos...");
+                // Limpiar las listas antes de recargar para evitar duplicados
+                futureEvents.clear();
+                pastEvents.clear();
+                loadEvents();
+                sharedViewModel.resetEventsUpdated();
+            }
+        });
+
+        sharedViewModel.getProfileImageUpdated().observe(this, profileImageUpdated -> {
+            if (profileImageUpdated) {
+                loadProfileImage();
+                sharedViewModel.resetProfileImageUpdated();
+            }
+        });
     }
 
     private void initializeViews() {
@@ -142,6 +154,15 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                     Log.e(TAG, "Error al obtener el nombre del usuario", e);
                 });
         }
+
+        // Ajustar estado del FAB según la pestaña seleccionada
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                boolean isArchivedTab = position == 1;
+                createEventButton.setAlpha(isArchivedTab ? 0.5f : 1f);
+            }
+        });
     }
 
     private void setupViewPager() {
@@ -149,7 +170,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         viewPager.setAdapter(pagerAdapter);
 
         // Configurar el TabLayout
-        new TabLayoutMediator(tabLayout, viewPager,
+        tabLayoutMediator = new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> {
                     if (position == 0) {
                         tab.setText("PRÓXIMOS (" + futureEvents.size() + ")");
@@ -157,7 +178,8 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                         tab.setText("ARCHIVADOS (" + pastEvents.size() + ")");
                     }
                 }
-        ).attach();
+        );
+        tabLayoutMediator.attach();
 
         // Configurar el comportamiento del ViewPager2
         viewPager.setUserInputEnabled(true);
@@ -170,6 +192,11 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         });
 
         createEventButton.setOnClickListener(v -> {
+            int currentTab = tabLayout.getSelectedTabPosition();
+            if (currentTab == 1) { // Archivados
+                ToastUtils.showCustomToast(this, "No se pueden crear eventos desde Archivados. Cambia a Próximos.", ToastUtils.ToastType.INFO);
+                return;
+            }
             Intent intent = new Intent(this, CreateEventActivity.class);
             startActivity(intent);
         });
@@ -177,6 +204,15 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
 
     private void loadEvents() {
         if (mAuth.getCurrentUser() == null) return;
+        
+        // Evitar múltiples llamadas simultáneas
+        if (isLoadingEvents) {
+            Log.d(TAG, "loadEvents() ya en progreso, ignorando llamada");
+            return;
+        }
+        
+        isLoadingEvents = true;
+        Log.d(TAG, "loadEvents() llamado - Tamaño actual futureEvents: " + futureEvents.size() + ", pastEvents: " + pastEvents.size());
 
         // Obtener la fecha actual
         Date now = new Date();
@@ -190,39 +226,97 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                 futureEvents.clear();
                 pastEvents.clear();
                 
+                // Si no hay eventos, actualizar la UI inmediatamente
+                if (queryDocumentSnapshots.isEmpty()) {
+                    updateUI();
+                    return;
+                }
+                
+                // Contador para saber cuándo hemos procesado todos los eventos
+                final int totalEvents = queryDocumentSnapshots.size();
+                final int[] processedEvents = {0};
+                
                 // Clasificar los eventos según su fecha
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Event event = document.toObject(Event.class);
                     event.setId(document.getId());
                     
-                    if (event.getDate().after(now)) {
-                        futureEvents.add(event);
-                    } else {
-                        pastEvents.add(event);
-                    }
+                    // Cargar asistentes para este evento
+                    db.collection("attendees")
+                        .whereEqualTo("eventId", event.getId())
+                        .get()
+                        .addOnSuccessListener(attendeesSnapshot -> {
+                            // Actualizar el número de asistentes
+                            event.setCurrentParticipants(attendeesSnapshot.size());
+                            addEventToList(event, now);
+                            
+                            // Incrementar el contador y verificar si hemos terminado
+                            processedEvents[0]++;
+                            if (processedEvents[0] == totalEvents) {
+                                updateUI();
+                                isLoadingEvents = false;
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Error al cargar asistentes para el evento: " + event.getId(), e);
+                            ToastUtils.showCustomToast(this, "Error al cargar asistentes para el evento: " + event.getTitle(), 
+                                ToastUtils.ToastType.ERROR);
+                            
+                            // Si falla la carga de asistentes, marcamos el evento como con error
+                            event.setCurrentParticipants(-1);
+                            addEventToList(event, now);
+                            
+                            // Incrementar el contador y verificar si hemos terminado
+                            processedEvents[0]++;
+                            if (processedEvents[0] == totalEvents) {
+                                updateUI();
+                                isLoadingEvents = false;
+                            }
+                        });
                 }
-                
-                // Ordenar eventos futuros por fecha ascendente
-                futureEvents.sort((e1, e2) -> e1.getDate().compareTo(e2.getDate()));
-                
-                // Ordenar eventos pasados por fecha descendente
-                pastEvents.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
-                
-                // Actualizar el adaptador
-                pagerAdapter = new EventsPagerAdapter(this, futureEvents, pastEvents);
-                viewPager.setAdapter(pagerAdapter);
-                
-                // Actualizar los textos de las pestañas
-                TabLayout.Tab tab1 = tabLayout.getTabAt(0);
-                TabLayout.Tab tab2 = tabLayout.getTabAt(1);
-                if (tab1 != null) tab1.setText("PRÓXIMOS (" + futureEvents.size() + ")");
-                if (tab2 != null) tab2.setText("ARCHIVADOS (" + pastEvents.size() + ")");
             })
             .addOnFailureListener(e -> {
                 Log.e(TAG, "Error al cargar eventos", e);
                 ToastUtils.showCustomToast(this, "Error al cargar eventos: " + e.getMessage(), 
                     ToastUtils.ToastType.ERROR);
+                isLoadingEvents = false;
             });
+    }
+
+    private void addEventToList(Event event, Date now) {
+        if (event.getDate().after(now)) {
+            futureEvents.add(event);
+        } else {
+            pastEvents.add(event);
+        }
+    }
+
+    private void updateUI() {
+        // Ordenar eventos futuros por fecha ascendente
+        futureEvents.sort((e1, e2) -> e1.getDate().compareTo(e2.getDate()));
+        
+        // Ordenar eventos pasados por fecha descendente
+        pastEvents.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
+        
+        // Actualizar etiquetas de pestañas con el número de eventos
+        TabLayout.Tab futureTab = tabLayout.getTabAt(0);
+        TabLayout.Tab pastTab = tabLayout.getTabAt(1);
+        
+        if (futureTab != null) {
+            futureTab.setText("PRÓXIMOS (" + futureEvents.size() + ")");
+        }
+        
+        if (pastTab != null) {
+            pastTab.setText("ARCHIVADOS (" + pastEvents.size() + ")");
+        }
+        
+        // Actualizar datos en los fragmentos o crear adaptador si es null
+        if (pagerAdapter == null) {
+            pagerAdapter = new EventsPagerAdapter(this, futureEvents, pastEvents);
+            viewPager.setAdapter(pagerAdapter);
+        } else {
+            pagerAdapter.updateEvents();
+        }
     }
 
     private void loadProfileImage() {
@@ -367,10 +461,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                     .update(updates)
                     .addOnSuccessListener(aVoid -> {
                         ToastUtils.showCustomToast(this, "Evento actualizado correctamente", ToastUtils.ToastType.SUCCESS);
-                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("events_updated", true)
-                            .apply();
+                        sharedViewModel.notifyEventsUpdated();
                         loadEvents();
                         dialog.dismiss();
                     })
@@ -472,11 +563,8 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                     .delete()
                     .addOnSuccessListener(aVoid -> {
                         showCustomToast("Evento eliminado correctamente", ToastType.SUCCESS);
-                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("events_updated", true)
-                            .apply();
-                        loadEvents(); // Recargar la lista de eventos
+                        sharedViewModel.notifyEventsUpdated();
+                        loadEvents();
                     })
                     .addOnFailureListener(e -> {
                         showCustomToast("Error al eliminar el evento: " + e.getMessage(), ToastType.ERROR);
@@ -528,11 +616,8 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                 }
                 
                 showCustomToast("Lista de asistentes vaciada", ToastType.SUCCESS);
-                getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("events_updated", true)
-                    .apply();
-                loadEvents(); // Recargar la lista de eventos
+                sharedViewModel.notifyEventsUpdated();
+                loadEvents();
             })
             .addOnFailureListener(e -> {
                 showCustomToast("Error al vaciar la lista: " + e.getMessage(), ToastType.ERROR);

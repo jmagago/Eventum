@@ -50,6 +50,7 @@ import java.lang.reflect.Method;
 import android.widget.ImageView;
 import com.us.eventum.utils.QRCodeGenerator;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.presentation.viewmodels.SharedViewModel;
 
 public class EventDetailsActivity extends AppCompatActivity {
     private static final String TAG = "EventDetailsActivity";
@@ -64,6 +65,8 @@ public class EventDetailsActivity extends AppCompatActivity {
     private RecyclerView attendeesRecyclerView;
     private ImageButton eventMenuButton;
     private static final int QR_SCANNER_REQUEST_CODE = 100;
+    private SharedViewModel sharedViewModel;
+    private AlertDialog confirmDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +75,9 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Inicializar Firestore
         db = FirebaseFirestore.getInstance();
+
+        // Inicializar ViewModel
+        sharedViewModel = SharedViewModel.getInstance();
 
         // Configurar Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -117,7 +123,26 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeesRecyclerView = findViewById(R.id.attendeesRecyclerView);
         eventMenuButton = findViewById(R.id.eventMenuButton);
 
-        addAttendeeButton.setOnClickListener(v -> showAddAttendeeDialog());
+        // Deshabilitar visualmente el botón "+" si el evento ya ha pasado, pero permitiendo click para informar
+        try {
+            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
+                addAttendeeButton.setAlpha(0.5f);
+            }
+        } catch (Exception ignore) {}
+
+        addAttendeeButton.setOnClickListener(v -> {
+            // Si el evento ya finalizó, solo informar
+            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
+                ToastUtils.showCustomToast(this, "Este evento ya ha finalizado. No es posible añadir asistentes.", ToastUtils.ToastType.INFO);
+                return;
+            }
+            // Verificar si ya se alcanzó el máximo de asistentes
+            if (attendees.size() >= event.getMaxParticipants()) {
+                ToastUtils.showCustomToast(this, "Capacidad máxima alcanzada (" + event.getMaxParticipants() + "). Edite el evento para aumentar el límite.", ToastUtils.ToastType.WARNING);
+                return;
+            }
+            showAddAttendeeDialog();
+        });
         eventMenuButton.setOnClickListener(v -> showEventMenu());
     }
 
@@ -289,10 +314,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 .add(attendee)
                 .addOnSuccessListener(documentReference -> {
                     attendee.setId(documentReference.getId());
-                    getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putBoolean("events_updated", true)
-                        .apply();
+                    sharedViewModel.notifyEventsUpdated();
                     loadAttendees();
                     dialog.dismiss();
                     ToastUtils.showCustomToast(this, "Asistente agregado con éxito", ToastUtils.ToastType.SUCCESS);
@@ -360,7 +382,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         cancelButton.setOnClickListener(v -> dialog.dismiss());
         
         deleteButton.setOnClickListener(v -> {
-            // Mostrar diálogo de confirmación estilizado
+            // Mostrar diálogo de confirmación
             View confirmDialogView = getLayoutInflater().inflate(R.layout.dialog_confirm_delete, null);
             TextView confirmMessageTextView = confirmDialogView.findViewById(R.id.confirm_message);
             MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
@@ -371,34 +393,55 @@ public class EventDetailsActivity extends AppCompatActivity {
             AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
             confirmBuilder.setView(confirmDialogView);
             
-            AlertDialog confirmDialog = confirmBuilder.create();
+            confirmDialog = confirmBuilder.create();
             
             confirmCancelButton.setOnClickListener(cv -> confirmDialog.dismiss());
             
             confirmDeleteButton.setOnClickListener(cv -> {
-                // Eliminar asistente
-                db.collection("attendees")
-                    .document(attendee.getId())
-                    .delete()
-                    .addOnSuccessListener(aVoid -> {
-                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("events_updated", true)
-                            .apply();
-                        ToastUtils.showCustomToast(this, "Asistente eliminado correctamente", ToastUtils.ToastType.SUCCESS);
-                        loadAttendees();
-                        dialog.dismiss();
-                        confirmDialog.dismiss();
-                    })
-                    .addOnFailureListener(e -> {
-                        ToastUtils.showCustomToast(this, "Error al eliminar asistente: " + e.getMessage(), ToastUtils.ToastType.ERROR);
-                    });
+                deleteAttendee(attendee, dialog);
+                confirmDialog.dismiss();
             });
             
             confirmDialog.show();
         });
         
         dialog.show();
+    }
+
+    private void deleteAttendee(Attendee attendee, AlertDialog detailsDialog) {
+        db.collection("attendees")
+            .document(attendee.getId())
+            .delete()
+            .addOnSuccessListener(aVoid -> {
+                // Actualizar la lista local primero
+                attendees.remove(attendee);
+                attendeeAdapter.setAttendees(attendees);
+                updateAttendeesCount();
+                
+                // Cerrar los diálogos
+                if (detailsDialog != null) {
+                    detailsDialog.dismiss();
+                }
+                if (confirmDialog != null) {
+                    confirmDialog.dismiss();
+                }
+                
+                // Notificar al ViewModel para actualizar Home
+                Log.d("EventDetailsActivity", "Notificando al ViewModel que los eventos se actualizaron");
+                sharedViewModel.notifyEventsUpdated();
+                
+                // Mostrar mensaje de éxito
+                ToastUtils.showCustomToast(this, "Asistente eliminado correctamente", ToastUtils.ToastType.SUCCESS);
+                
+                // Actualizar la visibilidad del mensaje sin asistentes
+                if (attendees.isEmpty()) {
+                    emptyAttendeesTextView.setVisibility(View.VISIBLE);
+                    attendeesRecyclerView.setVisibility(View.GONE);
+                }
+            })
+            .addOnFailureListener(e -> {
+                ToastUtils.showCustomToast(this, "Error al eliminar asistente: " + e.getMessage(), ToastUtils.ToastType.ERROR);
+            });
     }
 
     private void showDeleteEventDialog() {
@@ -445,10 +488,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 db.collection("events").document(event.getId())
                     .delete()
                     .addOnSuccessListener(aVoid -> {
-                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("events_updated", true)
-                            .apply();
+                        sharedViewModel.notifyEventsUpdated();
                         ToastUtils.showCustomToast(this, "Evento eliminado correctamente", ToastUtils.ToastType.SUCCESS);
                         // Volver a la pantalla principal
                         Intent intent = new Intent(this, HomeActivity.class);
@@ -546,10 +586,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                         }
                         displayEventDetails();
                         
-                        getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                            .edit()
-                            .putBoolean("events_updated", true)
-                            .apply();
+                        sharedViewModel.notifyEventsUpdated();
                         ToastUtils.showCustomToast(this, "Evento actualizado correctamente", ToastUtils.ToastType.SUCCESS);
                         dialog.dismiss();
                     })
@@ -569,6 +606,21 @@ public class EventDetailsActivity extends AppCompatActivity {
     private void showEventMenu() {
         PopupMenu popup = new PopupMenu(this, eventMenuButton);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
+        
+        // Ocultar acciones que no aplican para eventos pasados
+        try {
+            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
+                if (popup.getMenu().findItem(R.id.action_send_invitations) != null) {
+                    popup.getMenu().findItem(R.id.action_send_invitations).setVisible(false);
+                }
+                if (popup.getMenu().findItem(R.id.action_verify_attendees) != null) {
+                    popup.getMenu().findItem(R.id.action_verify_attendees).setVisible(false);
+                }
+                if (popup.getMenu().findItem(R.id.action_clear_list) != null) {
+                    popup.getMenu().findItem(R.id.action_clear_list).setVisible(false);
+                }
+            }
+        } catch (Exception ignore) {}
         
         // Forzar que se muestren los iconos
         try {
@@ -663,10 +715,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 emptyAttendeesTextView.setVisibility(View.VISIBLE);
                 attendeesRecyclerView.setVisibility(View.GONE);
                 
-                getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("events_updated", true)
-                    .apply();
+                sharedViewModel.notifyEventsUpdated();
                 ToastUtils.showCustomToast(this, "Lista de asistentes vaciada", ToastUtils.ToastType.SUCCESS);
             })
             .addOnFailureListener(e -> {

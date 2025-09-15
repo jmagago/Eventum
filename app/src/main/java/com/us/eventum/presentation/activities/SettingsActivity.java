@@ -41,6 +41,8 @@ import com.us.eventum.R;
 import de.hdodenhof.circleimageview.CircleImageView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -60,6 +62,7 @@ public class SettingsActivity extends AppCompatActivity {
     private CircleImageView profileImageView;
     private CircularProgressIndicator progressIndicator;
     private Uri photoUri;
+    private SharedViewModel sharedViewModel;
     
     private final ActivityResultLauncher<String> requestPermissionLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -92,6 +95,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
+
+        // Inicializar ViewModel
+        sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
 
         // Configurar Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -177,12 +183,12 @@ public class SettingsActivity extends AppCompatActivity {
                 switch (which) {
                     case 0:
                         if (checkCameraPermission()) {
-                            launchCamera();
+                        launchCamera();
                         }
                         break;
                     case 1:
                         if (checkStoragePermission()) {
-                            launchGallery();
+                        launchGallery();
                         }
                         break;
                 }
@@ -284,10 +290,7 @@ public class SettingsActivity extends AppCompatActivity {
                 .addOnSuccessListener(taskSnapshot -> {
                     showProgress(false);
                     // Marcar que la foto fue actualizada
-                    getSharedPreferences("eventum_prefs", MODE_PRIVATE)
-                        .edit()
-                        .putBoolean("profile_image_updated", true)
-                        .apply();
+                    sharedViewModel.notifyProfileImageUpdated();
                     ToastUtils.showCustomToast(SettingsActivity.this, "Foto de perfil actualizada", ToastUtils.ToastType.SUCCESS);
                     loadProfileImage();
                 })

@@ -6,7 +6,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -28,8 +30,11 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     private List<Event> events;
     private boolean isFuture;
     private TextView noEventsText;
+    private LinearLayout noEventsLayout;
     private RecyclerView eventsRecyclerView;
     private EventAdapter eventAdapter;
+    private ProgressBar progressBar;
+    private boolean dataLoaded = false;
 
     public static EventsFragment newInstance(List<Event> events, boolean isFuture) {
         EventsFragment fragment = new EventsFragment();
@@ -56,32 +61,64 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         View view = inflater.inflate(R.layout.fragment_events, container, false);
         
         noEventsText = view.findViewById(R.id.noEventsText);
+        noEventsLayout = view.findViewById(R.id.noEventsLayout);
         eventsRecyclerView = view.findViewById(R.id.eventsRecyclerView);
+        progressBar = view.findViewById(R.id.progressBar);
         
         setupRecyclerView();
-        updateUI();
+        
+        // Si ya tenemos eventos, mostrarlos inmediatamente
+        if (events != null && !events.isEmpty()) {
+            updateUI();
+        } else {
+            showLoadingState();
+        }
         
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (dataLoaded) {
+            updateUI();
+        }
+    }
+
     private void setupRecyclerView() {
-        eventAdapter = new EventAdapter(events, this);
+        eventAdapter = new EventAdapter(new ArrayList<>(), this);
         eventAdapter.setOnItemClickListener(this);
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         eventsRecyclerView.setAdapter(eventAdapter);
     }
 
+    private void showLoadingState() {
+        progressBar.setVisibility(View.VISIBLE);
+        eventsRecyclerView.setVisibility(View.GONE);
+        noEventsLayout.setVisibility(View.GONE);
+    }
+
     private void updateUI() {
+        progressBar.setVisibility(View.GONE);
+        
         if (events == null || events.isEmpty()) {
             eventsRecyclerView.setVisibility(View.GONE);
-            noEventsText.setVisibility(View.VISIBLE);
+            noEventsLayout.setVisibility(View.VISIBLE);
             noEventsText.setText(isFuture ? 
-                "Aún no has creado ningún evento futuro" : 
-                "No tienes eventos pasados");
+                "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" : 
+                "No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí");
         } else {
             eventsRecyclerView.setVisibility(View.VISIBLE);
-            noEventsText.setVisibility(View.GONE);
+            noEventsLayout.setVisibility(View.GONE);
             eventAdapter.setEvents(events);
+        }
+    }
+
+    public void setEvents(List<Event> events) {
+        this.events = events;
+        this.dataLoaded = true;
+        if (isAdded() && getView() != null) {
+            updateUI();
         }
     }
 
