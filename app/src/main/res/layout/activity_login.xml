@@ -119,6 +119,7 @@
                             android:id="@+id/emailEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            style="@style/TextAppearance.Eventum.Input"
                             android:inputType="textEmailAddress|textNoSuggestions"
                             android:maxLines="1"
                             android:paddingVertical="12dp"/>
@@ -155,6 +156,7 @@
                             android:id="@+id/passwordEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            style="@style/TextAppearance.Eventum.Input"
                             android:inputType="textPassword"
                             android:maxLines="1"
                             android:paddingVertical="12dp"/>
@@ -217,7 +219,7 @@
                         android:layout_marginBottom="16dp"
                         android:paddingVertical="12dp"
                         app:cornerRadius="12dp"
-                        style="@style/Widget.MaterialComponents.Button" />
+                        style="@style/Widget.Eventum.Button" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

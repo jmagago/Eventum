@@ -27,6 +27,9 @@ import com.us.eventum.utils.ToastUtils;
 import androidx.annotation.NonNull;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.FirebaseNetworkException;
+import com.google.firebase.FirebaseTooManyRequestsException;
 import com.us.eventum.R;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -207,23 +210,53 @@ public class LoginActivity extends AppCompatActivity {
                 } else {
                     loginAttempts++;
                     showProgress(false);
-                    
-                    // Mostrar el error en el campo correspondiente
-                    if (task.getException() != null) {
-                        if (task.getException() instanceof FirebaseAuthInvalidUserException) {
-                            showErrorStable(emailErrorText, "El usuario no existe o ha sido deshabilitado");
-                        } else if (task.getException() instanceof FirebaseAuthInvalidCredentialsException) {
-                            showErrorStable(passwordErrorText, "Contraseña incorrecta");
-                        } else {
-                            String errorMessage = task.getException().getMessage();
-                            if (errorMessage != null && errorMessage.toLowerCase().contains("password")) {
-                                showErrorStable(passwordErrorText, "Error: " + errorMessage);
-                            } else {
-                                showErrorStable(emailErrorText, "Error: " + errorMessage);
-                            }
+
+                    Exception ex = task.getException();
+                    if (ex instanceof FirebaseNetworkException) {
+                        showErrorStable(emailErrorText, "Sin conexión. Revisa tu Internet e inténtalo de nuevo");
+                    } else if (ex instanceof FirebaseTooManyRequestsException) {
+                        showErrorStable(emailErrorText, "Demasiados intentos. Espera unos minutos e inténtalo de nuevo");
+                    } else if (ex instanceof FirebaseAuthInvalidUserException) {
+                        showErrorStable(emailErrorText, "El usuario no existe o ha sido deshabilitado");
+                    } else if (ex instanceof FirebaseAuthInvalidCredentialsException) {
+                        showErrorStable(passwordErrorText, "Contraseña incorrecta");
+                    } else if (ex instanceof FirebaseAuthException) {
+                        String code = ((FirebaseAuthException) ex).getErrorCode();
+                        switch (code) {
+                            case "ERROR_USER_DISABLED":
+                                showErrorStable(emailErrorText, "Tu cuenta está deshabilitada");
+                                break;
+                            case "ERROR_USER_NOT_FOUND":
+                                showErrorStable(emailErrorText, "El usuario no existe");
+                                break;
+                            case "ERROR_INVALID_EMAIL":
+                                showErrorStable(emailErrorText, "Email inválido");
+                                break;
+                            case "ERROR_WRONG_PASSWORD":
+                                showErrorStable(passwordErrorText, "Contraseña incorrecta");
+                                break;
+                            case "ERROR_TOO_MANY_REQUESTS":
+                                showErrorStable(emailErrorText, "Demasiados intentos. Espera e inténtalo más tarde");
+                                break;
+                            case "ERROR_OPERATION_NOT_ALLOWED":
+                                showErrorStable(emailErrorText, "Inicio de sesión deshabilitado para este proveedor");
+                                break;
+                            default:
+                                showErrorStable(emailErrorText, "Error de autenticación. Inténtalo de nuevo");
                         }
+                    } else if (ex != null) {
+                        String errorMessage = ex.getMessage();
+                        if (errorMessage != null && errorMessage.toLowerCase().contains("recaptcha")) {
+                            showErrorStable(emailErrorText, "Error de verificación. Reintenta en unos segundos");
+                        } else {
+                            showErrorStable(emailErrorText, "No se pudo iniciar sesión. Inténtalo de nuevo");
+                        }
+                    } else {
+                        showErrorStable(emailErrorText, "No se pudo iniciar sesión. Inténtalo de nuevo");
                     }
-                    ToastUtils.showCustomToast(this, "Error al iniciar sesión", ToastUtils.ToastType.ERROR);
+
+                    // Toast genérico consistente en toda la app
+                    ToastUtils.showCustomToast(this, "No se pudo iniciar sesión. Revisa los campos marcados", ToastUtils.ToastType.ERROR);
                 }
             });
     }

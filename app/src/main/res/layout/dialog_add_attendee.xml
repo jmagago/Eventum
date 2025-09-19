@@ -1,224 +1,267 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="16dp"
-    app:cardCornerRadius="32dp"
-    app:cardElevation="8dp"
-    app:cardBackgroundColor="#FFFFFF"
-    app:cardPreventCornerOverlap="true"
-    app:strokeWidth="0dp">
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:background="@color/colorSurface"
+        android:padding="24dp">
 
-        <!-- Título principal del formulario -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="Registrar asistente"
-            android:textColor="@color/colorPrimary"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp" />
+                <!-- Título del formulario -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Registrar asistente"
+                    android:textColor="@color/colorPrimary"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp" />
 
-        <!-- Nombre -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.Eventum.TextInputLayout"
-            android:hint="Nombre *"
-            app:startIconDrawable="@drawable/ic_person"
-            app:startIconTint="@color/colorPrimary">
+                <!-- Sección: Información Personal -->
+                <TextView
+                    style="@style/FormSectionTitle"
+                    android:text="Información Personal"
+                    android:layout_marginBottom="16dp"/>
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/nameEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPersonName"
-                android:paddingVertical="10dp"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Primer apellido -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
-            
+            <!-- Nombre -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Primer apellido *"
+                android:hint="Nombre"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/firstLastNameEditText"
+                    android:id="@+id/nameEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPersonName"
-                    android:paddingVertical="10dp"/>
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="textPersonName"/>
             </com.google.android.material.textfield.TextInputLayout>
-            
-            <!-- Número superpuesto -->
-            <TextView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_gravity="top|start"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:text="1"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:background="@color/colorPrimary"
-                android:elevation="2dp"/>
-        </FrameLayout>
 
-        <!-- Segundo apellido -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
-            
+            <!-- Apellidos en dos columnas -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Widget.Eventum.TextInputLayout"
+                        android:hint="Primer apellido"
+                        app:startIconDrawable="@drawable/ic_person"
+                        app:startIconTint="@color/colorPrimary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/firstLastNameEditText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/TextAppearance.Eventum.Input"
+                            android:inputType="textPersonName"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    
+                    <!-- Número superpuesto -->
+                    <TextView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="top|start"
+                        android:layout_marginStart="24dp"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="1"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:background="@color/colorPrimary"
+                        android:elevation="2dp"/>
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Widget.Eventum.TextInputLayout"
+                        android:hint="Segundo apellido"
+                        app:startIconDrawable="@drawable/ic_person"
+                        app:startIconTint="@color/colorPrimary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/secondLastNameEditText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/TextAppearance.Eventum.Input"
+                            android:inputType="textPersonName"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                    
+                    <!-- Número superpuesto -->
+                    <TextView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="top|start"
+                        android:layout_marginStart="24dp"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="2"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:background="@color/colorPrimary"
+                        android:elevation="2dp"/>
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Separador visual -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/colorBorder"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Sección: Datos de Contacto -->
+            <TextView
+                style="@style/FormSectionTitle"
+                android:text="Datos de Contacto"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Email -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Segundo apellido"
-                app:startIconDrawable="@drawable/ic_person"
+                android:hint="Correo electrónico"
+                app:startIconDrawable="@drawable/ic_email"
                 app:startIconTint="@color/colorPrimary">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/secondLastNameEditText"
+                    android:id="@+id/emailEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPersonName"
-                    android:paddingVertical="10dp"/>
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="textEmailAddress"/>
             </com.google.android.material.textfield.TextInputLayout>
-            
-            <!-- Número superpuesto -->
+
+            <!-- Teléfono -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/phoneLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.Eventum.TextInputLayout"
+                android:hint="Teléfono"
+                app:startIconDrawable="@drawable/ic_phone"
+                app:startIconTint="@color/colorPrimary"
+                app:errorEnabled="true"
+                app:errorTextAppearance="@style/TextAppearance.Eventum.Helper">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/phoneEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="number"
+                    android:maxLength="9"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Fecha de nacimiento -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/birthDateLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.Eventum.TextInputLayout"
+                android:hint="Fecha de nacimiento"
+                app:startIconDrawable="@drawable/ic_calendar"
+                app:startIconTint="@color/colorPrimary"
+                app:errorEnabled="true"
+                app:errorTextAppearance="@style/TextAppearance.Eventum.Helper">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/birthDateEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="date"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Separador visual -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/colorBorder"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Sección: Autorización -->
             <TextView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_gravity="top|start"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:text="2"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:background="@color/colorPrimary"
-                android:elevation="2dp"/>
-        </FrameLayout>
+                style="@style/FormSectionTitle"
+                android:text="Autorización"
+                android:layout_marginBottom="12dp"/>
 
-        <!-- Email -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.Eventum.TextInputLayout"
-            android:hint="Email *"
-            app:startIconDrawable="@drawable/ic_email"
-            app:startIconTint="@color/colorPrimary">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/emailEditText"
+            <!-- Autorización parental -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textEmailAddress"
-                android:paddingVertical="10dp"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="32dp"
+                android:padding="16dp"
+                android:background="@color/colorPrimaryLight"
+                android:backgroundTint="@color/colorPrimaryLight">
 
-        <!-- Teléfono -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.Eventum.TextInputLayout"
-            android:hint="Teléfono *"
-            app:startIconDrawable="@drawable/ic_phone"
-            app:startIconTint="@color/colorPrimary">
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/parentalAuthCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Requiere autorización parental"
+                    android:buttonTint="@color/colorAccent"
+                    android:textColor="@color/colorPrimaryText"
+                    android:textSize="14sp"/>
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/phoneEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="phone"
-                android:paddingVertical="10dp"/>
-        </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
 
-        <!-- Fecha de nacimiento -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Eventum.TextInputLayout"
-            android:hint="Fecha de nacimiento"
-            app:startIconDrawable="@drawable/ic_calendar"
-            app:startIconTint="@color/colorPrimary">
+                <!-- Botón de registrar asistente -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/addAttendeeButton"
+                    style="@style/Widget.Eventum.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Registrar Asistente"
+                    android:layout_marginTop="24dp"
+                    app:icon="@drawable/ic_person"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp"/>
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/birthDateEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                android:focusable="false"
-                android:paddingVertical="10dp"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                <!-- Botón de cancelar -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/cancelButton"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Cancelar"
+                    android:textAllCaps="false"
+                    android:textColor="@color/colorPrimary"
+                    android:layout_marginTop="8dp" />
 
-        <!-- Autorización parental -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/parentalAuthCheckBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Requiere autorización parental"
-                android:buttonTint="@color/colorAccent"
-                android:textColor="@color/colorPrimaryText"/>
-        </LinearLayout>
-
-        <!-- Botones -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="end">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/cancelButton"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Cancelar"
-                android:textAllCaps="false"
-                android:textSize="14sp"
-                android:textColor="@color/colorPrimary"
-                android:layout_marginEnd="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/addAttendeeButton"
-                style="@style/Widget.Eventum.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Añadir"
-                android:textAllCaps="false"
-                android:textSize="14sp" />
-        </LinearLayout>
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView> 
+</ScrollView> 

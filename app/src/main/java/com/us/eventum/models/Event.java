@@ -1,9 +1,10 @@
 package com.us.eventum.models;
 
-import java.io.Serializable;
+import android.os.Parcel;
+import android.os.Parcelable;
 import java.util.Date;
 
-public class Event implements Serializable {
+public class Event implements Parcelable {
     private String id;
     private String title;
     private String description;
@@ -111,5 +112,49 @@ public class Event implements Serializable {
 
     public void setCurrentParticipants(int currentParticipants) {
         this.currentParticipants = currentParticipants;
+    }
+
+    // Constructor para Parcelable
+    protected Event(Parcel in) {
+        id = in.readString();
+        title = in.readString();
+        description = in.readString();
+        long tmpDate = in.readLong();
+        date = tmpDate != -1 ? new Date(tmpDate) : null;
+        location = in.readString();
+        userId = in.readString();
+        maxParticipants = in.readInt();
+        eventType = in.readString();
+        currentParticipants = in.readInt();
+    }
+
+    public static final Creator<Event> CREATOR = new Creator<Event>() {
+        @Override
+        public Event createFromParcel(Parcel in) {
+            return new Event(in);
+        }
+
+        @Override
+        public Event[] newArray(int size) {
+            return new Event[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(id);
+        dest.writeString(title);
+        dest.writeString(description);
+        dest.writeLong(date != null ? date.getTime() : -1);
+        dest.writeString(location);
+        dest.writeString(userId);
+        dest.writeInt(maxParticipants);
+        dest.writeString(eventType);
+        dest.writeInt(currentParticipants);
     }
 }

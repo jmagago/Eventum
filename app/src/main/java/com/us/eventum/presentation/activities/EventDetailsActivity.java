@@ -16,6 +16,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -55,16 +57,18 @@ import com.us.eventum.presentation.viewmodels.SharedViewModel;
 public class EventDetailsActivity extends AppCompatActivity {
     private static final String TAG = "EventDetailsActivity";
     private Event event;
+    
+    private ActivityResultLauncher<Intent> qrScannerLauncher;
     private FirebaseFirestore db;
     private AttendeeAdapter attendeeAdapter;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
     private List<Attendee> attendees = new ArrayList<>();
     private TextView dateTextView, locationTextView, descriptionTextView;
+    private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
     private FloatingActionButton addAttendeeButton;
     private RecyclerView attendeesRecyclerView;
     private ImageButton eventMenuButton;
-    private static final int QR_SCANNER_REQUEST_CODE = 100;
     private SharedViewModel sharedViewModel;
     private AlertDialog confirmDialog;
 
@@ -78,6 +82,17 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Inicializar ViewModel
         sharedViewModel = SharedViewModel.getInstance();
+        
+        // Inicializar ActivityResultLauncher
+        qrScannerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    // Recargar la lista de asistentes
+                    loadAttendees();
+                }
+            }
+        );
 
         // Configurar Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -88,10 +103,10 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Configurar botón de retroceso
         ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> onBackPressed());
+        backButton.setOnClickListener(v -> finish());
 
         // Obtener el evento y configurar el título
-        event = (Event) getIntent().getSerializableExtra("event");
+        event = getIntent().getParcelableExtra("event");
         TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
         
         if (event != null) {
@@ -116,6 +131,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     private void initializeViews() {
         dateTextView = findViewById(R.id.eventDateTextView);
+        eventTimeTextView = findViewById(R.id.eventTimeTextView);
         locationTextView = findViewById(R.id.eventLocationTextView);
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
         emptyAttendeesTextView = findViewById(R.id.emptyAttendeesTextView);
@@ -172,6 +188,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         String locationText = String.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
+        // Hora en formato 24h HH:mm (solo texto, el icono ya está en la UI como parte del estilo de lista)
+        try {
+            SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            if (eventTimeTextView != null) {
+                eventTimeTextView.setText(String.format("%s", hourFormat.format(event.getDate())));
+            }
+        } catch (Exception ignore) {}
         locationTextView.setText(locationText);
         
         // Actualizar el TextView para la capacidad
@@ -248,15 +271,94 @@ public class EventDetailsActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_attendee, null);
 
-        EditText nameEditText = dialogView.findViewById(R.id.nameEditText);
-        EditText firstLastNameEditText = dialogView.findViewById(R.id.firstLastNameEditText);
-        EditText secondLastNameEditText = dialogView.findViewById(R.id.secondLastNameEditText);
-        EditText emailEditText = dialogView.findViewById(R.id.emailEditText);
-        EditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
-        EditText birthDateEditText = dialogView.findViewById(R.id.birthDateEditText);
+        TextInputEditText nameEditText = dialogView.findViewById(R.id.nameEditText);
+        TextInputEditText firstLastNameEditText = dialogView.findViewById(R.id.firstLastNameEditText);
+        TextInputEditText secondLastNameEditText = dialogView.findViewById(R.id.secondLastNameEditText);
+        TextInputEditText emailEditText = dialogView.findViewById(R.id.emailEditText);
+        TextInputEditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
+        TextInputEditText birthDateEditText = dialogView.findViewById(R.id.birthDateEditText);
         CheckBox parentalAuthCheckBox = dialogView.findViewById(R.id.parentalAuthCheckBox);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
-        Button addButton = dialogView.findViewById(R.id.addAttendeeButton);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
+        MaterialButton addButton = dialogView.findViewById(R.id.addAttendeeButton);
+        
+        // Obtener los TextInputLayout para mostrar errores
+        com.google.android.material.textfield.TextInputLayout phoneLayout = dialogView.findViewById(R.id.phoneLayout);
+        com.google.android.material.textfield.TextInputLayout birthDateLayout = dialogView.findViewById(R.id.birthDateLayout);
+
+        // Por defecto, deshabilitar la autorización parental hasta seleccionar fecha
+        parentalAuthCheckBox.setEnabled(false);
+
+        // Validar teléfono español al perder el foco
+        phoneEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String phoneText = phoneEditText.getText().toString().trim();
+                // Eliminar todos los caracteres que no sean números
+                String cleanPhone = phoneText.replaceAll("[^0-9]", "");
+                if (!cleanPhone.equals(phoneText)) {
+                    phoneEditText.setText(cleanPhone);
+                }
+                
+                // Validar después de limpiar
+                if (!cleanPhone.isEmpty()) {
+                    if (cleanPhone.length() == 9) {
+                        // Validar que empiece por 6, 7, 8 o 9 (móviles españoles)
+                        if (cleanPhone.matches("^[6-9]\\d{8}$")) {
+                            phoneLayout.setError(null);
+                        } else {
+                            phoneLayout.setError("Debe empezar por 6, 7, 8 o 9");
+                        }
+                    } else {
+                        phoneLayout.setError("Debe tener 9 dígitos");
+                    }
+                } else {
+                    phoneLayout.setError(null);
+                }
+            }
+        });
+
+        // Validar edad al escribir manualmente
+        birthDateEditText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                String dateText = s.toString().trim();
+                if (!dateText.isEmpty() && dateText.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                    try {
+                        Date parsed = dateFormat.parse(dateText);
+                        if (parsed != null) {
+                            int age = calculateAge(parsed);
+                            if (age < 16) {
+                                birthDateLayout.setError("Debe tener al menos 16 años");
+                                parentalAuthCheckBox.setEnabled(false);
+                                parentalAuthCheckBox.setChecked(false);
+                            } else {
+                                birthDateLayout.setError(null);
+                                if (age < 18) {
+                                    parentalAuthCheckBox.setEnabled(true);
+                                } else {
+                                    parentalAuthCheckBox.setChecked(false);
+                                    parentalAuthCheckBox.setEnabled(false);
+                                }
+                            }
+                        }
+                    } catch (ParseException e) {
+                        birthDateLayout.setError("Formato inválido (dd/MM/yyyy)");
+                        parentalAuthCheckBox.setEnabled(false);
+                    }
+                } else if (!dateText.isEmpty()) {
+                    birthDateLayout.setError("Formato: dd/MM/yyyy");
+                    parentalAuthCheckBox.setEnabled(false);
+                } else {
+                    birthDateLayout.setError(null);
+                    parentalAuthCheckBox.setEnabled(false);
+                }
+            }
+        });
 
         // Configurar el selector de fecha
         birthDateEditText.setOnClickListener(v -> {
@@ -266,11 +368,25 @@ public class EventDetailsActivity extends AppCompatActivity {
                 (view, year, month, dayOfMonth) -> {
                     calendar.set(year, month, dayOfMonth);
                     birthDateEditText.setText(dateFormat.format(calendar.getTime()));
+
+                    // Habilitar/deshabilitar autorización parental según edad
+                    int age = calculateAge(calendar.getTime());
+                    if (age < 18) {
+                        parentalAuthCheckBox.setEnabled(true);
+                    } else {
+                        parentalAuthCheckBox.setChecked(false);
+                        parentalAuthCheckBox.setEnabled(false);
+                    }
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
             );
+
+            // Restringir a mayores o iguales a 16 años (no permitir seleccionar menos de 16)
+            Calendar maxSelectable = Calendar.getInstance();
+            maxSelectable.add(Calendar.YEAR, -16);
+            datePickerDialog.getDatePicker().setMaxDate(maxSelectable.getTimeInMillis());
             datePickerDialog.show();
         });
 
@@ -309,6 +425,25 @@ public class EventDetailsActivity extends AppCompatActivity {
             attendee.setRequiresParentalAuthorization(requiresAuth);
             attendee.setEventId(event.getId());
 
+            // Parsear y guardar fecha de nacimiento como Timestamp si está informada
+            if (!birthDate.isEmpty()) {
+                try {
+                    Date parsed = dateFormat.parse(birthDate);
+                    if (parsed != null) {
+                        // Validación extra: no menores de 16 años
+                        int age = calculateAge(parsed);
+                        if (age < 16) {
+                            ToastUtils.showCustomToast(this, "El asistente debe tener al menos 16 años", ToastUtils.ToastType.INFO);
+                            return;
+                        }
+                        attendee.setBirthDate(new Timestamp(parsed));
+                    }
+                } catch (ParseException e) {
+                    ToastUtils.showCustomToast(this, "Formato de fecha inválido (usa dd/MM/yyyy)", ToastUtils.ToastType.INFO);
+                    return;
+                }
+            }
+
             // Guardar en Firestore
             db.collection("attendees")
                 .add(attendee)
@@ -325,6 +460,19 @@ public class EventDetailsActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    private int calculateAge(Date birthDate) {
+        if (birthDate == null) return 0;
+        Calendar today = Calendar.getInstance();
+        Calendar dob = Calendar.getInstance();
+        dob.setTime(birthDate);
+
+        int age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR);
+        if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) {
+            age--;
+        }
+        return Math.max(age, 0);
     }
 
     private void showAttendeeDetails(Attendee attendee) {
@@ -635,7 +783,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         // Aplicar el tema del popup
-        popup.setForceShowIcon(true);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            popup.setForceShowIcon(true);
+        }
         
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
@@ -726,22 +876,14 @@ public class EventDetailsActivity extends AppCompatActivity {
     private void startQRScanner() {
         Intent intent = new Intent(this, QRScannerActivity.class);
         intent.putExtra("eventId", event.getId());
-        startActivityForResult(intent, QR_SCANNER_REQUEST_CODE);
+        qrScannerLauncher.launch(intent);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == QR_SCANNER_REQUEST_CODE && resultCode == RESULT_OK) {
-            // Recargar la lista de asistentes
-            loadAttendees();
-        }
-    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
+            finish();
             return true;
         }
         if (item.getItemId() == R.id.action_verify_attendees) {
@@ -753,7 +895,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        finish();
         return true;
     }
 } 

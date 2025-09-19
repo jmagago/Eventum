@@ -35,11 +35,13 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     private EventAdapter eventAdapter;
     private ProgressBar progressBar;
     private boolean dataLoaded = false;
+    private boolean isSearchResult = false;
+    private android.widget.ImageView noEventsIcon;
 
     public static EventsFragment newInstance(List<Event> events, boolean isFuture) {
         EventsFragment fragment = new EventsFragment();
         Bundle args = new Bundle();
-        args.putSerializable(ARG_EVENTS, new ArrayList<>(events));
+        args.putParcelableArrayList(ARG_EVENTS, new ArrayList<>(events));
         args.putBoolean(ARG_IS_FUTURE, isFuture);
         fragment.setArguments(args);
         return fragment;
@@ -49,7 +51,7 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            events = (List<Event>) getArguments().getSerializable(ARG_EVENTS);
+            events = getArguments().getParcelableArrayList(ARG_EVENTS);
             isFuture = getArguments().getBoolean(ARG_IS_FUTURE);
         }
     }
@@ -62,6 +64,7 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         
         noEventsText = view.findViewById(R.id.noEventsText);
         noEventsLayout = view.findViewById(R.id.noEventsLayout);
+        noEventsIcon = view.findViewById(R.id.noEventsIcon);
         eventsRecyclerView = view.findViewById(R.id.eventsRecyclerView);
         progressBar = view.findViewById(R.id.progressBar);
         
@@ -104,9 +107,18 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         if (events == null || events.isEmpty()) {
             eventsRecyclerView.setVisibility(View.GONE);
             noEventsLayout.setVisibility(View.VISIBLE);
-            noEventsText.setText(isFuture ? 
-                "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" : 
-                "No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí");
+            
+            if (isSearchResult) {
+                // Mostrar mensaje específico para búsqueda sin resultados
+                noEventsIcon.setImageResource(R.drawable.ic_search_cancelled);
+                noEventsText.setText("No se encontraron eventos que coincidan con los criterios de búsqueda\n\nIntenta ajustar los filtros o limpiar la búsqueda para ver todos los eventos");
+            } else {
+                // Mostrar mensaje normal cuando no hay eventos
+                noEventsIcon.setImageResource(R.drawable.ic_calendar);
+                noEventsText.setText(isFuture ? 
+                    "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" : 
+                    "No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí");
+            }
         } else {
             eventsRecyclerView.setVisibility(View.VISIBLE);
             noEventsLayout.setVisibility(View.GONE);
@@ -116,6 +128,15 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
 
     public void setEvents(List<Event> events) {
         this.events = events;
+        this.dataLoaded = true;
+        if (isAdded() && getView() != null) {
+            updateUI();
+        }
+    }
+    
+    public void setEvents(List<Event> events, boolean isSearchResult) {
+        this.events = events;
+        this.isSearchResult = isSearchResult;
         this.dataLoaded = true;
         if (isAdded() && getView() != null) {
             updateUI();

@@ -90,25 +90,71 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Fecha del evento -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/fechaEventoLayout"
-                    style="@style/Widget.Eventum.TextInputLayout"
+                <!-- Programación: Fecha y Hora en dos columnas -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Fecha del Evento"
-                    app:startIconDrawable="@drawable/ic_calendar"
-                    app:startIconTint="@color/colorPrimary">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/fechaEventoEditText"
-                        android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:focusable="false"
-                        android:inputType="none" />
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
 
-                </com.google.android.material.textfield.TextInputLayout>
+                        <!-- Fecha del evento -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/fechaEventoLayout"
+                            style="@style/Widget.Eventum.TextInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Fecha"
+                            app:helperText="Formato: dd/MM/yyyy"
+                            app:startIconDrawable="@drawable/ic_calendar"
+                            app:startIconTint="@color/colorPrimary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/fechaEventoEditText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                style="@style/TextAppearance.Eventum.Input"
+                                android:focusable="false"
+                                android:inputType="none" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
+
+                        <!-- Hora de inicio -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/horaEventoLayout"
+                            style="@style/Widget.Eventum.TextInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Hora de inicio"
+                            app:helperText="Formato 24h: HH:mm"
+                            app:startIconDrawable="@drawable/ic_time"
+                            app:startIconTint="@color/colorPrimary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/horaEventoEditText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                style="@style/TextAppearance.Eventum.Input"
+                                android:focusable="false"
+                                android:inputType="none" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                </LinearLayout>
 
                 <!-- Separador visual sutil -->
                 <View
@@ -131,6 +177,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:hint="Lugar del Evento"
+                    app:helperText="Dirección o referencia breve"
                     app:startIconDrawable="@drawable/ic_location"
                     app:startIconTint="@color/colorPrimary">
 
@@ -138,6 +185,7 @@
                         android:id="@+id/lugarEventoEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        style="@style/TextAppearance.Eventum.Input"
                         android:inputType="textCapWords|textNoSuggestions" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -150,6 +198,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     android:hint="N.º máximo de asistentes"
+                    app:helperText="Define el aforo permitido"
                     app:startIconDrawable="@drawable/ic_person"
                     app:startIconTint="@color/colorPrimary">
 
@@ -157,6 +206,7 @@
                         android:id="@+id/maxParticipantesEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        style="@style/TextAppearance.Eventum.Input"
                         android:inputType="number" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -169,6 +219,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
                     android:hint="Descripción del Evento (opcional)"
+                    app:helperText="Comparte detalles relevantes para los asistentes"
                     app:startIconDrawable="@drawable/ic_description"
                     app:startIconTint="@color/colorPrimary">
 
@@ -176,6 +227,7 @@
                         android:id="@+id/descripcionEventoEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        style="@style/TextAppearance.Eventum.Input"
                         android:inputType="textMultiLine"
                         android:minLines="3"
                         android:gravity="top|start" />

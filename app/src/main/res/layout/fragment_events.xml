@@ -33,6 +33,7 @@
             android:visibility="gone">
 
             <ImageView
+                android:id="@+id/noEventsIcon"
                 android:layout_width="96dp"
                 android:layout_height="96dp"
                 android:src="@drawable/ic_calendar"

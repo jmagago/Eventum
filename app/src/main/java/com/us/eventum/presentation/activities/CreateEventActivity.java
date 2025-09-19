@@ -35,9 +35,9 @@ import java.util.Locale;
 import com.us.eventum.utils.ToastUtils;
 
 public class CreateEventActivity extends AppCompatActivity {
-    private TextInputEditText nombreEventoEditText, fechaEventoEditText, maxParticipantesEditText, 
+    private TextInputEditText nombreEventoEditText, fechaEventoEditText, horaEventoEditText, maxParticipantesEditText, 
                             lugarEventoEditText, descripcionEventoEditText;
-    private TextInputLayout nombreEventoLayout, fechaEventoLayout, maxParticipantesLayout, 
+    private TextInputLayout nombreEventoLayout, fechaEventoLayout, horaEventoLayout, maxParticipantesLayout, 
                          lugarEventoLayout, descripcionEventoLayout, tipoEventoLayout;
     private AutoCompleteTextView tipoEventoAutoComplete;
     private MaterialButton crearEventoButton;
@@ -68,6 +68,7 @@ public class CreateEventActivity extends AppCompatActivity {
         // Inicializar campos de texto
         nombreEventoEditText = findViewById(R.id.nombreEventoEditText);
         fechaEventoEditText = findViewById(R.id.fechaEventoEditText);
+        horaEventoEditText = findViewById(R.id.horaEventoEditText);
         maxParticipantesEditText = findViewById(R.id.maxParticipantesEditText);
         lugarEventoEditText = findViewById(R.id.lugarEventoEditText);
         descripcionEventoEditText = findViewById(R.id.descripcionEventoEditText);
@@ -76,6 +77,7 @@ public class CreateEventActivity extends AppCompatActivity {
         // Inicializar layouts
         nombreEventoLayout = findViewById(R.id.nombreEventoLayout);
         fechaEventoLayout = findViewById(R.id.fechaEventoLayout);
+        horaEventoLayout = findViewById(R.id.horaEventoLayout);
         maxParticipantesLayout = findViewById(R.id.maxParticipantesLayout);
         lugarEventoLayout = findViewById(R.id.lugarEventoLayout);
         descripcionEventoLayout = findViewById(R.id.descripcionEventoLayout);
@@ -139,6 +141,27 @@ public class CreateEventActivity extends AppCompatActivity {
             
             datePickerDialog.show();
         });
+
+        // Selector de hora
+        horaEventoEditText.setOnClickListener(v -> {
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            int minute = calendar.get(Calendar.MINUTE);
+
+            TimePickerDialog timePickerDialog = new TimePickerDialog(
+                this,
+                (view, selectedHour, selectedMinute) -> {
+                    calendar.set(Calendar.HOUR_OF_DAY, selectedHour);
+                    calendar.set(Calendar.MINUTE, selectedMinute);
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                    horaEventoEditText.setText(timeFormat.format(calendar.getTime()));
+                },
+                hour,
+                minute,
+                true
+            );
+            timePickerDialog.setTitle("Selecciona la hora");
+            timePickerDialog.show();
+        });
     }
 
     private void setupClickListeners() {
@@ -166,6 +189,14 @@ public class CreateEventActivity extends AppCompatActivity {
             isValid = false;
         } else {
             fechaEventoLayout.setError(null);
+        }
+
+        // Validar hora
+        if (horaEventoEditText.getText().toString().trim().isEmpty()) {
+            horaEventoLayout.setError("La hora es obligatoria");
+            isValid = false;
+        } else {
+            horaEventoLayout.setError(null);
         }
 
         // Validar tipo de evento

@@ -96,6 +96,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         private TextView dateText;
         private TextView locationText;
         private TextView participantsText;
+        private TextView timeText;
         private SimpleDateFormat displayDateFormat;
 
         public EventViewHolder(@NonNull View itemView) {
@@ -104,6 +105,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             dateText = itemView.findViewById(R.id.eventDateTextView);
             locationText = itemView.findViewById(R.id.eventLocationTextView);
             participantsText = itemView.findViewById(R.id.eventParticipantsTextView);
+            timeText = itemView.findViewById(R.id.eventTimeTextView);
             displayDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
 
             // Configurar los clics usando el listener del adaptador
@@ -129,10 +131,18 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         public void bind(Event event) {
             titleText.setText(event.getTitle());
             
-            // Formatear la fecha
+            // Formatear la fecha y la hora
             String formattedDate = displayDateFormat.format(event.getDate());
             formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
             dateText.setText(formattedDate);
+
+            // Hora en formato HH:mm
+            try {
+                SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                timeText.setText(hourFormat.format(event.getDate()));
+            } catch (Exception e) {
+                timeText.setText("");
+            }
             
             locationText.setText(event.getLocation());
             

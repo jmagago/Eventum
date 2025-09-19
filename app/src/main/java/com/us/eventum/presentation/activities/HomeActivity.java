@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,21 +49,32 @@ import java.util.Locale;
 import com.google.android.material.button.MaterialButton;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import com.us.eventum.utils.EventSearchFilter;
+import com.google.android.material.textfield.TextInputEditText;
+import android.app.AlertDialog;
+import android.view.LayoutInflater;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import androidx.fragment.app.Fragment;
 
 public class HomeActivity extends AppCompatActivity implements EventsPagerAdapter.EventContextMenuListener {
     private static final String TAG = "HomeActivity";
-    private FloatingActionButton settingsButton, createEventButton;
+    private FloatingActionButton settingsButton, createEventButton, searchEventsButton;
     private FirebaseFirestore db;
     private String userId;
     private FirebaseAuth mAuth;
     private List<Event> futureEvents = new ArrayList<>();
     private List<Event> pastEvents = new ArrayList<>();
+    private EventSearchFilter currentSearchFilter = new EventSearchFilter();
+    private boolean isSearchActive = false;
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
     private EventsPagerAdapter pagerAdapter;
     private TabLayoutMediator tabLayoutMediator;
     private CircleImageView profileImageView;
+    private LinearLayout filterIndicatorLayout;
+    private TextView filterIndicatorText;
+    private View clearFiltersButton;
     private FirebaseStorage storage;
     private SimpleDateFormat dateFormat;
     private SharedViewModel sharedViewModel;
@@ -118,10 +130,14 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
 
     private void initializeViews() {
         createEventButton = findViewById(R.id.createEventFab);
+        searchEventsButton = findViewById(R.id.searchEventsFab);
         settingsButton = findViewById(R.id.settingsButton);
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
         profileImageView = findViewById(R.id.profileImageView);
+        filterIndicatorLayout = findViewById(R.id.filterIndicatorLayout);
+        filterIndicatorText = findViewById(R.id.filterIndicatorText);
+        clearFiltersButton = findViewById(R.id.clearFiltersButton);
         
         // Inicializar vistas de información de usuario
         TextView userNameTextView = findViewById(R.id.userNameTextView);
@@ -140,7 +156,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
             .addOnSuccessListener(documentSnapshot -> {
                     String displayName = documentSnapshot.getString("nombre");
                     
-                    // Si no hay nombre en Firestore, usar la parte antes del @ del email
+                    // Usar email como nombre por defecto
                     if (displayName == null || displayName.isEmpty()) {
                         displayName = email.substring(0, email.indexOf('@'));
                     }
@@ -148,7 +164,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                     userNameTextView.setText(displayName);
                 })
                 .addOnFailureListener(e -> {
-                    // En caso de error, usar la parte antes del @ del email
+                    // Usar email como fallback
                     String defaultName = email.substring(0, email.indexOf('@'));
                     userNameTextView.setText(defaultName);
                     Log.e(TAG, "Error al obtener el nombre del usuario", e);
@@ -200,6 +216,10 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
             Intent intent = new Intent(this, CreateEventActivity.class);
             startActivity(intent);
         });
+
+        searchEventsButton.setOnClickListener(v -> showSearchDialog());
+        
+        clearFiltersButton.setOnClickListener(v -> clearSearchFilters());
     }
 
     private void loadEvents() {
@@ -317,6 +337,9 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         } else {
             pagerAdapter.updateEvents();
         }
+        
+        // Actualizar títulos de pestañas
+        updateTabTitles(futureEvents.size(), pastEvents.size());
     }
 
     private void loadProfileImage() {
@@ -622,5 +645,265 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
             .addOnFailureListener(e -> {
                 showCustomToast("Error al vaciar la lista: " + e.getMessage(), ToastType.ERROR);
             });
+    }
+
+    private void showSearchDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_search_events, null);
+        
+        // Obtener referencias a los campos
+        TextInputEditText keywordsEditText = dialogView.findViewById(R.id.keywordsEditText);
+        AutoCompleteTextView eventTypeAutoComplete = dialogView.findViewById(R.id.eventTypeAutoComplete);
+        TextInputEditText locationEditText = dialogView.findViewById(R.id.locationEditText);
+        TextInputEditText dateFromEditText = dialogView.findViewById(R.id.dateFromEditText);
+        TextInputEditText dateToEditText = dialogView.findViewById(R.id.dateToEditText);
+        MaterialButton clearButton = dialogView.findViewById(R.id.clearButton);
+        MaterialButton searchButton = dialogView.findViewById(R.id.searchButton);
+        View closeButton = dialogView.findViewById(R.id.closeButton);
+        
+        // Configurar AutoCompleteTextView para tipo de evento
+        String[] eventTypes = {
+            "Concierto", "Graduación", "Fiesta", "Despedida", 
+            "Aniversario", "Conferencia", "Seminario", "Taller", 
+            "Exposición", "Feria", "Congreso", "Ceremonia", "Otro"
+        };
+        
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this, 
+            R.layout.dropdown_item,
+            eventTypes
+        );
+        eventTypeAutoComplete.setAdapter(adapter);
+        
+        // Cargar filtros actuales
+        if (currentSearchFilter.getKeywords() != null) {
+            keywordsEditText.setText(currentSearchFilter.getKeywords());
+        }
+        if (currentSearchFilter.getEventType() != null) {
+            eventTypeAutoComplete.setText(currentSearchFilter.getEventType());
+        }
+        if (currentSearchFilter.getLocation() != null) {
+            locationEditText.setText(currentSearchFilter.getLocation());
+        }
+        if (currentSearchFilter.getDateFrom() != null) {
+            dateFromEditText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(currentSearchFilter.getDateFrom()));
+        }
+        if (currentSearchFilter.getDateTo() != null) {
+            dateToEditText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(currentSearchFilter.getDateTo()));
+        }
+        
+        // Configurar DatePickers
+        setupDatePicker(dateFromEditText, true);
+        setupDatePicker(dateToEditText, false);
+        
+        // Configurar botones
+        clearButton.setOnClickListener(v -> {
+            keywordsEditText.setText("");
+            eventTypeAutoComplete.setText("");
+            locationEditText.setText("");
+            dateFromEditText.setText("");
+            dateToEditText.setText("");
+        });
+        
+        searchButton.setOnClickListener(v -> {
+            // Aplicar filtros
+            String keywords = keywordsEditText.getText().toString().trim();
+            String eventType = eventTypeAutoComplete.getText().toString().trim();
+            String location = locationEditText.getText().toString().trim();
+            String dateFromStr = dateFromEditText.getText().toString().trim();
+            String dateToStr = dateToEditText.getText().toString().trim();
+            
+            // Crear nuevo filtro
+            EventSearchFilter newFilter = new EventSearchFilter();
+            newFilter.setKeywords(keywords.isEmpty() ? null : keywords);
+            newFilter.setEventType(eventType.isEmpty() ? null : eventType);
+            newFilter.setLocation(location.isEmpty() ? null : location);
+            
+            try {
+                if (!dateFromStr.isEmpty()) {
+                    newFilter.setDateFrom(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateFromStr));
+                }
+                if (!dateToStr.isEmpty()) {
+                    newFilter.setDateTo(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateToStr));
+                }
+            } catch (ParseException e) {
+                ToastUtils.showCustomToast(this, "Formato de fecha inválido", ToastUtils.ToastType.ERROR);
+                return;
+            }
+            
+            // Aplicar filtros
+            currentSearchFilter = newFilter;
+            applySearchFilters();
+            
+            // Cerrar diálogo
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+        });
+        
+        closeButton.setOnClickListener(v -> {
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+        });
+        
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+        this.dialog = dialog; // Guardar referencia para poder cerrarlo
+        dialog.show();
+    }
+    
+    private AlertDialog dialog; // Variable para guardar referencia del diálogo
+    
+    private void setupDatePicker(TextInputEditText editText, boolean isFromDate) {
+        editText.setOnClickListener(v -> {
+            Calendar calendar = Calendar.getInstance();
+            if (isFromDate && currentSearchFilter.getDateFrom() != null) {
+                calendar.setTime(currentSearchFilter.getDateFrom());
+            } else if (!isFromDate && currentSearchFilter.getDateTo() != null) {
+                calendar.setTime(currentSearchFilter.getDateTo());
+            }
+            
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedCalendar = Calendar.getInstance();
+                    selectedCalendar.set(year, month, dayOfMonth);
+                    editText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(selectedCalendar.getTime()));
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+    }
+    
+    private void applySearchFilters() {
+        isSearchActive = currentSearchFilter.hasActiveFilters();
+        
+        if (isSearchActive) {
+            // Durante búsqueda activa, filtrar solo la pestaña actual
+            int currentTab = tabLayout.getSelectedTabPosition();
+            List<Event> currentEvents = (currentTab == 0) ? futureEvents : pastEvents;
+            List<Event> filteredEvents = currentSearchFilter.filterEvents(currentEvents);
+            
+            // Actualizar el adaptador con solo los eventos de la pestaña actual
+            if (pagerAdapter != null) {
+                if (currentTab == 0) {
+                    pagerAdapter.updateEvents(filteredEvents, new ArrayList<>(), true);
+                } else {
+                    pagerAdapter.updateEvents(new ArrayList<>(), filteredEvents, true);
+                }
+            }
+            
+            // Actualizar títulos de pestañas - solo la pestaña activa
+            if (currentTab == 0) {
+                updateTabTitles(filteredEvents.size(), pastEvents.size());
+            } else {
+                updateTabTitles(futureEvents.size(), filteredEvents.size());
+            }
+            
+            // Deshabilitar cambio de pestañas
+            disableTabSwitching();
+            
+            // Mostrar indicador de filtros
+            filterIndicatorLayout.setVisibility(View.VISIBLE);
+            filterIndicatorText.setText("Filtros: " + currentSearchFilter.getActiveFiltersSummary());
+            
+            // Mostrar mensaje con número de resultados
+            if (filteredEvents.isEmpty()) {
+                ToastUtils.showCustomToast(this, "No se encontraron eventos que coincidan con los criterios de búsqueda en esta pestaña", ToastUtils.ToastType.INFO);
+            } else {
+                String message = String.format("Se encontraron %d evento%s que coinciden con los criterios de búsqueda", 
+                    filteredEvents.size(), filteredEvents.size() == 1 ? "" : "s");
+                ToastUtils.showCustomToast(this, message, ToastUtils.ToastType.INFO);
+            }
+        } else {
+            // Sin búsqueda activa, mostrar todos los eventos
+            if (pagerAdapter != null) {
+                pagerAdapter.updateEvents(futureEvents, pastEvents, false);
+            }
+            
+            // Actualizar títulos de pestañas
+            updateTabTitles(futureEvents.size(), pastEvents.size());
+            
+            // Habilitar cambio de pestañas
+            enableTabSwitching();
+            
+            // Ocultar indicador de filtros
+            filterIndicatorLayout.setVisibility(View.GONE);
+        }
+    }
+    
+    private void clearSearchFilters() {
+        currentSearchFilter.clearFilters();
+        applySearchFilters();
+        ToastUtils.showCustomToast(this, "Filtros limpiados", ToastUtils.ToastType.INFO);
+    }
+    
+    private void updateTabTitles(int futureCount, int pastCount) {
+        if (tabLayout != null) {
+            TabLayout.Tab futureTab = tabLayout.getTabAt(0);
+            TabLayout.Tab pastTab = tabLayout.getTabAt(1);
+            
+            if (currentSearchFilter.hasActiveFilters()) {
+                // Solo la pestaña activa tiene asterisco
+                int currentTab = tabLayout.getSelectedTabPosition();
+                if (futureTab != null) {
+                    if (currentTab == 0) {
+                        futureTab.setText(String.format("Próximos (%d*)", futureCount));
+                    } else {
+                        futureTab.setText(String.format("Próximos (%d)", futureCount));
+                    }
+                }
+                if (pastTab != null) {
+                    if (currentTab == 1) {
+                        pastTab.setText(String.format("Archivados (%d*)", pastCount));
+                    } else {
+                        pastTab.setText(String.format("Archivados (%d)", pastCount));
+                    }
+                }
+            } else {
+                if (futureTab != null) {
+                    futureTab.setText(String.format("Próximos (%d)", futureCount));
+                }
+                if (pastTab != null) {
+                    pastTab.setText(String.format("Archivados (%d)", pastCount));
+                }
+            }
+        }
+    }
+    
+    private void disableTabSwitching() {
+        if (tabLayout != null) {
+            int currentTab = tabLayout.getSelectedTabPosition();
+            for (int i = 0; i < tabLayout.getTabCount(); i++) {
+                TabLayout.Tab tab = tabLayout.getTabAt(i);
+                if (tab != null) {
+                    if (i == currentTab) {
+                        // Pestaña activa: habilitada y opacidad normal
+                        tab.view.setEnabled(true);
+                        tab.view.setAlpha(1.0f);
+                    } else {
+                        // Pestañas no activas: deshabilitadas y opacidad reducida
+                        tab.view.setEnabled(false);
+                        tab.view.setAlpha(0.5f);
+                    }
+                }
+            }
+        }
+    }
+    
+    private void enableTabSwitching() {
+        if (tabLayout != null) {
+            for (int i = 0; i < tabLayout.getTabCount(); i++) {
+                TabLayout.Tab tab = tabLayout.getTabAt(i);
+                if (tab != null) {
+                    tab.view.setEnabled(true);
+                    tab.view.setAlpha(1.0f);
+                }
+            }
+        }
     }
 } 

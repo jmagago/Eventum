@@ -64,6 +64,30 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
             }
         }
     }
+    
+    public void updateEvents(List<Event> newFutureEvents, List<Event> newPastEvents) {
+        for (Map.Entry<Integer, EventsFragment> entry : fragmentsMap.entrySet()) {
+            if (entry.getValue() != null) {
+                if (entry.getKey() == 0) {
+                    entry.getValue().setEvents(newFutureEvents);
+                } else {
+                    entry.getValue().setEvents(newPastEvents);
+                }
+            }
+        }
+    }
+    
+    public void updateEvents(List<Event> newFutureEvents, List<Event> newPastEvents, boolean isSearchResult) {
+        for (Map.Entry<Integer, EventsFragment> entry : fragmentsMap.entrySet()) {
+            if (entry.getValue() != null) {
+                if (entry.getKey() == 0) {
+                    entry.getValue().setEvents(newFutureEvents, isSearchResult);
+                } else {
+                    entry.getValue().setEvents(newPastEvents, isSearchResult);
+                }
+            }
+        }
+    }
 
     public void showEventContextMenu(View anchor, Event event, EventContextMenuListener listener) {
         PopupMenu popup = new PopupMenu(context, anchor);
