@@ -59,4 +59,7 @@
     <color name="error">#F44336</color>
     <color name="warning">#FFA726</color>
     <color name="info">#2196F3</color>
+    
+    <!-- Color amarillo para botón de información -->
+    <color name="yellow">#FFEB3B</color>
 </resources>

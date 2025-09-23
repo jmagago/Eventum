@@ -131,6 +131,49 @@
                 </FrameLayout>
             </LinearLayout>
 
+            <!-- DNI -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/dniLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.Eventum.TextInputLayout"
+                android:hint="DNI"
+                app:startIconDrawable="@drawable/ic_id_card"
+                app:startIconTint="@color/colorPrimary"
+                app:errorEnabled="true"
+                app:errorTextAppearance="@style/TextAppearance.Eventum.Helper">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/dniEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="textCapCharacters"
+                    android:maxLength="9"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Fecha de nacimiento -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/birthDateLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.Eventum.TextInputLayout"
+                android:hint="Fecha de nacimiento"
+                app:startIconDrawable="@drawable/ic_calendar"
+                app:startIconTint="@color/colorPrimary"
+                app:errorEnabled="true"
+                app:errorTextAppearance="@style/TextAppearance.Eventum.Helper">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/birthDateEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/TextAppearance.Eventum.Input"
+                    android:inputType="date"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Separador visual -->
             <View
                 android:layout_width="match_parent"
@@ -167,7 +210,7 @@
                 android:id="@+id/phoneLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="16dp"
                 style="@style/Widget.Eventum.TextInputLayout"
                 android:hint="Teléfono"
                 app:startIconDrawable="@drawable/ic_phone"
@@ -182,27 +225,6 @@
                     style="@style/TextAppearance.Eventum.Input"
                     android:inputType="number"
                     android:maxLength="9"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Fecha de nacimiento -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/birthDateLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Fecha de nacimiento"
-                app:startIconDrawable="@drawable/ic_calendar"
-                app:startIconTint="@color/colorPrimary"
-                app:errorEnabled="true"
-                app:errorTextAppearance="@style/TextAppearance.Eventum.Helper">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/birthDateEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="date"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Separador visual -->

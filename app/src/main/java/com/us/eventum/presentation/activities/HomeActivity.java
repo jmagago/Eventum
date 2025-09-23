@@ -1,54 +1,57 @@
 package com.us.eventum.presentation.activities;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
+
+import com.bumptech.glide.Glide;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.android.material.card.MaterialCardView;
+import de.hdodenhof.circleimageview.CircleImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.us.eventum.R;
 import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.models.Event;
-import com.us.eventum.R;
 import com.us.eventum.presentation.fragments.EventsFragment;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import androidx.viewpager2.widget.ViewPager2;
-import de.hdodenhof.circleimageview.CircleImageView;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.bumptech.glide.Glide;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.bumptech.glide.Glide;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.us.eventum.presentation.viewmodels.SharedViewModel;
 import com.us.eventum.utils.PermissionUtils;
-import android.content.pm.PackageManager;
-import android.view.MenuItem;
-import android.app.DatePickerDialog;
-import android.app.AlertDialog;
-import android.widget.TextView;
-import android.widget.EditText;
-import android.widget.Button;
-import android.widget.Toast;
-import android.view.View;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
+import com.us.eventum.utils.ProfileImageManager;
+import com.us.eventum.utils.ToastUtils;
+
+import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
 import com.google.android.material.button.MaterialButton;
-import com.us.eventum.utils.ToastUtils;
-import com.us.eventum.presentation.viewmodels.SharedViewModel;
 import com.us.eventum.utils.EventSearchFilter;
 import com.google.android.material.textfield.TextInputEditText;
 import android.app.AlertDialog;
@@ -79,6 +82,12 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
     private SimpleDateFormat dateFormat;
     private SharedViewModel sharedViewModel;
     private boolean isLoadingEvents = false;
+    
+    // MaterialCardView y GestureDetector para FABs
+    private MaterialCardView fabContainer;
+    private View gestureOverlay;
+    private GestureDetector gestureDetector;
+    private boolean isFabContainerVisible = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,10 +107,14 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
 
         // Inicializar vistas
         initializeViews();
+        setupGestureDetector();
         setupClickListeners();
         setupViewPager();
         loadEvents();
-        loadProfileImage();
+        
+        
+        // Configurar observador de actualización de imagen de perfil
+        setupProfileImageObserver();
     }
 
     @Override
@@ -109,23 +122,91 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         super.onResume();
         // Observar cambios en los flags de actualización
         sharedViewModel.getEventsUpdated().observe(this, eventsUpdated -> {
-            Log.d(TAG, "HomeActivity recibió notificación del ViewModel: " + eventsUpdated);
             if (eventsUpdated) {
-                Log.d(TAG, "Recargando eventos...");
+                // Guardar el estado de búsqueda antes de recargar
+                boolean wasSearchActive = isSearchActive;
+                EventSearchFilter savedFilter = currentSearchFilter;
+                
                 // Limpiar las listas antes de recargar para evitar duplicados
                 futureEvents.clear();
                 pastEvents.clear();
                 loadEvents();
+                
+                // Restaurar el estado de búsqueda después de recargar
+                if (wasSearchActive && savedFilter != null) {
+                    isSearchActive = true;
+                    currentSearchFilter = savedFilter;
+                }
+                
                 sharedViewModel.resetEventsUpdated();
             }
         });
 
+        // Cargar imagen de perfil
+        ProfileImageManager.loadProfileImage(this, profileImageView);
+    }
+    
+    private void setupProfileImageObserver() {
         sharedViewModel.getProfileImageUpdated().observe(this, profileImageUpdated -> {
             if (profileImageUpdated) {
-                loadProfileImage();
+                ProfileImageManager.loadProfileImage(this, profileImageView);
                 sharedViewModel.resetProfileImageUpdated();
             }
         });
+    }
+    
+    private void setupGestureDetector() {
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) {
+                    return false;
+                }
+                
+                // Detectar gestos en el overlay (parte inferior)
+                float deltaY = e2.getY() - e1.getY();
+                float deltaX = e2.getX() - e1.getX();
+                
+                // Verificar que sea un movimiento vertical significativo
+                if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 30) {
+                    if (deltaY > 0) {
+                        // Swipe hacia abajo - ocultar
+                        hideFabContainer();
+                    } else {
+                        // Swipe hacia arriba - mostrar
+                        showFabContainer();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+        
+        // Aplicar al overlay transparente
+        gestureOverlay.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true; // Consumir el evento para que no pase a otros elementos
+        });
+    }
+    
+    private void hideFabContainer() {
+        if (isFabContainerVisible) {
+            isFabContainerVisible = false;
+            fabContainer.animate()
+                    .translationY(fabContainer.getHeight() + 50)
+                    .setDuration(300)
+                    .start();
+        }
+    }
+    
+    private void showFabContainer() {
+        if (!isFabContainerVisible) {
+            isFabContainerVisible = true;
+            fabContainer.animate()
+                    .translationY(0)
+                    .setDuration(300)
+                    .start();
+        }
     }
 
     private void initializeViews() {
@@ -138,6 +219,8 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         filterIndicatorLayout = findViewById(R.id.filterIndicatorLayout);
         filterIndicatorText = findViewById(R.id.filterIndicatorText);
         clearFiltersButton = findViewById(R.id.clearFiltersButton);
+        fabContainer = findViewById(R.id.fabContainer);
+        gestureOverlay = findViewById(R.id.gestureOverlay);
         
         // Inicializar vistas de información de usuario
         TextView userNameTextView = findViewById(R.id.userNameTextView);
@@ -227,12 +310,10 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         
         // Evitar múltiples llamadas simultáneas
         if (isLoadingEvents) {
-            Log.d(TAG, "loadEvents() ya en progreso, ignorando llamada");
             return;
         }
         
         isLoadingEvents = true;
-        Log.d(TAG, "loadEvents() llamado - Tamaño actual futureEvents: " + futureEvents.size() + ", pastEvents: " + pastEvents.size());
 
         // Obtener la fecha actual
         Date now = new Date();
@@ -260,6 +341,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Event event = document.toObject(Event.class);
                     event.setId(document.getId());
+                    
                     
                     // Cargar asistentes para este evento
                     db.collection("attendees")
@@ -318,6 +400,12 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         // Ordenar eventos pasados por fecha descendente
         pastEvents.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
         
+        // Si hay una búsqueda activa, aplicar filtros en lugar de mostrar todos los eventos
+        if (isSearchActive && currentSearchFilter.hasActiveFilters()) {
+            applySearchFilters();
+            return;
+        }
+        
         // Actualizar etiquetas de pestañas con el número de eventos
         TabLayout.Tab futureTab = tabLayout.getTabAt(0);
         TabLayout.Tab pastTab = tabLayout.getTabAt(1);
@@ -338,32 +426,16 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
             pagerAdapter.updateEvents();
         }
         
+        // Forzar actualización del adaptador para refrescar los iconos
+        if (pagerAdapter != null) {
+            pagerAdapter.notifyDataSetChanged();
+        }
+        
         // Actualizar títulos de pestañas
         updateTabTitles(futureEvents.size(), pastEvents.size());
     }
 
-    private void loadProfileImage() {
-        // Establecer imagen por defecto
-        profileImageView.setImageResource(R.drawable.default_profile);
-
-        // Intentar cargar la imagen del usuario si existe
-        StorageReference profileRef = storage.getReference().child("profile_images/" + userId + ".jpg");
-        profileRef.getDownloadUrl()
-            .addOnSuccessListener(uri -> {
-                // Cargar la imagen usando Glide
-                Glide.with(this)
-                    .load(uri)
-                    .placeholder(R.drawable.default_profile)
-                    .error(R.drawable.default_profile)
-                    .circleCrop()
-                    .into(profileImageView);
-                
-                Log.d(TAG, "Imagen de perfil cargada exitosamente");
-            })
-            .addOnFailureListener(e -> {
-                Log.d(TAG, "No se encontró imagen de perfil, usando imagen por defecto: " + e.getMessage());
-            });
-    }
+    
 
     @Override
     protected void onDestroy() {
@@ -425,6 +497,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         EditText locationInput = dialogView.findViewById(R.id.locationInput);
         EditText dateInput = dialogView.findViewById(R.id.dateInput);
         EditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
+        CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
         Button cancelButton = dialogView.findViewById(R.id.cancelButton);
         Button saveButton = dialogView.findViewById(R.id.saveButton);
         
@@ -433,6 +506,7 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
         locationInput.setText(event.getLocation());
         dateInput.setText(dateFormat.format(event.getDate()));
         maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
+        eventoPrivadoCheckBox.setChecked(event.isPrivate());
         
         // Configurar el DatePicker para la fecha
         dateInput.setOnClickListener(v -> {
@@ -473,16 +547,33 @@ public class HomeActivity extends AppCompatActivity implements EventsPagerAdapte
                 Date newDate = dateFormat.parse(dateStr);
                 int maxParticipants = Integer.parseInt(maxParticipantsStr);
                 
+                // Verificar que el número de plazas no sea menor al número actual de asistentes
+                if (maxParticipants < event.getCurrentParticipants()) {
+                    ToastUtils.showCustomToast(this, 
+                        "El número de plazas no puede ser menor que el número actual de asistentes (" + 
+                        event.getCurrentParticipants() + ")", 
+                        ToastUtils.ToastType.WARNING);
+                    return;
+                }
+                
                 // Actualizar el evento en Firestore
                 Map<String, Object> updates = new HashMap<>();
                 updates.put("title", title);
                 updates.put("location", location);
                 updates.put("date", newDate);
                 updates.put("maxParticipants", maxParticipants);
+                updates.put("privateEvent", eventoPrivadoCheckBox.isChecked());
                 
                 db.collection("events").document(event.getId())
                     .update(updates)
                     .addOnSuccessListener(aVoid -> {
+                        // Actualizar el objeto evento local
+                        event.setTitle(title);
+                        event.setLocation(location);
+                        event.setDate(newDate);
+                        event.setMaxParticipants(maxParticipants);
+                        event.setPrivate(eventoPrivadoCheckBox.isChecked());
+                        
                         ToastUtils.showCustomToast(this, "Evento actualizado correctamente", ToastUtils.ToastType.SUCCESS);
                         sharedViewModel.notifyEventsUpdated();
                         loadEvents();

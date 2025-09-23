@@ -15,34 +15,33 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import de.hdodenhof.circleimageview.CircleImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.us.eventum.R;
-import de.hdodenhof.circleimageview.CircleImageView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
-import androidx.lifecycle.ViewModelProvider;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -100,24 +99,24 @@ public class SettingsActivity extends AppCompatActivity {
         sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
 
         // Configurar Toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayShowTitleEnabled(false);
+            getSupportActionBar().setDisplayShowTitleEnabled(true);
         }
 
-        // Configurar botón de retroceso
-        ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> onBackPressed());
+        // Configurar botón de retroceso (ahora se maneja automáticamente con MaterialToolbar)
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         // Configurar botón de información
-        ImageButton infoButton = findViewById(R.id.infoButton);
+        android.widget.TextView infoButton = findViewById(R.id.infoButton);
         infoButton.setOnClickListener(v -> showAppInfoDialog());
 
         // Inicializar vistas
         initializeViews();
         setupListeners();
         loadUserData();
+        
     }
 
     private void initializeViews() {
@@ -281,8 +280,15 @@ public class SettingsActivity extends AppCompatActivity {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
             byte[] data = baos.toByteArray();
 
-            // Mostrar la imagen comprimida en el ImageView
-            profileImageView.setImageBitmap(bitmap);
+            // Mostrar la imagen comprimida en el ImageView con circleCrop
+            Glide.with(this)
+                .load(bitmap)
+                .circleCrop()
+                .into(profileImageView);
+
+            // Guardar la URI de la imagen en SharedPreferences para sincronización inmediata
+            ProfileImageManager.saveImageUri(this, userId, imageUri.toString());
+            ProfileImageManager.updateCurrentUri(imageUri.toString(), profileImageView);
 
             // Subir la imagen comprimida
             UploadTask uploadTask = profileRef.putBytes(data);
@@ -292,44 +298,41 @@ public class SettingsActivity extends AppCompatActivity {
                     // Marcar que la foto fue actualizada
                     sharedViewModel.notifyProfileImageUpdated();
                     ToastUtils.showCustomToast(SettingsActivity.this, "Foto de perfil actualizada", ToastUtils.ToastType.SUCCESS);
-                    loadProfileImage();
                 })
                 .addOnFailureListener(e -> {
                     showProgress(false);
-                    Log.e(TAG, "Error al subir imagen", e);
                     ToastUtils.showCustomToast(SettingsActivity.this, "Error al actualizar la foto de perfil", ToastUtils.ToastType.ERROR);
-                })
-                .addOnProgressListener(taskSnapshot -> {
-                    double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-                    Log.d(TAG, "Progreso de carga: " + progress + "%");
                 });
         } catch (IOException e) {
             showProgress(false);
-            Log.e(TAG, "Error al procesar imagen", e);
             ToastUtils.showCustomToast(this, "Error al procesar la imagen", ToastUtils.ToastType.ERROR);
         }
     }
+    
+    private String getImageUri() {
+        String userId = mAuth.getCurrentUser().getUid();
+        return ProfileImageManager.getImageUri(this, userId);
+    }
 
     private void loadProfileImage() {
-        if (mAuth.getCurrentUser() == null) return;
+        if (mAuth.getCurrentUser() == null) {
+            return;
+        }
 
         String userId = mAuth.getCurrentUser().getUid();
-        StorageReference profileRef = FirebaseStorage.getInstance()
-            .getReference()
-            .child("profile_images/" + userId + ".jpg");
-
-        profileRef.getDownloadUrl()
-            .addOnSuccessListener(uri -> {
-                Glide.with(this)
-                    .load(uri)
-                    .placeholder(R.drawable.default_profile)
-                    .error(R.drawable.default_profile)
-                    .into(profileImageView);
-            })
-            .addOnFailureListener(e -> {
-                profileImageView.setImageResource(R.drawable.default_profile);
-                Log.d(TAG, "No se encontró imagen de perfil: " + e.getMessage());
-            });
+        
+        // Primero intentar cargar la imagen desde URI guardada
+        String savedUri = getImageUri();
+        
+        if (savedUri != null) {
+            ProfileImageManager.loadImageFromUri(this, profileImageView, savedUri);
+            return;
+        }
+        
+        // Si no hay URI guardada, establecer imagen por defecto
+        // SettingsActivity NUNCA debería cargar desde Firebase Storage
+        // porque HomeActivity siempre carga primero y guarda la URI local
+        profileImageView.setImageResource(R.drawable.default_profile);
     }
 
     private void showProgress(boolean show) {

@@ -9,7 +9,7 @@
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
+        android:background="@color/colorPrimary"
         android:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
@@ -27,7 +27,7 @@
                     android:layout_height="48dp"
                     android:src="@drawable/ic_arrow_back"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/colorPrimary"
+                    android:tint="@color/white"
                     android:padding="12dp"
                     android:contentDescription="Volver atrás"/>
 
@@ -40,7 +40,7 @@
                     android:layout_marginEnd="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    style="@style/ToolbarTitleStyle"/>
+                    style="@style/ToolbarTitleStyleDark"/>
 
                 <ImageButton
                     android:id="@+id/eventMenuButton"
@@ -48,7 +48,7 @@
                     android:layout_height="48dp"
                     android:src="@drawable/ic_more_vert"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/colorPrimary"
+                    android:tint="@color/white"
                     android:padding="12dp"
                     android:contentDescription="Menú del evento"/>
 
@@ -69,7 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="6dp"
             android:layout_marginBottom="8dp"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
@@ -209,22 +209,87 @@
             android:layout_weight="1"
             android:paddingHorizontal="16dp"
             android:clipToPadding="false"
-            android:paddingBottom="80dp"/>
+            android:paddingBottom="5dp"/>
 
     </LinearLayout>
 
-    <!-- Botón flotante para añadir asistentes -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/addAttendeeButton"
-        android:layout_width="wrap_content"
+    <!-- Overlay para detectar gestos (parte inferior) -->
+    <View
+        android:id="@+id/gestureOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="0dp"
+        android:background="@android:color/transparent" />
+
+    <!-- Contenedor de FABs (similar a Home) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/fabContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="24dp"
-        android:src="@drawable/ic_add"
-        app:backgroundTint="@color/colorPrimary"
-        app:tint="@color/colorWhite"
-        app:fabSize="normal"
-        app:maxImageSize="32dp"
-        app:borderWidth="0dp" />
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@android:color/transparent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- Buscar asistente (izquierda) -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/searchAttendeeFab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                app:srcCompat="@drawable/ic_search_person"
+                app:backgroundTint="@color/colorAccent"
+                app:tint="@color/white"
+                app:fabSize="normal"
+                app:maxImageSize="44dp"
+                app:borderWidth="0dp"
+                app:elevation="8dp" />
+
+            <!-- Añadir asistente (centro) -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/addAttendeeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:src="@drawable/ic_add"
+                app:backgroundTint="@color/colorPrimary"
+                app:tint="@color/colorWhite"
+                app:fabSize="normal"
+                app:maxImageSize="32dp"
+                app:borderWidth="0dp"
+                app:elevation="8dp" />
+
+            <!-- Verificar por QR (derecha) -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/verifyQrFab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_qr_code"
+                app:backgroundTint="@color/colorPrimaryDark"
+                app:tint="@color/colorWhite"
+                app:fabSize="normal"
+                app:maxImageSize="28dp"
+                app:borderWidth="0dp"
+                app:elevation="8dp" />
+
+        </RelativeLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

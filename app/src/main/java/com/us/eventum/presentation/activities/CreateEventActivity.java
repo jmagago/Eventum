@@ -3,6 +3,7 @@ package com.us.eventum.presentation.activities;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
@@ -25,6 +27,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.models.Event;
 import com.us.eventum.R;
+import com.us.eventum.presentation.viewmodels.SharedViewModel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +43,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private TextInputLayout nombreEventoLayout, fechaEventoLayout, horaEventoLayout, maxParticipantesLayout, 
                          lugarEventoLayout, descripcionEventoLayout, tipoEventoLayout;
     private AutoCompleteTextView tipoEventoAutoComplete;
+    private MaterialCheckBox eventoPrivadoCheckBox;
     private MaterialButton crearEventoButton;
     private CircularProgressIndicator progressBar;
     private Calendar calendar;
@@ -48,6 +52,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private String selectedEventType;
+    private SharedViewModel sharedViewModel;
     private List<String> eventTypes;
 
     @Override
@@ -57,6 +62,7 @@ public class CreateEventActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        sharedViewModel = SharedViewModel.getInstance();
         initializeViews();
         setupDatePicker();
         setupEventTypeDropdown();
@@ -73,6 +79,7 @@ public class CreateEventActivity extends AppCompatActivity {
         lugarEventoEditText = findViewById(R.id.lugarEventoEditText);
         descripcionEventoEditText = findViewById(R.id.descripcionEventoEditText);
         tipoEventoAutoComplete = findViewById(R.id.tipoEventoAutoComplete);
+        eventoPrivadoCheckBox = findViewById(R.id.eventoPrivadoCheckBox);
 
         // Inicializar layouts
         nombreEventoLayout = findViewById(R.id.nombreEventoLayout);
@@ -255,12 +262,17 @@ public class CreateEventActivity extends AppCompatActivity {
             Integer.parseInt(maxParticipantesEditText.getText().toString()),
             selectedEventType
         );
+        
+        // Configurar si el evento es privado
+        boolean privateEvent = eventoPrivadoCheckBox.isChecked();
+        event.setPrivate(privateEvent);
 
         db.collection("events")
             .add(event)
             .addOnSuccessListener(documentReference -> {
                 event.setId(documentReference.getId());
                 ToastUtils.showCustomToast(this, "Evento creado exitosamente", ToastUtils.ToastType.SUCCESS);
+                sharedViewModel.notifyEventsUpdated();
                 finish();
             })
             .addOnFailureListener(e -> {

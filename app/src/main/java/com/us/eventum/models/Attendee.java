@@ -9,6 +9,7 @@ public class Attendee implements Serializable {
     private String eventId;
     private String name;
     private String lastName;
+    private String dni;
     private String email;
     private String phone;
     private Timestamp birthDate;
@@ -22,9 +23,10 @@ public class Attendee implements Serializable {
         // Constructor vacío requerido para Firestore
     }
 
-    public Attendee(String name, String lastName, String email, String phone, String birthDate) {
+    public Attendee(String name, String lastName, String dni, String email, String phone, String birthDate) {
         this.name = name;
         this.lastName = lastName;
+        this.dni = dni;
         this.email = email;
         this.phone = phone;
         this.requiresParentalAuthorization = false;
@@ -34,11 +36,12 @@ public class Attendee implements Serializable {
         this.verified = false;
     }
 
-    public Attendee(String id, String eventId, String name, String lastName, String email, String phone, long confirmationTime, boolean scanned) {
+    public Attendee(String id, String eventId, String name, String lastName, String dni, String email, String phone, long confirmationTime, boolean scanned) {
         this.id = id;
         this.eventId = eventId;
         this.name = name;
         this.lastName = lastName;
+        this.dni = dni;
         this.email = email;
         this.phone = phone;
         this.confirmationTime = confirmationTime;
@@ -78,6 +81,14 @@ public class Attendee implements Serializable {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public String getDni() {
+        return dni;
+    }
+
+    public void setDni(String dni) {
+        this.dni = dni;
     }
 
     public String getEmail() {

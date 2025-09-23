@@ -4,6 +4,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -97,6 +98,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         private TextView locationText;
         private TextView participantsText;
         private TextView timeText;
+        private ImageView privateIcon;
         private SimpleDateFormat displayDateFormat;
 
         public EventViewHolder(@NonNull View itemView) {
@@ -106,6 +108,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             locationText = itemView.findViewById(R.id.eventLocationTextView);
             participantsText = itemView.findViewById(R.id.eventParticipantsTextView);
             timeText = itemView.findViewById(R.id.eventTimeTextView);
+            privateIcon = itemView.findViewById(R.id.eventPrivateIcon);
             displayDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
 
             // Configurar los clics usando el listener del adaptador
@@ -130,6 +133,19 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
         public void bind(Event event) {
             titleText.setText(event.getTitle());
+            
+            // Mostrar icono de candado según el tipo de evento
+            boolean isPrivate = event.isPrivate();
+            Log.d("EventAdapter", "Evento: " + event.getTitle() + " - isPrivate: " + isPrivate);
+            if (isPrivate) {
+                privateIcon.setImageResource(R.drawable.ic_lock_closed);
+                privateIcon.setVisibility(View.VISIBLE);
+                Log.d("EventAdapter", "Mostrando candado CERRADO para: " + event.getTitle());
+            } else {
+                privateIcon.setImageResource(R.drawable.ic_lock_open);
+                privateIcon.setVisibility(View.VISIBLE);
+                Log.d("EventAdapter", "Mostrando candado ABIERTO para: " + event.getTitle());
+            }
             
             // Formatear la fecha y la hora
             String formattedDate = displayDateFormat.format(event.getDate());

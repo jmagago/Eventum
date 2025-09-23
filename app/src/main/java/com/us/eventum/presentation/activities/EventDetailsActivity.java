@@ -26,6 +26,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.card.MaterialCardView;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -67,6 +70,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
     private FloatingActionButton addAttendeeButton;
+    private FloatingActionButton searchAttendeeFab;
+    private FloatingActionButton verifyQrFab;
+    private MaterialCardView fabContainer;
+    private View gestureOverlay;
+    private GestureDetector gestureDetector;
+    private boolean isFabContainerVisible = true;
     private RecyclerView attendeesRecyclerView;
     private ImageButton eventMenuButton;
     private SharedViewModel sharedViewModel;
@@ -113,6 +122,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             toolbarTitleTextView.setText(event.getTitle());
             // Inicializar el resto de la UI
             initializeViews();
+            setupGesture();
             setupRecyclerView();
             displayEventDetails();
             loadAttendees();
@@ -136,6 +146,10 @@ public class EventDetailsActivity extends AppCompatActivity {
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
         emptyAttendeesTextView = findViewById(R.id.emptyAttendeesTextView);
         addAttendeeButton = findViewById(R.id.addAttendeeButton);
+        searchAttendeeFab = findViewById(R.id.searchAttendeeFab);
+        verifyQrFab = findViewById(R.id.verifyQrFab);
+        fabContainer = findViewById(R.id.fabContainer);
+        gestureOverlay = findViewById(R.id.gestureOverlay);
         attendeesRecyclerView = findViewById(R.id.attendeesRecyclerView);
         eventMenuButton = findViewById(R.id.eventMenuButton);
 
@@ -160,6 +174,83 @@ public class EventDetailsActivity extends AppCompatActivity {
             showAddAttendeeDialog();
         });
         eventMenuButton.setOnClickListener(v -> showEventMenu());
+
+        // Abrir búsqueda de asistente
+        searchAttendeeFab.setOnClickListener(v -> showSearchAttendeeDialog());
+        // Abrir lector QR
+        verifyQrFab.setOnClickListener(v -> startQRScanner());
+    }
+
+    private void setupGesture() {
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) return false;
+                float dy = e2.getY() - e1.getY();
+                float dx = e2.getX() - e1.getX();
+                if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30) {
+                    if (dy > 0) hideFabContainer(); else showFabContainer();
+                    return true;
+                }
+                return false;
+            }
+        });
+        if (gestureOverlay != null) {
+            gestureOverlay.setOnTouchListener((v, event) -> {
+                gestureDetector.onTouchEvent(event);
+                return true;
+            });
+        }
+    }
+
+    private void hideFabContainer() {
+        if (isFabContainerVisible && fabContainer != null) {
+            isFabContainerVisible = false;
+            fabContainer.animate().translationY(fabContainer.getHeight() + 50).setDuration(300).start();
+        }
+    }
+
+    private void showFabContainer() {
+        if (!isFabContainerVisible && fabContainer != null) {
+            isFabContainerVisible = true;
+            fabContainer.animate().translationY(0).setDuration(300).start();
+        }
+    }
+
+    private void showSearchAttendeeDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_search_attendee, null);
+        TextInputEditText dniEditText = dialogView.findViewById(R.id.dniEditText);
+        TextInputEditText nameEditText = dialogView.findViewById(R.id.nameEditText);
+        TextInputEditText lastNameEditText = dialogView.findViewById(R.id.lastNameEditText);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
+        MaterialButton searchButton = dialogView.findViewById(R.id.searchButton);
+
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        searchButton.setOnClickListener(v -> {
+            String dni = dniEditText.getText() != null ? dniEditText.getText().toString().trim() : "";
+            String name = nameEditText.getText() != null ? nameEditText.getText().toString().trim() : "";
+            String lastName = lastNameEditText.getText() != null ? lastNameEditText.getText().toString().trim() : "";
+
+            // Filtrar en memoria por ahora (luego añadimos restricciones avanzadas)
+            List<Attendee> filtered = new ArrayList<>();
+            for (Attendee a : attendees) {
+                boolean matches = true;
+                if (!dni.isEmpty()) matches &= a.getDni() != null && a.getDni().toUpperCase().contains(dni.toUpperCase());
+                if (!name.isEmpty()) matches &= a.getName() != null && a.getName().toUpperCase().contains(name.toUpperCase());
+                if (!lastName.isEmpty()) matches &= a.getLastName() != null && a.getLastName().toUpperCase().contains(lastName.toUpperCase());
+                if (matches) filtered.add(a);
+            }
+
+            attendeeAdapter.setAttendees(filtered);
+            dialog.dismiss();
+            ToastUtils.showCustomToast(this, "Búsqueda aplicada", ToastUtils.ToastType.INFO);
+        });
+
+        dialog.show();
     }
 
     private void setupRecyclerView() {
@@ -274,6 +365,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextInputEditText nameEditText = dialogView.findViewById(R.id.nameEditText);
         TextInputEditText firstLastNameEditText = dialogView.findViewById(R.id.firstLastNameEditText);
         TextInputEditText secondLastNameEditText = dialogView.findViewById(R.id.secondLastNameEditText);
+        TextInputEditText dniEditText = dialogView.findViewById(R.id.dniEditText);
         TextInputEditText emailEditText = dialogView.findViewById(R.id.emailEditText);
         TextInputEditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
         TextInputEditText birthDateEditText = dialogView.findViewById(R.id.birthDateEditText);
@@ -282,11 +374,15 @@ public class EventDetailsActivity extends AppCompatActivity {
         MaterialButton addButton = dialogView.findViewById(R.id.addAttendeeButton);
         
         // Obtener los TextInputLayout para mostrar errores
+        com.google.android.material.textfield.TextInputLayout dniLayout = dialogView.findViewById(R.id.dniLayout);
         com.google.android.material.textfield.TextInputLayout phoneLayout = dialogView.findViewById(R.id.phoneLayout);
         com.google.android.material.textfield.TextInputLayout birthDateLayout = dialogView.findViewById(R.id.birthDateLayout);
 
         // Por defecto, deshabilitar la autorización parental hasta seleccionar fecha
         parentalAuthCheckBox.setEnabled(false);
+
+        // Configurar validador de DNI (solo cuando pierde el foco)
+        dniEditText.setOnFocusChangeListener(com.us.eventum.utils.DniValidator.createDniFocusValidator(dniLayout));
 
         // Validar teléfono español al perder el foco
         phoneEditText.setOnFocusChangeListener((v, hasFocus) -> {
@@ -401,14 +497,21 @@ public class EventDetailsActivity extends AppCompatActivity {
             String name = nameEditText.getText().toString().trim();
             String firstLastName = firstLastNameEditText.getText().toString().trim();
             String secondLastName = secondLastNameEditText.getText().toString().trim();
+            String dni = dniEditText.getText().toString().trim().toUpperCase();
             String email = emailEditText.getText().toString().trim();
             String phone = phoneEditText.getText().toString().trim();
             String birthDate = birthDateEditText.getText().toString().trim();
             boolean requiresAuth = parentalAuthCheckBox.isChecked();
 
             // Validar campos obligatorios
-            if (name.isEmpty() || email.isEmpty() || phone.isEmpty()) {
-                ToastUtils.showCustomToast(this, "Por favor, completa los campos obligatorios", ToastUtils.ToastType.INFO);
+            if (name.isEmpty() || firstLastName.isEmpty() || dni.isEmpty() || email.isEmpty() || phone.isEmpty()) {
+                ToastUtils.showCustomToast(this, "Por favor, completa los campos obligatorios (nombre, primer apellido, DNI, email y teléfono)", ToastUtils.ToastType.INFO);
+                return;
+            }
+
+            // Validar DNI
+            if (!com.us.eventum.utils.DniValidator.isValidDni(dni)) {
+                ToastUtils.showCustomToast(this, "El DNI no es válido", ToastUtils.ToastType.INFO);
                 return;
             }
 
@@ -421,7 +524,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 }
             }
 
-            Attendee attendee = new Attendee(name, lastName, email, phone, birthDate);
+            Attendee attendee = new Attendee(name, lastName, dni, email, phone, birthDate);
             attendee.setRequiresParentalAuthorization(requiresAuth);
             attendee.setEventId(event.getId());
 
@@ -480,6 +583,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_attendee_details, null);
 
         TextView nameTextView = dialogView.findViewById(R.id.detailNameTextView);
+        TextView dniTextView = dialogView.findViewById(R.id.detailDniTextView);
         TextView emailTextView = dialogView.findViewById(R.id.detailEmailTextView);
         TextView phoneTextView = dialogView.findViewById(R.id.detailPhoneTextView);
         TextView birthDateTextView = dialogView.findViewById(R.id.detailBirthDateTextView);
@@ -493,6 +597,16 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Mostrar nombre completo
         String fullName = attendee.getName() + " " + (attendee.getLastName() != null ? attendee.getLastName() : "");
         nameTextView.setText(fullName.trim());
+        
+        // Mostrar DNI
+        String dni = attendee.getDni();
+        if (dni != null && !dni.isEmpty()) {
+            dniTextView.setText(dni);
+            dniTextView.setVisibility(View.VISIBLE);
+        } else {
+            dniTextView.setVisibility(View.GONE);
+        }
+        
         emailTextView.setText(attendee.getEmail());
 
         // Mostrar teléfono
@@ -659,6 +773,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextInputEditText locationInput = dialogView.findViewById(R.id.locationInput);
         TextInputEditText dateInput = dialogView.findViewById(R.id.dateInput);
         TextInputEditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
+        CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
         MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
         MaterialButton saveButton = dialogView.findViewById(R.id.saveButton);
         
@@ -667,6 +782,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         locationInput.setText(event.getLocation());
         dateInput.setText(dateFormat.format(event.getDate()));
         maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
+        eventoPrivadoCheckBox.setChecked(event.isPrivate());
         
         // Configurar el DatePicker para la fecha
         dateInput.setOnClickListener(v -> {
@@ -708,7 +824,10 @@ public class EventDetailsActivity extends AppCompatActivity {
                 int maxParticipants = Integer.parseInt(maxParticipantsStr);
                 
                 if (maxParticipants < attendees.size()) {
-                    ToastUtils.showCustomToast(this, "El número de plazas no puede ser menor que el número actual de asistentes", ToastUtils.ToastType.INFO);
+                    ToastUtils.showCustomToast(this, 
+                        "El número de plazas no puede ser menor que el número actual de asistentes (" + 
+                        attendees.size() + ")", 
+                        ToastUtils.ToastType.WARNING);
                     return;
                 }
                 
@@ -718,6 +837,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 updates.put("location", location);
                 updates.put("date", newDate);
                 updates.put("maxParticipants", maxParticipants);
+                updates.put("privateEvent", eventoPrivadoCheckBox.isChecked());
                 
                 db.collection("events").document(event.getId())
                     .update(updates)
@@ -727,6 +847,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                         event.setLocation(location);
                         event.setDate(newDate);
                         event.setMaxParticipants(maxParticipants);
+                        event.setPrivate(eventoPrivadoCheckBox.isChecked());
                         
                         // Actualizar la UI
                         if (getSupportActionBar() != null) {

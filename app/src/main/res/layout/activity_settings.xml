@@ -9,64 +9,24 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
+        android:background="@color/colorPrimary"
         android:elevation="0dp">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/CustomToolbar">
-
-            <LinearLayout
-                style="@style/ToolbarProfileContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <ImageButton
-                    android:id="@+id/backButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_arrow_back"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/colorPrimary"
-                    android:padding="12dp"
-                    android:contentDescription="Volver atrás"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Ajustes"
-                    android:layout_marginStart="8dp"
-                    style="@style/ToolbarTitleStyle"/>
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <ImageButton
-                    android:id="@+id/infoButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_info"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/warning"
-                    android:padding="12dp"
-                    android:contentDescription="Información de la app"/>
-
-            </LinearLayout>
-
-        </androidx.appcompat.widget.Toolbar>
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="Ajustes"
+            app:titleTextColor="@color/white"
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar" />
 
         <!-- Contenedor de perfil -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/white"
+            android:background="#E3F2FD"
             android:padding="16dp">
 
             <FrameLayout
@@ -121,12 +81,31 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:textSize="14sp"
-                android:textColor="@color/colorSecondaryText"
+                android:textColor="@color/colorAccent"
                 android:layout_marginTop="4dp"/>
 
         </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Botón de información personalizado -->
+    <TextView
+        android:id="@+id/infoButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="32dp"
+        android:background="@drawable/button_info_background"
+        android:text="i"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:elevation="6dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="Información de la app" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"

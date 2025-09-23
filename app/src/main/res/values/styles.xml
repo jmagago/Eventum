@@ -86,9 +86,18 @@
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
+    <!-- Estilo para el título del Toolbar con fondo azul -->
+    <style name="ToolbarTitleStyleDark" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
     <!-- Estilo para el Toolbar -->
     <style name="CustomToolbar">
-        <item name="android:background">@color/white</item>
+        <item name="android:background">@color/colorPrimary</item>
         <item name="android:elevation">4dp</item>
         <item name="contentInsetStartWithNavigation">0dp</item>
         <item name="android:paddingStart">4dp</item>

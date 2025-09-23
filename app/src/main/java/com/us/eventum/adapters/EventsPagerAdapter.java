@@ -11,6 +11,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import com.us.eventum.R;
 import com.us.eventum.models.Event;
 import com.us.eventum.presentation.fragments.EventsFragment;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +94,21 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         PopupMenu popup = new PopupMenu(context, anchor);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
         
+        // Ocultar acciones que no aplican para eventos pasados (archivados)
+        try {
+            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
+                if (popup.getMenu().findItem(R.id.action_send_invitations) != null) {
+                    popup.getMenu().findItem(R.id.action_send_invitations).setVisible(false);
+                }
+                if (popup.getMenu().findItem(R.id.action_verify_attendees) != null) {
+                    popup.getMenu().findItem(R.id.action_verify_attendees).setVisible(false);
+                }
+                if (popup.getMenu().findItem(R.id.action_clear_list) != null) {
+                    popup.getMenu().findItem(R.id.action_clear_list).setVisible(false);
+                }
+            }
+        } catch (Exception ignore) {}
+
         // Forzar que se muestren los iconos
         try {
             java.lang.reflect.Field field = popup.getClass().getDeclaredField("mPopup");

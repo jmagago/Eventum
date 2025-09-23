@@ -3,6 +3,7 @@ package com.us.eventum.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -57,6 +58,15 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             holder.nameTextView.setText(name);
         }
         
+            // Mostrar DNI como primer campo
+            String dni = attendee.getDni();
+            if (dni != null && !dni.isEmpty()) {
+                holder.dniTextView.setText(dni);
+                holder.dniTextView.setVisibility(View.VISIBLE);
+            } else {
+                holder.dniTextView.setVisibility(View.GONE);
+            }
+        
         holder.emailTextView.setText(attendee.getEmail());
         
         String phone = attendee.getPhone();
@@ -87,13 +97,17 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        ImageView profileImageView;
         TextView nameTextView;
+        TextView dniTextView;
         TextView emailTextView;
         TextView phoneTextView;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            profileImageView = itemView.findViewById(R.id.attendeeProfileImage);
             nameTextView = itemView.findViewById(R.id.attendeeNameTextView);
+            dniTextView = itemView.findViewById(R.id.attendeeDniTextView);
             emailTextView = itemView.findViewById(R.id.attendeeEmailTextView);
             phoneTextView = itemView.findViewById(R.id.attendeePhoneTextView);
         }

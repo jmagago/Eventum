@@ -211,6 +211,17 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Checkbox para evento privado -->
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/eventoPrivadoCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Evento privado"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                    android:textColor="@color/colorPrimary"
+                    app:buttonTint="@color/colorAccent" />
+
                 <!-- Descripción del evento (opcional) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/descripcionEventoLayout"

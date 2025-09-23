@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Lupa a tamaño completo -->
+    <item>
+        <inset
+            android:drawable="@drawable/ic_search"
+            android:insetLeft="0dp"
+            android:insetRight="2dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+    </item>
+
+    <!-- Persona centrada con inset (más pequeña dentro de la lupa) -->
+    <item>
+        <inset
+            android:drawable="@drawable/ic_person"
+            android:insetLeft="24dp"
+            android:insetRight="2dp"
+            android:insetTop="6dp"
+            android:insetBottom="18dp" />
+    </item>
+</layer-list>
+
+

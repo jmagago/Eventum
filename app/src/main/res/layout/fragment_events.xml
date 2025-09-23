@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="12dp"
-        android:paddingTop="8dp">
+        android:paddingTop="0dp">
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -57,7 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipToPadding="false"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="0dp"
             android:visibility="gone" />
 
     </LinearLayout>

@@ -14,6 +14,7 @@ public class Event implements Parcelable {
     private int maxParticipants;
     private String eventType;
     private int currentParticipants;
+    private boolean privateEvent;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -28,6 +29,7 @@ public class Event implements Parcelable {
         this.maxParticipants = maxParticipants;
         this.eventType = "Otro"; // Valor predeterminado
         this.currentParticipants = 0;
+        this.privateEvent = false; // Valor predeterminado
     }
 
     public Event(String title, String description, Date date, String location, String userId, int maxParticipants, String eventType) {
@@ -39,6 +41,7 @@ public class Event implements Parcelable {
         this.maxParticipants = maxParticipants;
         this.eventType = eventType;
         this.currentParticipants = 0;
+        this.privateEvent = false; // Valor predeterminado
     }
 
     // Getters y Setters
@@ -114,6 +117,22 @@ public class Event implements Parcelable {
         this.currentParticipants = currentParticipants;
     }
 
+    public boolean isPrivate() {
+        return privateEvent;
+    }
+
+    public void setPrivate(boolean privateEvent) {
+        this.privateEvent = privateEvent;
+    }
+    
+    public boolean getPrivateEvent() {
+        return privateEvent;
+    }
+    
+    public void setPrivateEvent(boolean privateEvent) {
+        this.privateEvent = privateEvent;
+    }
+
     // Constructor para Parcelable
     protected Event(Parcel in) {
         id = in.readString();
@@ -126,6 +145,7 @@ public class Event implements Parcelable {
         maxParticipants = in.readInt();
         eventType = in.readString();
         currentParticipants = in.readInt();
+        privateEvent = in.readByte() != 0;
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -156,5 +176,6 @@ public class Event implements Parcelable {
         dest.writeInt(maxParticipants);
         dest.writeString(eventType);
         dest.writeInt(currentParticipants);
+        dest.writeByte((byte) (privateEvent ? 1 : 0));
     }
 }
