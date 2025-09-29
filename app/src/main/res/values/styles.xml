@@ -178,6 +178,17 @@
         <item name="android:windowMinWidthMinor">85%</item>
     </style>
     
+    <!-- Estilo para diálogos de búsqueda con fondo sólido -->
+    <style name="CustomSearchDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">85%</item>
+    </style>
+    
     <!-- Estilo para formularios de creación -->
     <style name="FormCardStyle">
         <item name="android:layout_width">match_parent</item>

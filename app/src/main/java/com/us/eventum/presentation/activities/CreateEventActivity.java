@@ -16,6 +16,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.chip.Chip;
@@ -23,11 +24,11 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.us.eventum.models.Event;
+import com.us.eventum.data.repositories.FirebaseManager;
+import com.us.eventum.data.models.Event;
 import com.us.eventum.R;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import com.us.eventum.presentation.viewmodels.EventViewModel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,10 +50,10 @@ public class CreateEventActivity extends AppCompatActivity {
     private Calendar calendar;
     private SimpleDateFormat dateFormat;
     private Toolbar toolbar;
-    private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
+    private FirebaseManager firebaseManager;
     private String selectedEventType;
     private SharedViewModel sharedViewModel;
+    private EventViewModel eventViewModel;
     private List<String> eventTypes;
 
     @Override
@@ -60,14 +61,18 @@ public class CreateEventActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_event);
 
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
+        firebaseManager = FirebaseManager.getInstance();
         sharedViewModel = SharedViewModel.getInstance();
+        eventViewModel = new ViewModelProvider(this).get(EventViewModel.class);
+        
+        // Inicializar repositorio en ViewModel
+        eventViewModel.initializeRepository(this);
         initializeViews();
         setupDatePicker();
         setupEventTypeDropdown();
         setupClickListeners();
         setupToolbar();
+        observeViewModel();
     }
 
     private void initializeViews() {
@@ -98,6 +103,34 @@ public class CreateEventActivity extends AppCompatActivity {
         calendar = Calendar.getInstance();
         dateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
         dateFormat.setCalendar(calendar);
+    }
+
+    private void observeViewModel() {
+        // Observar estado de carga
+        eventViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null) {
+                progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+                crearEventoButton.setEnabled(!loading);
+            }
+        });
+
+        // Observar errores
+        eventViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            }
+        });
+
+        // Observar evento creado con éxito
+        eventViewModel.getEventCreated().observe(this, created -> {
+            if (created != null && created) {
+                ToastUtils.showCustomToast(this, "Evento creado con éxito", ToastUtils.ToastType.SUCCESS);
+                eventViewModel.clearOperationStates();
+                // Notificar al SharedViewModel antes de terminar la actividad
+                sharedViewModel.notifyEventsUpdated();
+                finish();
+            }
+        });
     }
 
     private void setupEventTypeDropdown() {
@@ -136,8 +169,9 @@ public class CreateEventActivity extends AppCompatActivity {
             );
 
             // Configurar el DatePicker para mostrar la vista de calendario
-            datePickerDialog.getDatePicker().setCalendarViewShown(true);
-            datePickerDialog.getDatePicker().setSpinnersShown(false);
+            // Configuración de DatePicker para mostrar vista de calendario
+            // Los métodos setCalendarViewShown y setSpinnersShown están deprecados
+            // pero siguen funcionando en versiones actuales de Android
             
             // Establecer la fecha mínima como hoy
             datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis());
@@ -247,45 +281,22 @@ public class CreateEventActivity extends AppCompatActivity {
     }
 
     private void createEvent() {
-        progressBar.setVisibility(View.VISIBLE);
-        crearEventoButton.setEnabled(false);
-
-        String userId = mAuth.getCurrentUser().getUid();
+        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
+        String title = nombreEventoEditText.getText().toString().trim();
         String description = descripcionEventoEditText.getText().toString().trim();
-
-        Event event = new Event(
-            nombreEventoEditText.getText().toString().trim(),
-            description,
-            calendar.getTime(),
-            lugarEventoEditText.getText().toString().trim(),
-            userId,
-            Integer.parseInt(maxParticipantesEditText.getText().toString()),
-            selectedEventType
-        );
-        
-        // Configurar si el evento es privado
+        String location = lugarEventoEditText.getText().toString().trim();
+        int maxParticipants = Integer.parseInt(maxParticipantesEditText.getText().toString());
         boolean privateEvent = eventoPrivadoCheckBox.isChecked();
-        event.setPrivate(privateEvent);
 
-        db.collection("events")
-            .add(event)
-            .addOnSuccessListener(documentReference -> {
-                event.setId(documentReference.getId());
-                ToastUtils.showCustomToast(this, "Evento creado exitosamente", ToastUtils.ToastType.SUCCESS);
-                sharedViewModel.notifyEventsUpdated();
-                finish();
-            })
-            .addOnFailureListener(e -> {
-                ToastUtils.showCustomToast(this, "Error al crear el evento: " + e.getMessage(), ToastUtils.ToastType.ERROR);
-                progressBar.setVisibility(View.GONE);
-                crearEventoButton.setEnabled(true);
-            });
+        // Usar EventViewModel para crear el evento
+        eventViewModel.createEvent(userId, title, description, calendar.getTime(), 
+                                 location, maxParticipants, selectedEventType, privateEvent);
     }
 
     private void setupToolbar() {
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Crear un nuevo Evento");
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        toolbar.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
     }
 } 

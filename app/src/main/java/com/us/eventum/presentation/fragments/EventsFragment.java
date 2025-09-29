@@ -12,20 +12,27 @@ import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager2.widget.ViewPager2;
 import com.us.eventum.R;
 import com.us.eventum.adapters.EventAdapter;
 import com.us.eventum.adapters.EventsPagerAdapter;
-import com.us.eventum.models.Event;
+import com.us.eventum.data.models.Event;
 import com.us.eventum.presentation.activities.EventDetailsActivity;
+import com.us.eventum.presentation.viewmodels.EventViewModel;
 import java.util.ArrayList;
 import java.util.List;
 
 public class EventsFragment extends Fragment implements EventAdapter.OnEventClickListener {
     private static final String ARG_EVENTS = "events";
     private static final String ARG_IS_FUTURE = "is_future";
+    
+    public interface OnRefreshListener {
+        void onRefreshRequested();
+    }
     
     private List<Event> events;
     private boolean isFuture;
@@ -34,6 +41,9 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     private RecyclerView eventsRecyclerView;
     private EventAdapter eventAdapter;
     private ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private EventViewModel eventViewModel;
+    private OnRefreshListener refreshListener;
     private boolean dataLoaded = false;
     private boolean isSearchResult = false;
     private android.widget.ImageView noEventsIcon;
@@ -51,7 +61,7 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            events = getArguments().getParcelableArrayList(ARG_EVENTS);
+            events = getArguments().getParcelableArrayList(ARG_EVENTS, Event.class);
             isFuture = getArguments().getBoolean(ARG_IS_FUTURE);
         }
     }
@@ -67,8 +77,13 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         noEventsIcon = view.findViewById(R.id.noEventsIcon);
         eventsRecyclerView = view.findViewById(R.id.eventsRecyclerView);
         progressBar = view.findViewById(R.id.progressBar);
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        
+        // Inicializar EventViewModel
+        eventViewModel = new ViewModelProvider(requireActivity()).get(EventViewModel.class);
         
         setupRecyclerView();
+        setupSwipeRefresh();
         
         // Si ya tenemos eventos, mostrarlos inmediatamente
         if (events != null && !events.isEmpty()) {
@@ -95,6 +110,21 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         eventsRecyclerView.setAdapter(eventAdapter);
     }
 
+    private void setupSwipeRefresh() {
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // Notificar a la actividad para que recargue los eventos
+            if (refreshListener != null) {
+                refreshListener.onRefreshRequested();
+            }
+        });
+        
+        // Configurar colores del indicador de refresh
+        swipeRefreshLayout.setColorSchemeResources(
+            R.color.colorPrimary,
+            R.color.colorAccent
+        );
+    }
+
     private void showLoadingState() {
         progressBar.setVisibility(View.VISIBLE);
         eventsRecyclerView.setVisibility(View.GONE);
@@ -103,6 +133,7 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
 
     private void updateUI() {
         progressBar.setVisibility(View.GONE);
+        swipeRefreshLayout.setRefreshing(false); // Detener el indicador de refresh
         
         if (events == null || events.isEmpty()) {
             eventsRecyclerView.setVisibility(View.GONE);
@@ -141,6 +172,10 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         if (isAdded() && getView() != null) {
             updateUI();
         }
+    }
+    
+    public void setOnRefreshListener(OnRefreshListener listener) {
+        this.refreshListener = listener;
     }
 
     @Override

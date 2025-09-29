@@ -27,7 +27,7 @@
                     android:layout_height="48dp"
                     android:src="@drawable/ic_arrow_back"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/white"
+                    app:tint="@color/white"
                     android:padding="12dp"
                     android:contentDescription="Volver atrás"/>
 
@@ -48,7 +48,7 @@
                     android:layout_height="48dp"
                     android:src="@drawable/ic_more_vert"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="@color/white"
+                    app:tint="@color/white"
                     android:padding="12dp"
                     android:contentDescription="Menú del evento"/>
 
@@ -171,7 +171,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_description"
-                        android:tint="@color/colorPrimary"
+                        app:tint="@color/colorPrimary"
                         android:layout_gravity="center_vertical"/>
 
                     <TextView
@@ -187,6 +187,44 @@
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Filter indicator -->
+        <LinearLayout
+            android:id="@+id/filterIndicatorLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:background="@color/colorAccent"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_search_person"
+                app:tint="@color/white"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/filterIndicatorText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Filtros activos"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <ImageView
+                android:id="@+id/clearFiltersButton"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_clear"
+                app:tint="@color/white"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="4dp" />
+
+        </LinearLayout>
 
         <!-- Mensaje cuando no hay asistentes -->
         <TextView

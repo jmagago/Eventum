@@ -36,7 +36,7 @@ android {
         
         // Versión de la aplicación
         val majorVersion = 0  // Cambiado a 0 para indicar desarrollo temprano
-        val minorVersion = 2  // Incrementado a 1 para indicar primera versión de desarrollo
+        val minorVersion = 3  // Incrementado a 3 para incluir pull-to-refresh y mejoras de sincronización
         val patchVersion = 0
         val buildNumber = getNextBuildNumber() // Obtener el siguiente número de build automáticamente
         
@@ -92,6 +92,11 @@ android {
             useLegacyPackaging = false
         }
     }
+    
+    // Configuración de lint
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 dependencies {
@@ -127,6 +132,18 @@ dependencies {
     // Glide para cargar imágenes
     implementation(libs.glide)
     annotationProcessor(libs.glideCompiler)
+    
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    
+    // Lifecycle components
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-livedata:2.7.0")
+    
+    // SwipeRefreshLayout
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     
     // Testing
     testImplementation("junit:junit:4.13.2")

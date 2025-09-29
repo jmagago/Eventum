@@ -17,20 +17,6 @@ public class AnimationUtils {
         }
     }
 
-    public static void fadeIn(View view) {
-        view.setAlpha(0f);
-        ObjectAnimator fadeIn = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f);
-        fadeIn.setDuration(300);
-        fadeIn.setInterpolator(new AccelerateDecelerateInterpolator());
-        fadeIn.start();
-    }
-
-    public static void fadeOut(View view) {
-        ObjectAnimator fadeOut = ObjectAnimator.ofFloat(view, "alpha", 1f, 0f);
-        fadeOut.setDuration(300);
-        fadeOut.setInterpolator(new AccelerateDecelerateInterpolator());
-        fadeOut.start();
-    }
 
     public static void showErrorWithAnimation(TextInputLayout layout, String errorMessage) {
         layout.setError(errorMessage);

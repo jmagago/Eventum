@@ -4,35 +4,45 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.auth.FirebaseAuth;
+import com.us.eventum.data.repositories.FirebaseManager;
 import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.R;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.presentation.viewmodels.UserViewModel;
 
 public class ResetPasswordActivity extends AppCompatActivity {
-    private FirebaseAuth mAuth;
+    private FirebaseManager firebaseManager;
     private TextInputEditText emailEditText;
     private TextInputLayout emailLayout;
     private MaterialButton resetPasswordButton;
     private MaterialButton backToLoginButton;
     private View progressBar;
+    private UserViewModel userViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reset_password);
 
-        // Inicializar Firebase Auth
-        mAuth = FirebaseAuth.getInstance();
+        // Inicializar Firebase
+        firebaseManager = FirebaseManager.getInstance();
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        
+        // Inicializar repositorio en ViewModel
+        userViewModel.initializeRepository(this);
 
         // Inicializar vistas
         initializeViews();
         
         // Configurar listeners
         setupListeners();
+        
+        // Observar ViewModel
+        observeViewModel();
     }
 
     private void initializeViews() {
@@ -48,6 +58,31 @@ public class ResetPasswordActivity extends AppCompatActivity {
         backToLoginButton.setOnClickListener(v -> finish());
     }
 
+    private void observeViewModel() {
+        // Observar estado de carga
+        userViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null) {
+                showProgress(loading);
+            }
+        });
+
+        // Observar errores
+        userViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            }
+        });
+
+        // Observar restablecimiento exitoso
+        userViewModel.getPasswordResetSent().observe(this, sent -> {
+            if (sent != null && sent) {
+                ToastUtils.showCustomToast(this, "Correo de recuperación enviado", ToastUtils.ToastType.SUCCESS);
+                userViewModel.clearOperationStates();
+                finish();
+            }
+        });
+    }
+
     private void resetPassword() {
         String email = emailEditText.getText().toString().trim();
 
@@ -56,22 +91,8 @@ public class ResetPasswordActivity extends AppCompatActivity {
             return;
         }
 
-        showProgress(true);
-
-        mAuth.sendPasswordResetEmail(email)
-            .addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    ToastUtils.showCustomToast(ResetPasswordActivity.this, "Correo de recuperación enviado", ToastUtils.ToastType.SUCCESS);
-                    finish();
-                } else {
-                    String errorMessage = "Error al enviar el email de restablecimiento";
-                    if (task.getException() != null) {
-                        errorMessage = task.getException().getMessage();
-                    }
-                    ToastUtils.showCustomToast(ResetPasswordActivity.this, errorMessage, ToastUtils.ToastType.ERROR);
-                }
-                showProgress(false);
-            });
+        // Usar UserViewModel para enviar email de restablecimiento
+        userViewModel.sendPasswordResetEmail(email);
     }
 
     private boolean validateEmail(String email) {

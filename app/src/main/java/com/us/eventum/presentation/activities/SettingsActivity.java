@@ -32,16 +32,16 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import de.hdodenhof.circleimageview.CircleImageView;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
+import com.us.eventum.data.repositories.FirebaseManager;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.us.eventum.R;
+import com.us.eventum.data.models.UserRole;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import com.us.eventum.presentation.viewmodels.UserViewModel;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -56,12 +56,12 @@ public class SettingsActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 123;
     
     private LinearLayout btnEditProfile, btnChangePassword, btnDeleteAccount, btnLogout;
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    private FirebaseManager firebaseManager;
     private CircleImageView profileImageView;
     private CircularProgressIndicator progressIndicator;
     private Uri photoUri;
     private SharedViewModel sharedViewModel;
+    private UserViewModel userViewModel;
     
     private final ActivityResultLauncher<String> requestPermissionLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -92,11 +92,14 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        firebaseManager = FirebaseManager.getInstance();
 
-        // Inicializar ViewModel
+        // Inicializar ViewModels
         sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        
+        // Inicializar repositorio en ViewModel
+        userViewModel.initializeRepository(this);
 
         // Configurar Toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -115,6 +118,7 @@ public class SettingsActivity extends AppCompatActivity {
         // Inicializar vistas
         initializeViews();
         setupListeners();
+        observeViewModel();
         loadUserData();
         
     }
@@ -138,28 +142,60 @@ public class SettingsActivity extends AppCompatActivity {
         btnLogout.setOnClickListener(v -> logout());
     }
 
-    private void loadUserData() {
-        if (mAuth.getCurrentUser() != null) {
-            String email = mAuth.getCurrentUser().getEmail();
-            TextView userEmailTextView = findViewById(R.id.userEmailTextView);
-            TextView userNameTextView = findViewById(R.id.userNameTextView);
-            userEmailTextView.setText(email);
-            
-            db.collection("users").document(mAuth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    String displayName = documentSnapshot.getString("nombre");
-                    if (displayName != null && !displayName.isEmpty()) {
-                        userNameTextView.setText(displayName);
-                    } else {
-                        userNameTextView.setText(email.substring(0, email.indexOf('@')));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    userNameTextView.setText(email.substring(0, email.indexOf('@')));
-                    Log.e(TAG, "Error al obtener el nombre del usuario", e);
-                });
+    private void observeViewModel() {
+        // Observar datos del usuario actual
+        userViewModel.getCurrentUser().observe(this, user -> {
+            if (user != null) {
+                TextView userNameTextView = findViewById(R.id.userNameTextView);
+                TextView userEmailTextView = findViewById(R.id.userEmailTextView);
+                TextView userRoleTextView = findViewById(R.id.userRoleTextView);
+                
+                userEmailTextView.setText(user.getEmail());
+                if (user.getNombre() != null && !user.getNombre().isEmpty()) {
+                    userNameTextView.setText(user.getNombre());
+                } else {
+                    userNameTextView.setText(user.getEmail().substring(0, user.getEmail().indexOf('@')));
+                }
+                if (userRoleTextView != null) {
+                    String role = user.getRole() != null ? user.getRole() : UserRole.ORGANIZER;
+                    boolean isAssistant = UserRole.ATTENDEE.equalsIgnoreCase(role);
+                    userRoleTextView.setText(isAssistant ? R.string.role_attendee : R.string.role_organizer);
+                    userRoleTextView.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                    userRoleTextView.setBackgroundResource(isAssistant ? R.drawable.bg_role_badge_assistant : R.drawable.bg_role_badge_organizer);
+                }
+            }
+        });
 
+        // Observar estado de carga
+        userViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null && loading) {
+                progressIndicator.setVisibility(View.VISIBLE);
+            } else {
+                progressIndicator.setVisibility(View.GONE);
+            }
+        });
+
+        // Observar errores
+        userViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            }
+        });
+
+        // Observar logout
+        userViewModel.getUserLoggedIn().observe(this, loggedIn -> {
+            if (loggedIn != null && !loggedIn) {
+                // Usuario cerró sesión o eliminó cuenta
+                ToastUtils.showCustomToast(this, "Sesión cerrada", ToastUtils.ToastType.SUCCESS);
+                goToLogin();
+            }
+        });
+    }
+
+    private void loadUserData() {
+        if (firebaseManager.getAuth().getCurrentUser() != null) {
+            // Usar UserViewModel para cargar datos del usuario
+            userViewModel.loadCurrentUser();
             loadProfileImage();
         }
     }
@@ -265,11 +301,11 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void handleImageSelection(Uri imageUri) {
-        if (mAuth.getCurrentUser() == null) return;
+        if (firebaseManager.getAuth().getCurrentUser() == null) return;
 
         showProgress(true);
-        String userId = mAuth.getCurrentUser().getUid();
-        StorageReference profileRef = FirebaseStorage.getInstance()
+        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
+        StorageReference profileRef = firebaseManager.getStorage()
             .getReference()
             .child("profile_images/" + userId + ".jpg");
 
@@ -310,16 +346,16 @@ public class SettingsActivity extends AppCompatActivity {
     }
     
     private String getImageUri() {
-        String userId = mAuth.getCurrentUser().getUid();
+        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
         return ProfileImageManager.getImageUri(this, userId);
     }
 
     private void loadProfileImage() {
-        if (mAuth.getCurrentUser() == null) {
+        if (firebaseManager.getAuth().getCurrentUser() == null) {
             return;
         }
 
-        String userId = mAuth.getCurrentUser().getUid();
+        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
         
         // Primero intentar cargar la imagen desde URI guardada
         String savedUri = getImageUri();
@@ -331,7 +367,7 @@ public class SettingsActivity extends AppCompatActivity {
         
         // Si no hay URI guardada, establecer imagen por defecto
         // SettingsActivity NUNCA debería cargar desde Firebase Storage
-        // porque HomeActivity siempre carga primero y guarda la URI local
+        // porque OrganizerHomeActivity siempre carga primero y guarda la URI local
         profileImageView.setImageResource(R.drawable.default_profile);
     }
 
@@ -398,20 +434,8 @@ public class SettingsActivity extends AppCompatActivity {
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
         
         dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
-            if (mAuth.getCurrentUser() != null) {
-                // Mostrar un indicador de progreso
-                ToastUtils.showCustomToast(SettingsActivity.this, "Eliminando cuenta...", ToastUtils.ToastType.INFO);
-                
-                mAuth.getCurrentUser().delete()
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            ToastUtils.showCustomToast(SettingsActivity.this, "Cuenta eliminada correctamente", ToastUtils.ToastType.SUCCESS);
-                            goToLogin();
-                        } else {
-                            ToastUtils.showCustomToast(SettingsActivity.this, "Error al eliminar la cuenta", ToastUtils.ToastType.ERROR);
-                        }
-                    });
-            }
+            // Usar UserViewModel para eliminar cuenta
+            userViewModel.deleteAccount();
             dialog.dismiss();
         });
         
@@ -437,8 +461,8 @@ public class SettingsActivity extends AppCompatActivity {
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
         
         dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
-            mAuth.signOut();
-            goToLogin();
+            // Usar UserViewModel para cerrar sesión
+            userViewModel.logout();
             dialog.dismiss();
         });
         

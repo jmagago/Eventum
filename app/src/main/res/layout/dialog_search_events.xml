@@ -1,46 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/dialog_background"
-    android:padding="24dp">
+    android:fillViewport="true">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="24dp">
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/dialog_background"
+        android:elevation="8dp">
 
-        <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_search"
-            android:tint="@color/colorPrimary"
-            android:layout_marginEnd="12dp" />
-
-        <TextView
-            android:layout_width="0dp"
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Buscar Eventos"
-            android:textSize="20sp"
-            android:textColor="@color/colorPrimary"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
 
-        <ImageView
-            android:id="@+id/closeButton"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_clear"
-            android:tint="@color/colorSecondaryText"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="4dp" />
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_search"
+                android:tint="@color/colorPrimary"
+                android:layout_marginEnd="12dp" />
 
-    </LinearLayout>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Buscar Eventos"
+                android:textSize="20sp"
+                android:textColor="@color/colorPrimary"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/closeButton"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_clear"
+                android:tint="@color/colorSecondaryText"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="4dp" />
+
+        </LinearLayout>
+
 
     <!-- Search Fields -->
     <ScrollView
@@ -61,7 +68,7 @@
                 android:hint="Palabras clave (título)"
                 app:startIconDrawable="@drawable/ic_title"
                 app:startIconTint="@color/colorPrimary"
-                app:boxStrokeColor="@color/colorAccent"
+                app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -70,7 +77,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textCapWords"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textSize="16sp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -83,14 +91,15 @@
                 android:hint="Tipo de Evento"
                 app:startIconDrawable="@drawable/ic_check_circle"
                 app:startIconTint="@color/colorPrimary"
-                app:boxStrokeColor="@color/colorAccent"
+                app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary">
 
                 <AutoCompleteTextView
                     android:id="@+id/eventTypeAutoComplete"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:textSize="16sp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -102,7 +111,7 @@
                 android:hint="Lugar"
                 app:startIconDrawable="@drawable/ic_location"
                 app:startIconTint="@color/colorPrimary"
-                app:boxStrokeColor="@color/colorAccent"
+                app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -111,7 +120,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textCapWords"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textSize="16sp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -139,7 +149,7 @@
                     android:hint="Desde"
                     app:startIconDrawable="@drawable/ic_calendar"
                     app:startIconTint="@color/colorPrimary"
-                    app:boxStrokeColor="@color/colorAccent"
+                    app:boxStrokeColor="@color/colorPrimary"
                     app:hintTextColor="@color/colorPrimary"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -149,7 +159,8 @@
                         android:layout_height="wrap_content"
                         android:inputType="none"
                         android:focusable="false"
-                        android:clickable="true" />
+                        android:clickable="true"
+                        android:textSize="16sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -161,7 +172,7 @@
                     android:hint="Hasta"
                     app:startIconDrawable="@drawable/ic_calendar"
                     app:startIconTint="@color/colorPrimary"
-                    app:boxStrokeColor="@color/colorAccent"
+                    app:boxStrokeColor="@color/colorPrimary"
                     app:hintTextColor="@color/colorPrimary"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -171,7 +182,8 @@
                         android:layout_height="wrap_content"
                         android:inputType="none"
                         android:focusable="false"
-                        android:clickable="true" />
+                        android:clickable="true"
+                        android:textSize="16sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -181,36 +193,38 @@
 
     </ScrollView>
 
-    <!-- Action Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:layout_marginTop="16dp">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/clearButton"
-            android:layout_width="wrap_content"
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Limpiar"
-            android:textColor="@color/colorSecondaryText"
-            app:backgroundTint="@android:color/transparent"
-            app:rippleColor="@color/colorPrimary"
-            android:layout_marginEnd="8dp"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="8dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/searchButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Buscar"
-            android:textColor="@color/white"
-            app:backgroundTint="@color/colorPrimary"
-            app:cornerRadius="8dp"
-            app:icon="@drawable/ic_search"
-            app:iconTint="@color/white" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/clearButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Limpiar"
+                android:textSize="14sp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:layout_marginEnd="8dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/searchButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Buscar"
+                android:textSize="14sp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                style="@style/Widget.MaterialComponents.Button"
+                app:backgroundTint="@color/colorPrimary" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-</LinearLayout>
+</ScrollView>

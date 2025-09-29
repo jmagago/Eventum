@@ -11,7 +11,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.us.eventum.models.Attendee;
+import com.us.eventum.data.models.Attendee;
 
 public class QRCodeGenerator {
     

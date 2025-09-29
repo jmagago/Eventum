@@ -29,18 +29,18 @@ public class SharedViewModel extends ViewModel {
     }
 
     public void notifyEventsUpdated() {
-        eventsUpdated.setValue(true);
+        eventsUpdated.postValue(true);
     }
 
     public void resetEventsUpdated() {
-        eventsUpdated.setValue(false);
+        eventsUpdated.postValue(false);
     }
 
     public void notifyProfileImageUpdated() {
-        profileImageUpdated.setValue(true);
+        profileImageUpdated.postValue(true);
     }
 
     public void resetProfileImageUpdated() {
-        profileImageUpdated.setValue(false);
+        profileImageUpdated.postValue(false);
     }
 } 

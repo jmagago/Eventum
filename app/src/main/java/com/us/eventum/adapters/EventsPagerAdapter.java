@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import com.us.eventum.R;
-import com.us.eventum.models.Event;
+import com.us.eventum.data.models.Event;
 import com.us.eventum.presentation.fragments.EventsFragment;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,6 +22,7 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
     private final List<Event> pastEvents;
     private final Map<Integer, EventsFragment> fragmentsMap = new HashMap<>();
     private Context context;
+    private EventsFragment.OnRefreshListener refreshListener;
 
     public interface EventContextMenuListener {
         boolean onMenuItemClick(MenuItem item, Event event);
@@ -35,6 +36,16 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         this.futureEvents = futureEvents;
         this.pastEvents = pastEvents;
     }
+    
+    public void setOnRefreshListener(EventsFragment.OnRefreshListener listener) {
+        this.refreshListener = listener;
+        // Establecer el callback en todos los fragments existentes
+        for (EventsFragment fragment : fragmentsMap.values()) {
+            if (fragment != null) {
+                fragment.setOnRefreshListener(listener);
+            }
+        }
+    }
 
     @NonNull
     @Override
@@ -45,6 +56,12 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         } else {
             fragment = EventsFragment.newInstance(pastEvents, false);
         }
+        
+        // Establecer el callback si está disponible
+        if (refreshListener != null) {
+            fragment.setOnRefreshListener(refreshListener);
+        }
+        
         fragmentsMap.put(position, fragment);
         return fragment;
     }

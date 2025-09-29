@@ -8,7 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.us.eventum.R;
-import com.us.eventum.models.Attendee;
+import com.us.eventum.data.models.Attendee;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +33,14 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
     }
 
     public void setAttendees(List<Attendee> attendees) {
+        android.util.Log.d("AttendeeAdapter", "setAttendees llamado con: " + (attendees != null ? attendees.size() : 0) + " asistentes");
+        
+        if (attendees == null) {
+            this.attendees = new ArrayList<>();
+            notifyDataSetChanged();
+            return;
+        }
+        
         // Ordenar por apellido
         attendees.sort((a1, a2) -> {
             String lastName1 = a1.getLastName() != null ? a1.getLastName() : "";
@@ -41,12 +49,14 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         });
         
         this.attendees = attendees;
+        android.util.Log.d("AttendeeAdapter", "Adapter actualizado con " + this.attendees.size() + " asistentes");
         notifyDataSetChanged();
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Attendee attendee = attendees.get(position);
+        android.util.Log.d("AttendeeAdapter", "onBindViewHolder posición: " + position + ", asistente: " + attendee.getName());
         
         // Formato "Apellidos, Nombre"
         String lastName = attendee.getLastName() != null ? attendee.getLastName() : "";
@@ -93,6 +103,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     @Override
     public int getItemCount() {
+        android.util.Log.d("AttendeeAdapter", "getItemCount: " + attendees.size());
         return attendees.size();
     }
 

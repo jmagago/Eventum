@@ -84,6 +84,21 @@
                 android:textColor="@color/colorAccent"
                 android:layout_marginTop="4dp"/>
 
+            <TextView
+                android:id="@+id/userRoleTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="ROL"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_card_normal"/>
+
         </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>

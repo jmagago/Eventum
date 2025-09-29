@@ -10,20 +10,15 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.us.eventum.data.repositories.FirebaseManager;
 import com.us.eventum.config.AppConfig;
-import com.us.eventum.utils.PasswordValidator;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.presentation.viewmodels.UserViewModel;
 import androidx.annotation.NonNull;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
@@ -31,10 +26,11 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.us.eventum.R;
+import com.us.eventum.data.models.UserRole;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
-    private FirebaseAuth mAuth;
+    private FirebaseManager firebaseManager;
     private TextInputEditText emailEditText;
     private TextInputEditText passwordEditText;
     private TextView emailErrorText;
@@ -44,6 +40,7 @@ public class LoginActivity extends AppCompatActivity {
     private MaterialCheckBox rememberMeCheckBox;
     private View progressBar;
     private SharedPreferences sharedPreferences;
+    private UserViewModel userViewModel;
     private int loginAttempts = 0;
     private static final int MAX_LOGIN_ATTEMPTS = 5;
 
@@ -52,9 +49,13 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // Inicializar Firebase Auth
-        mAuth = FirebaseAuth.getInstance();
+        // Inicializar Firebase
+        firebaseManager = FirebaseManager.getInstance();
         sharedPreferences = getSharedPreferences(AppConfig.APP_PREFS_NAME, MODE_PRIVATE);
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        
+        // Inicializar repositorio en ViewModel
+        userViewModel.initializeRepository(this);
 
         // Inicializar vistas
         initializeViews();
@@ -67,6 +68,9 @@ public class LoginActivity extends AppCompatActivity {
         
         // Iniciar animaciones
         startAnimations();
+        
+        // Observar ViewModel
+        observeViewModel();
     }
 
     private void initializeViews() {
@@ -134,6 +138,61 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    private void observeViewModel() {
+        // Observar estado de carga
+        userViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null) {
+                showProgress(loading);
+            }
+        });
+
+        // Observar errores
+        userViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                if (error.contains("email")) {
+                    showErrorStable(emailErrorText, error);
+                } else if (error.contains("contraseña") || error.contains("password")) {
+                    showErrorStable(passwordErrorText, error);
+                } else {
+                    showErrorStable(emailErrorText, error);
+                }
+            }
+        });
+
+        // Observar login exitoso y, cuando cargue el usuario, bifurcar por rol
+        userViewModel.getUserLoggedIn().observe(this, loggedIn -> {
+            if (loggedIn != null && loggedIn) {
+                // Resetear intentos de inicio de sesión
+                loginAttempts = 0;
+
+                String email = emailEditText.getText().toString().trim();
+                String password = passwordEditText.getText().toString().trim();
+
+                if (rememberMeCheckBox.isChecked()) {
+                    saveCredentials(email, password);
+                } else {
+                    clearSavedCredentials();
+                }
+
+                // Esperar a que se cargue el usuario y decidir navegación por rol
+                userViewModel.getCurrentUser().observe(this, user -> {
+                    if (user != null) {
+                        String role = user.getRole() != null ? user.getRole() : UserRole.ORGANIZER;
+                        Intent intent;
+                        if (UserRole.ATTENDEE.equalsIgnoreCase(role)) {
+                            intent = new Intent(LoginActivity.this, AttendeeHomeActivity.class);
+                        } else {
+                            intent = new Intent(LoginActivity.this, OrganizerHomeActivity.class);
+                        }
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    }
+                });
+            }
+        });
+    }
+
     private void loginUser() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
@@ -148,117 +207,8 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        showProgress(true);
-
-        mAuth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this, task -> {
-                if (task.isSuccessful()) {
-                    FirebaseUser user = mAuth.getCurrentUser();
-                    if (user != null) {
-                        if (!user.isEmailVerified()) {
-                            // Si el email no está verificado, mostrar mensaje y cerrar sesión
-                            showProgress(false);
-                            showErrorStable(emailErrorText, "Por favor, verifica tu email antes de iniciar sesión");
-                            mAuth.signOut();
-                            return;
-                        }
-
-                        // Resetear intentos de inicio de sesión
-                        loginAttempts = 0;
-                        
-                        if (rememberMeCheckBox.isChecked()) {
-                            saveCredentials(email, password);
-                        } else {
-                            clearSavedCredentials();
-                        }
-                        
-                        // Obtener el nombre del usuario de Firestore y mostrar un mensaje de bienvenida personalizado
-                        FirebaseFirestore.getInstance().collection("users").document(user.getUid())
-                            .get()
-                            .addOnSuccessListener(documentSnapshot -> {
-                                String userName = "";
-                                if (documentSnapshot.exists()) {
-                                    // Los datos actualmente están guardados en el campo "nombre"
-                                    userName = documentSnapshot.getString("nombre");
-                                }
-                                
-                                // Si no se encuentra el nombre, usar la primera parte del email
-                                if (userName == null || userName.isEmpty()) {
-                                    userName = user.getEmail().split("@")[0];
-                                }
-                                
-                                // Mostrar toast personalizado con el nombre
-                                ToastUtils.showWelcomeToast(LoginActivity.this, "¡Bienvenido/a " + userName + "!");
-                                
-                                // Navegar a HomeActivity y limpiar el stack
-                                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
-                                finish();
-                            })
-                            .addOnFailureListener(e -> {
-                                // En caso de error, mostrar mensaje genérico y continuar
-                                ToastUtils.showWelcomeToast(LoginActivity.this, "¡Bienvenido/a a Eventum!");
-                                
-                                // Navegar a HomeActivity y limpiar el stack
-                                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
-                                finish();
-                            });
-                    }
-                } else {
-                    loginAttempts++;
-                    showProgress(false);
-
-                    Exception ex = task.getException();
-                    if (ex instanceof FirebaseNetworkException) {
-                        showErrorStable(emailErrorText, "Sin conexión. Revisa tu Internet e inténtalo de nuevo");
-                    } else if (ex instanceof FirebaseTooManyRequestsException) {
-                        showErrorStable(emailErrorText, "Demasiados intentos. Espera unos minutos e inténtalo de nuevo");
-                    } else if (ex instanceof FirebaseAuthInvalidUserException) {
-                        showErrorStable(emailErrorText, "El usuario no existe o ha sido deshabilitado");
-                    } else if (ex instanceof FirebaseAuthInvalidCredentialsException) {
-                        showErrorStable(passwordErrorText, "Contraseña incorrecta");
-                    } else if (ex instanceof FirebaseAuthException) {
-                        String code = ((FirebaseAuthException) ex).getErrorCode();
-                        switch (code) {
-                            case "ERROR_USER_DISABLED":
-                                showErrorStable(emailErrorText, "Tu cuenta está deshabilitada");
-                                break;
-                            case "ERROR_USER_NOT_FOUND":
-                                showErrorStable(emailErrorText, "El usuario no existe");
-                                break;
-                            case "ERROR_INVALID_EMAIL":
-                                showErrorStable(emailErrorText, "Email inválido");
-                                break;
-                            case "ERROR_WRONG_PASSWORD":
-                                showErrorStable(passwordErrorText, "Contraseña incorrecta");
-                                break;
-                            case "ERROR_TOO_MANY_REQUESTS":
-                                showErrorStable(emailErrorText, "Demasiados intentos. Espera e inténtalo más tarde");
-                                break;
-                            case "ERROR_OPERATION_NOT_ALLOWED":
-                                showErrorStable(emailErrorText, "Inicio de sesión deshabilitado para este proveedor");
-                                break;
-                            default:
-                                showErrorStable(emailErrorText, "Error de autenticación. Inténtalo de nuevo");
-                        }
-                    } else if (ex != null) {
-                        String errorMessage = ex.getMessage();
-                        if (errorMessage != null && errorMessage.toLowerCase().contains("recaptcha")) {
-                            showErrorStable(emailErrorText, "Error de verificación. Reintenta en unos segundos");
-                        } else {
-                            showErrorStable(emailErrorText, "No se pudo iniciar sesión. Inténtalo de nuevo");
-                        }
-                    } else {
-                        showErrorStable(emailErrorText, "No se pudo iniciar sesión. Inténtalo de nuevo");
-                    }
-
-                    // Toast genérico consistente en toda la app
-                    ToastUtils.showCustomToast(this, "No se pudo iniciar sesión. Revisa los campos marcados", ToastUtils.ToastType.ERROR);
-                }
-            });
+        // Usar UserViewModel para hacer login
+        userViewModel.loginUser(email, password);
     }
 
     // Método de validación estable que no causa reajustes del layout

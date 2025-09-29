@@ -1,6 +1,6 @@
 package com.us.eventum.utils;
 
-import com.us.eventum.models.Event;
+import com.us.eventum.data.models.Event;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;

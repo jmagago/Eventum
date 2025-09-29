@@ -27,4 +27,29 @@
     <string name="reset_password_description">Introduce tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</string>
     <string name="reset_password_button">Enviar Enlace</string>
     <string name="back_to_login">Volver al Inicio de Sesión</string>
+
+    <!-- Roles de usuario -->
+    <string name="role_organizer">ORGANIZADOR</string>
+    <string name="role_attendee">ASISTENTE</string>
+    
+    <!-- Pantalla de Registro -->
+    <string name="register_select_role">Selecciona tu rol:</string>
+    <string name="register_role_organizer">Organizador</string>
+    <string name="register_role_attendee">Asistente</string>
+    <string name="register_role_required">Debes seleccionar un rol</string>
+    
+    <!-- Pantalla Home Asistente -->
+    <string name="attendee_home_title">Eventos disponibles</string>
+    <string name="attendee_home_empty">No hay eventos disponibles</string>
+    <string name="attendee_join_event">Apuntarse al evento</string>
+    <string name="attendee_unsubscribe_event">Desapuntarse del evento</string>
+    <string name="attendee_unsubscribe_confirm">¿Seguro que quieres desapuntarte de este evento?</string>
+    <string name="attendee_email_prompt">Introduce tu email para desapuntarte:</string>
+    
+    <!-- Pantalla Home Organizador -->
+    <string name="organizer_home_title">Mis Eventos</string>
+    
+    <!-- Filtros -->
+    <string name="filter_active_indicator">Filtros activos</string>
+    
 </resources>

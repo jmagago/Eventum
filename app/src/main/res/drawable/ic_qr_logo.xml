@@ -5,44 +5,36 @@
     android:viewportWidth="120"
     android:viewportHeight="120">
 
-    <!-- Fondo del círculo -->
-    <path
-        android:fillColor="@color/colorPrimary"
-        android:pathData="M60,60m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"/>
+	<!-- Fondo circular principal -->
+	<path
+		android:fillColor="#1565C0"
+		android:pathData="M60,60m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"/>
 
-    <!-- QR Code estilizado -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,30h60v60h-60z"/>
+	<!-- Círculo interior para contraste -->
+	<path
+		android:fillColor="#FFFFFF"
+		android:pathData="M60,60m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"/>
 
-    <!-- Patrones internos del QR -->
-    <path
-        android:fillColor="@color/colorPrimary"
-        android:pathData="M35,35h50v50h-50z"/>
-    <path
-        android:fillColor="@color/colorPrimary"
-        android:pathData="M40,40h40v40h-40z"/>
+	<!-- Pin de ubicación estilizado (cuerpo) -->
+	<!-- Parte superior (círculo del pin) -->
+	<path
+		android:fillColor="@color/colorAccent"
+		android:pathData="M60,54m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"/>
 
-    <!-- Patrones decorativos -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M45,45h30v30h-30z"/>
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M50,50h20v20h-20z"/>
+	<!-- Cola del pin (triángulo hacia abajo) -->
+	<path
+		android:fillColor="@color/colorAccent"
+		android:pathData="M60,90 L74,64 L46,64 Z"/>
 
-    <!-- Texto "EVENTUM" -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M20,95h15v5h-15z"/>
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M40,95h15v5h-15z"/>
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M60,95h15v5h-15z"/>
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M80,95h15v5h-15z"/>
+	<!-- Estrella interna representando evento destacado -->
+	<path
+		android:fillColor="#FFEB3B"
+		android:pathData="M60,46
+			l3.09,6.26 6.91,1.01 -5,4.87 1.18,6.89 -6.18,-3.25 -6.18,3.25 1.18,-6.89 -5,-4.87 6.91,-1.01z"/>
 
-</vector> 
+	<!-- Sombra sutil bajo el pin -->
+	<path
+		android:fillColor="#33000000"
+		android:pathData="M60,94m-14,0a14,4 0,1 1,28 0a14,4 0,1 1,-28 0"/>
+
+</vector>

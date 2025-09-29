@@ -5,15 +5,17 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.EmailAuthProvider;
-import com.google.firebase.auth.FirebaseAuth;
+import com.us.eventum.data.repositories.FirebaseManager;
 import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.R;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.presentation.viewmodels.UserViewModel;
 
 public class ChangePasswordActivity extends AppCompatActivity {
 
@@ -22,14 +24,19 @@ public class ChangePasswordActivity extends AppCompatActivity {
     private TextInputLayout confirmPasswordLayout;
     private MaterialButton changePasswordButton;
     private CircularProgressIndicator progressIndicator;
-    private FirebaseAuth mAuth;
+    private FirebaseManager firebaseManager;
+    private UserViewModel userViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_change_password);
 
-        mAuth = FirebaseAuth.getInstance();
+        firebaseManager = FirebaseManager.getInstance();
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        
+        // Inicializar repositorio en ViewModel
+        userViewModel.initializeRepository(this);
 
         // Inicializar vistas
         currentPasswordLayout = findViewById(R.id.currentPasswordLayout);
@@ -39,10 +46,38 @@ public class ChangePasswordActivity extends AppCompatActivity {
         progressIndicator = findViewById(R.id.progressIndicator);
 
         // Configurar toolbar
-        findViewById(R.id.topAppBar).setOnClickListener(v -> onBackPressed());
+        findViewById(R.id.topAppBar).setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
 
         // Configurar botón de cambio de contraseña
         changePasswordButton.setOnClickListener(v -> validateAndChangePassword());
+        
+        // Observar ViewModel
+        observeViewModel();
+    }
+
+    private void observeViewModel() {
+        // Observar estado de carga
+        userViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null) {
+                showLoading(loading);
+            }
+        });
+
+        // Observar errores
+        userViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            }
+        });
+
+        // Observar cambio de contraseña exitoso
+        userViewModel.getPasswordChanged().observe(this, changed -> {
+            if (changed != null && changed) {
+                ToastUtils.showCustomToast(this, "Contraseña actualizada correctamente", ToastUtils.ToastType.SUCCESS);
+                userViewModel.clearOperationStates();
+                finish();
+            }
+        });
     }
 
     private void validateAndChangePassword() {
@@ -80,38 +115,10 @@ public class ChangePasswordActivity extends AppCompatActivity {
             return;
         }
 
-        // Proceder con el cambio de contraseña
-        changePassword(currentPassword, newPassword);
+        // Usar UserViewModel para cambiar la contraseña
+        userViewModel.changePassword(currentPassword, newPassword);
     }
 
-    private void changePassword(String currentPassword, String newPassword) {
-        showLoading(true);
-
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user != null && user.getEmail() != null) {
-            // Reautenticar al usuario
-            user.reauthenticate(EmailAuthProvider.getCredential(user.getEmail(), currentPassword))
-                .addOnSuccessListener(aVoid -> {
-                    // Cambiar la contraseña
-                    user.updatePassword(newPassword)
-                        .addOnSuccessListener(aVoid1 -> {
-                            showLoading(false);
-                            ToastUtils.showCustomToast(ChangePasswordActivity.this, 
-                                "Contraseña actualizada correctamente", ToastUtils.ToastType.SUCCESS);
-                            finish();
-                        })
-                        .addOnFailureListener(e -> {
-                            showLoading(false);
-                            ToastUtils.showCustomToast(ChangePasswordActivity.this, 
-                                "Error al actualizar la contraseña: " + e.getMessage(), ToastUtils.ToastType.ERROR);
-                        });
-                })
-                .addOnFailureListener(e -> {
-                    showLoading(false);
-                    currentPasswordLayout.setError("Contraseña actual incorrecta");
-                });
-        }
-    }
 
     private String getTextFromInput(TextInputLayout inputLayout) {
         if (inputLayout.getEditText() != null) {

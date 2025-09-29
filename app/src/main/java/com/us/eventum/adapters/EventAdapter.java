@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.R;
-import com.us.eventum.models.Event;
+import com.us.eventum.data.models.Event;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,8 +83,10 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     @Override
     public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
-        Event event = events.get(position);
-        holder.bind(event);
+        if (position >= 0 && position < events.size()) {
+            Event event = events.get(position);
+            holder.bind(event);
+        }
     }
 
     @Override
@@ -114,7 +116,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             // Configurar los clics usando el listener del adaptador
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null) {
+                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null && 
+                    position < events.size() && !events.isEmpty()) {
                     Log.d("EventAdapter", "Click normal en posición: " + position);
                     EventAdapter.this.listener.onEventClick(events.get(position));
                 }
@@ -122,7 +125,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             itemView.setOnLongClickListener(v -> {
                 int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null) {
+                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null && 
+                    position < events.size() && !events.isEmpty()) {
                     Log.d("EventAdapter", "Click largo en posición: " + position);
                     EventAdapter.this.listener.onEventLongClick(v, events.get(position));
                     return true;
@@ -135,7 +139,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             titleText.setText(event.getTitle());
             
             // Mostrar icono de candado según el tipo de evento
-            boolean isPrivate = event.isPrivate();
+            boolean isPrivate = event.getPrivateEvent();
             Log.d("EventAdapter", "Evento: " + event.getTitle() + " - isPrivate: " + isPrivate);
             if (isPrivate) {
                 privateIcon.setImageResource(R.drawable.ic_lock_closed);
@@ -165,12 +169,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             // Mostrar el número de participantes o mensaje de error
             if (event.getCurrentParticipants() == -1) {
                 participantsText.setText("Error al cargar asistentes");
-                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorError));
+                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorError, itemView.getContext().getTheme()));
             } else {
                 participantsText.setText(String.format("%d/%d asistentes", 
                     event.getCurrentParticipants(), 
                     event.getMaxParticipants()));
-                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorSecondaryText));
+                participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorSecondaryText, itemView.getContext().getTheme()));
             }
         }
     }

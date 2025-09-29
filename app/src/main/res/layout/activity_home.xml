@@ -14,78 +14,9 @@
         android:paddingBottom="1dp"
         app:elevation="0dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="6dp"
-            app:cardBackgroundColor="@color/white">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp">
-
-                <de.hdodenhof.circleimageview.CircleImageView
-                    android:id="@+id/profileImageView"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:src="@drawable/default_profile"
-                    app:civ_border_width="3dp"
-                    app:civ_border_color="@color/colorPrimary"/>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
-
-                    <TextView
-                        android:id="@+id/userNameTextView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="20sp"
-                        android:textColor="@color/colorPrimary"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:maxLines="1"
-                        android:ellipsize="end"/>
-
-                    <TextView
-                        android:id="@+id/userEmailTextView"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/colorAccent"
-                        android:gravity="center"
-                        android:maxLines="1"
-                        android:ellipsize="end"/>
-                </LinearLayout>
-
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/settingsButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_settings"
-                    app:backgroundTint="@color/colorPrimary"
-                    app:tint="@color/colorWhite"
-                    app:fabSize="mini"
-                    app:maxImageSize="24dp"
-                    app:borderWidth="0dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <include
+            android:id="@+id/userHeader"
+            layout="@layout/include_user_header" />
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"

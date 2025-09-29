@@ -40,6 +40,11 @@
         </activity>
 
         <activity
+            android:name=".presentation.activities.AttendeeHomeActivity"
+            android:exported="false"
+            android:label="Eventos disponibles" />
+
+        <activity
             android:name=".presentation.activities.ResetPasswordActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
@@ -50,7 +55,7 @@
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".presentation.activities.HomeActivity"
+            android:name=".presentation.activities.OrganizerHomeActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden">
         </activity>
@@ -68,11 +73,11 @@
         <activity
             android:name=".presentation.activities.EventDetailsActivity"
             android:exported="false"
-            android:parentActivityName=".presentation.activities.HomeActivity"
+            android:parentActivityName=".presentation.activities.OrganizerHomeActivity"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".presentation.activities.HomeActivity" />
+                android:value=".presentation.activities.OrganizerHomeActivity" />
         </activity>
 
         <activity android:name=".presentation.activities.ChangePasswordActivity"
@@ -94,6 +99,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 
 </manifest>
