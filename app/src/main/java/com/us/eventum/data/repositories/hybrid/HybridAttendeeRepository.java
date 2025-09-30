@@ -47,14 +47,6 @@ public class HybridAttendeeRepository implements AttendeeRepository {
     public void loadEventAttendees(String eventId, RepositoryCallback<List<Attendee>> callback) {
         System.out.println("HybridAttendeeRepository: loadEventAttendees para evento: " + eventId);
         
-        // PRIMERO: Verificar cuántos asistentes hay en la caché local ANTES de cargar
-        try {
-            int localCount = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
-            System.out.println("HybridAttendeeRepository: Caché local tiene " + localCount + " asistentes para evento " + eventId);
-        } catch (Exception e) {
-            System.err.println("HybridAttendeeRepository: Error contando asistentes locales: " + e.getMessage());
-        }
-        
         if (networkManager.isOnline()) {
             System.out.println("HybridAttendeeRepository: Online - cargando desde Firebase");
             // Online: cargar desde Firebase y actualizar caché local
