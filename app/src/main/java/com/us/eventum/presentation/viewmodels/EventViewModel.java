@@ -120,93 +120,58 @@ public class EventViewModel extends ViewModel {
      * Cargar el número de asistentes para cada evento desde caché local
      */
     private void loadAttendeeCounts(List<Event> eventsList) {
-        if (attendeeRepository instanceof HybridAttendeeRepository) {
-            // Cargar conteos de asistentes desde caché local de forma eficiente
-            loadAttendeeCountsFromCache(eventsList);
-        } else {
-            // Si no hay repositorio híbrido, establecer en 0
-            for (Event event : eventsList) {
-                event.setCurrentParticipants(0);
-            }
-            this.events.postValue(eventsList);
-            isLoading.postValue(false);
-        }
+        loadAttendeeCountsFromCache(eventsList, events);
     }
 
     /**
      * Cargar el número de asistentes para todos los eventos (usado en AttendeeHomeActivity)
      */
     private void loadAttendeeCountsForAllEvents(List<Event> eventsList) {
-        if (attendeeRepository instanceof HybridAttendeeRepository) {
-            // Cargar conteos de asistentes desde caché local de forma eficiente
-            loadAttendeeCountsFromCacheForAllEvents(eventsList);
-        } else {
-            // Si no hay repositorio híbrido, establecer en 0
-            for (Event event : eventsList) {
-                event.setCurrentParticipants(0);
-            }
-            this.allEvents.postValue(eventsList);
-            isLoading.postValue(false);
-        }
+        loadAttendeeCountsFromCache(eventsList, allEvents);
     }
     
-    private void loadAttendeeCountsFromCache(List<Event> eventsList) {
+    /**
+     * Cargar el número de asistentes para cada evento desde caché local
+     * @param eventsList Lista de eventos a procesar
+     * @param targetLiveData LiveData a actualizar (events o allEvents)
+     */
+    private void loadAttendeeCountsFromCache(List<Event> eventsList, MutableLiveData<List<Event>> targetLiveData) {
         if (attendeeRepository instanceof HybridAttendeeRepository) {
-        HybridAttendeeRepository hybridRepo = (HybridAttendeeRepository) attendeeRepository;
-        int[] completedCount = {0};
-        int totalEvents = eventsList.size();
+            HybridAttendeeRepository hybridRepo = (HybridAttendeeRepository) attendeeRepository;
+            int[] completedCount = {0};
+            int totalEvents = eventsList.size();
             
             // Si no hay eventos, devolver inmediatamente
             if (totalEvents == 0) {
-                events.postValue(eventsList);
+                targetLiveData.postValue(eventsList);
                 isLoading.postValue(false);
                 return;
             }
-        
-        for (Event event : eventsList) {
-            executor.execute(() -> {
-                    try {
-                        // Cargar asistentes usando el método público del repositorio híbrido
-                        hybridRepo.loadEventAttendees(event.getId(), new AttendeeRepository.RepositoryCallback<List<Attendee>>() {
-                            @Override
-                            public void onSuccess(List<Attendee> result) {
-                                // Contar asistentes desde caché local de forma segura
-                try {
-                    int count = hybridRepo.roomRepository.attendeeDao.getEventAttendeesCount(event.getId());
-                    event.setCurrentParticipants(count);
-                } catch (Exception e) {
-                    event.setCurrentParticipants(0);
-                }
-                                
-                                synchronized (completedCount) {
-                                    completedCount[0]++;
-                                    if (completedCount[0] == totalEvents) {
-                                        events.postValue(eventsList);
-                                        isLoading.postValue(false);
-                                    }
-                                }
+            
+            for (Event event : eventsList) {
+                // Usar el método seguro para obtener el conteo de asistentes
+                hybridRepo.getEventAttendeesCount(event.getId(), new AttendeeRepository.RepositoryCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer count) {
+                        event.setCurrentParticipants(count);
+                        synchronized (completedCount) {
+                            completedCount[0]++;
+                            if (completedCount[0] == totalEvents) {
+                                targetLiveData.postValue(eventsList);
+                                isLoading.postValue(false);
                             }
-                            
-                            @Override
-                            public void onError(String error) {
-                                // Si falla, establecer en 0
-                                event.setCurrentParticipants(0);
-                                synchronized (completedCount) {
-                                    completedCount[0]++;
-                                    if (completedCount[0] == totalEvents) {
-                                        events.postValue(eventsList);
-                                        isLoading.postValue(false);
-                                    }
-                                }
-                            }
-                        });
-                    } catch (Exception e) {
+                        }
+                    }
+                    
+                    @Override
+                    public void onError(String error) {
+                        // Si falla, establecer en 0
                         event.setCurrentParticipants(0);
                         synchronized (completedCount) {
-                    completedCount[0]++;
-                    if (completedCount[0] == totalEvents) {
-                        events.postValue(eventsList);
-                        isLoading.postValue(false);
+                            completedCount[0]++;
+                            if (completedCount[0] == totalEvents) {
+                                targetLiveData.postValue(eventsList);
+                                isLoading.postValue(false);
                             }
                         }
                     }
@@ -217,79 +182,7 @@ public class EventViewModel extends ViewModel {
             for (Event event : eventsList) {
                 event.setCurrentParticipants(0);
             }
-            events.postValue(eventsList);
-            isLoading.postValue(false);
-        }
-    }
-
-    private void loadAttendeeCountsFromCacheForAllEvents(List<Event> eventsList) {
-        if (attendeeRepository instanceof HybridAttendeeRepository) {
-            HybridAttendeeRepository hybridRepo = (HybridAttendeeRepository) attendeeRepository;
-            int[] completedCount = {0};
-            int totalEvents = eventsList.size();
-            
-            // Si no hay eventos, devolver inmediatamente
-            if (totalEvents == 0) {
-                allEvents.postValue(eventsList);
-                isLoading.postValue(false);
-                return;
-            }
-            
-            for (Event event : eventsList) {
-                executor.execute(() -> {
-                    try {
-                        // Cargar asistentes usando el método público del repositorio híbrido
-                        hybridRepo.loadEventAttendees(event.getId(), new AttendeeRepository.RepositoryCallback<List<Attendee>>() {
-                            @Override
-                            public void onSuccess(List<Attendee> result) {
-                                // Contar asistentes desde caché local de forma segura
-                                try {
-                                    int count = hybridRepo.roomRepository.attendeeDao.getEventAttendeesCount(event.getId());
-                                    event.setCurrentParticipants(count);
-                                } catch (Exception e) {
-                                    event.setCurrentParticipants(0);
-                                }
-                                
-                                synchronized (completedCount) {
-                                    completedCount[0]++;
-                                    if (completedCount[0] == totalEvents) {
-                                        allEvents.postValue(eventsList);
-                                        isLoading.postValue(false);
-                                    }
-                                }
-                            }
-                            
-                            @Override
-                            public void onError(String error) {
-                                // Si falla, establecer en 0
-                                event.setCurrentParticipants(0);
-                                synchronized (completedCount) {
-                                    completedCount[0]++;
-                                    if (completedCount[0] == totalEvents) {
-                                        allEvents.postValue(eventsList);
-                                        isLoading.postValue(false);
-                                    }
-                                }
-                            }
-                        });
-                    } catch (Exception e) {
-                        event.setCurrentParticipants(0);
-                        synchronized (completedCount) {
-                            completedCount[0]++;
-                            if (completedCount[0] == totalEvents) {
-                                allEvents.postValue(eventsList);
-                                isLoading.postValue(false);
-                            }
-                    }
-                }
-            });
-            }
-        } else {
-            // Si no hay repositorio híbrido, establecer en 0
-            for (Event event : eventsList) {
-                event.setCurrentParticipants(0);
-            }
-            allEvents.postValue(eventsList);
+            targetLiveData.postValue(eventsList);
             isLoading.postValue(false);
         }
     }

@@ -45,28 +45,22 @@ public class HybridAttendeeRepository implements AttendeeRepository {
     
     @Override
     public void loadEventAttendees(String eventId, RepositoryCallback<List<Attendee>> callback) {
-        System.out.println("HybridAttendeeRepository: loadEventAttendees para evento: " + eventId);
-        
         if (networkManager.isOnline()) {
-            System.out.println("HybridAttendeeRepository: Online - cargando desde Firebase");
             // Online: cargar desde Firebase y actualizar caché local
             firebaseRepository.loadEventAttendees(eventId, new RepositoryCallback<List<Attendee>>() {
                 @Override
                 public void onSuccess(List<Attendee> result) {
-                    System.out.println("HybridAttendeeRepository: Firebase devolvió " + (result != null ? result.size() : 0) + " asistentes");
                     updateLocalCache(result);
                     callback.onSuccess(result);
                 }
                 
                 @Override
                 public void onError(String error) {
-                    System.err.println("HybridAttendeeRepository: Error desde Firebase: " + error);
                     // Si falla Firebase, cargar desde caché local
                     roomRepository.loadEventAttendees(eventId, callback);
                 }
             });
         } else {
-            System.out.println("HybridAttendeeRepository: Offline - cargando desde caché local");
             // Offline: cargar desde caché local
             roomRepository.loadEventAttendees(eventId, callback);
         }
@@ -281,6 +275,24 @@ public class HybridAttendeeRepository implements AttendeeRepository {
         }
     }
     
+    /**
+     * Obtener el número de asistentes de un evento de forma segura
+     * @param eventId ID del evento
+     * @param callback Callback con el resultado
+     */
+    public void getEventAttendeesCount(String eventId, RepositoryCallback<Integer> callback) {
+        executor.execute(() -> {
+            try {
+                int count = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
+                callback.onSuccess(count);
+            } catch (Exception e) {
+                System.err.println("Error contando asistentes locales para evento " + eventId + ": " + e.getMessage());
+                callback.onError("Error contando asistentes: " + e.getMessage());
+            }
+        });
+    }
+    
+    
     
     
     
@@ -309,25 +321,19 @@ public class HybridAttendeeRepository implements AttendeeRepository {
             
             executor.execute(() -> {
                 try {
-                    System.out.println("HybridAttendeeRepository: updateLocalCache - Reemplazando asistentes para evento " + eventId);
                     // Reemplazar asistentes del evento (eliminar TODOS)
                     roomRepository.attendeeDao.deleteEventAttendees(eventId);
                     
                     // Insertar nuevos asistentes marcados como sincronizados
-                    System.out.println("HybridAttendeeRepository: updateLocalCache - Insertando " + eventAttendees.size() + " asistentes para evento " + eventId);
                     for (Attendee attendee : eventAttendees) {
                         AttendeeEntity entity = roomRepository.convertModelToEntity(attendee);
                         entity.setSynced(true);
                         roomRepository.attendeeDao.insertAttendee(entity);
                     }
-                    
-                    // Verificar cuántos asistentes quedaron después de la actualización
-                    int finalCount = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
-                    System.out.println("HybridAttendeeRepository: updateLocalCache - Evento " + eventId + " tiene " + finalCount + " asistentes después de actualización");
                 } catch (Exception e) {
                     System.err.println("Error actualizando caché local para evento " + eventId + ": " + e.getMessage());
-            }
-        });
+                }
+            });
     }
 }
 }

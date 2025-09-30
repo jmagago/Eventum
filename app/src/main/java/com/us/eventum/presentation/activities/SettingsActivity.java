@@ -470,6 +470,11 @@ public class SettingsActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    @Override
+    public void onBackPressed() {
+        finish(); // Simple y efectivo - vuelve a la pantalla anterior
+    }
+
     private void goToLogin() {
         Intent intent = new Intent(SettingsActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
