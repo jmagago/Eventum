@@ -425,11 +425,11 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                         } else {
                             joinButton.setEnabled(true);
                             joinButton.setAlpha(1.0f);
-                            final String finalUserEmail = userEmail;
-                            joinButton.setOnClickListener(v -> {
-                                joinEventDirectly(event);
-                                // Observar cuando se complete la inscripción
-                                attendeeViewModel.getAttendeeAdded().observe(AttendeeHomeActivity.this, added -> {
+                        final String finalUserEmail = userEmail;
+                        joinButton.setOnClickListener(v -> {
+                            joinToEvent(event);
+                            // Observar cuando se complete la inscripción
+                            attendeeViewModel.getAttendeeAdded().observe(AttendeeHomeActivity.this, added -> {
                                     if (added != null && added) {
                                         // Actualizar contador real del evento
                                         event.setCurrentParticipants(event.getCurrentParticipants() + 1);
@@ -503,7 +503,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                         return;
                     }
                     
-                    joinEventDirectly(event);
+                    joinToEvent(event);
                     // Observar cuando se complete la inscripción
                     attendeeViewModel.getAttendeeAdded().observe(AttendeeHomeActivity.this, added -> {
                         if (added != null && added) {
@@ -539,7 +539,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     /**
      * Apuntarse al evento directamente usando los datos del usuario autenticado
      */
-    private void joinEventDirectly(Event event) {
+    private void joinToEvent(Event event) {
         String userEmail = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
                 : null;
