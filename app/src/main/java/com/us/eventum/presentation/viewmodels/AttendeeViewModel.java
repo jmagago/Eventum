@@ -76,7 +76,7 @@ public class AttendeeViewModel extends ViewModel {
     /**
      * Añadir un nuevo asistente
      */
-    public void addAttendee(String eventId, String name, String lastName, String dni,
+    public void addAttendee(String eventId, String userId, String name, String lastName, String dni,
                            String email, String phone, String birthDate, boolean requiresAuth) {
         if (attendeeRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
@@ -86,6 +86,11 @@ public class AttendeeViewModel extends ViewModel {
         isLoading.postValue(true);
 
         // Validaciones
+        if (userId == null || userId.trim().isEmpty()) {
+            errorMessage.postValue("Usuario no autenticado");
+            isLoading.postValue(false);
+            return;
+        }
         if (name == null || name.trim().isEmpty()) {
             errorMessage.postValue("El nombre es obligatorio");
             isLoading.postValue(false);
@@ -120,6 +125,7 @@ public class AttendeeViewModel extends ViewModel {
         // Crear el asistente
         Attendee attendee = new Attendee(name, lastName, dni, email, phone, birthDate);
         attendee.setEventId(eventId);
+        attendee.setUserId(userId);
         attendee.setRequiresParentalAuthorization(requiresAuth);
 
         attendeeRepository.createAttendee(attendee, new AttendeeRepository.RepositoryCallback<Attendee>() {

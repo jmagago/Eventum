@@ -205,8 +205,7 @@ public class HybridUserRepository implements UserRepository {
                 firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "",
                 "", // primerApellido
                 "", // segundoApellido
-                "", // fechaNacimiento
-                ""  // lugarNacimiento
+                ""  // fechaNacimiento
             );
             
             // Guardar en caché local

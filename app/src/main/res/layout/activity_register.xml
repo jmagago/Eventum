@@ -13,7 +13,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+            android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar"
             app:title="Registro"
             app:titleTextAppearance="@style/ToolbarTitleStyle"/>
 
@@ -47,56 +47,13 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/nameLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Nombre">
+        <!-- Registro básico: sin fecha de nacimiento -->
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/nameInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="textPersonName"/>
+            <!-- Sin nombre/apellidos en registro básico -->
 
-            </com.google.android.material.textfield.TextInputLayout>
+            <!-- Sin nombre/apellidos en registro básico -->
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/primerApellidoLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Primer Apellido">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/primerApellidoInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="textPersonName"/>
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/segundoApellidoLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Segundo Apellido (opcional)">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/segundoApellidoInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="textPersonName"/>
-
-            </com.google.android.material.textfield.TextInputLayout>
+            <!-- Sin nombre/apellidos en registro básico -->
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/emailLayout"
@@ -178,7 +135,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/organizerRoleButton"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -194,7 +151,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/attendeeRoleButton"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"

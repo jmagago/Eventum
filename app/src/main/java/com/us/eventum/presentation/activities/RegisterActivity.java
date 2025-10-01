@@ -22,8 +22,8 @@ import com.us.eventum.presentation.viewmodels.UserViewModel;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputEditText usernameInput, nameInput, primerApellidoInput, segundoApellidoInput, emailInput, verifyEmailInput, passwordInput, confirmPasswordInput;
-    private TextInputLayout usernameLayout, nameLayout, primerApellidoLayout, segundoApellidoLayout, emailLayout, verifyEmailLayout, passwordLayout, confirmPasswordLayout;
+    private TextInputEditText usernameInput, nameInput, primerApellidoInput, segundoApellidoInput, birthDateInput, emailInput, verifyEmailInput, passwordInput, confirmPasswordInput;
+    private TextInputLayout usernameLayout, nameLayout, primerApellidoLayout, segundoApellidoLayout, birthDateLayout, emailLayout, verifyEmailLayout, passwordLayout, confirmPasswordLayout;
     private MaterialButton registerButton;
     private MaterialButton organizerRoleButton;
     private MaterialButton attendeeRoleButton;
@@ -57,19 +57,14 @@ public class RegisterActivity extends AppCompatActivity {
     private void initializeViews() {
         // EditText
         usernameInput = findViewById(R.id.usernameInput);
-        nameInput = findViewById(R.id.nameInput);
-        primerApellidoInput = findViewById(R.id.primerApellidoInput);
-        segundoApellidoInput = findViewById(R.id.segundoApellidoInput);
         emailInput = findViewById(R.id.emailInput);
+        verifyEmailInput = findViewById(R.id.verifyEmailInput);
         verifyEmailInput = findViewById(R.id.verifyEmailInput);
         passwordInput = findViewById(R.id.passwordInput);
         confirmPasswordInput = findViewById(R.id.confirmPasswordInput);
 
         // TextInputLayout
         usernameLayout = findViewById(R.id.usernameLayout);
-        nameLayout = findViewById(R.id.nameLayout);
-        primerApellidoLayout = findViewById(R.id.primerApellidoLayout);
-        segundoApellidoLayout = findViewById(R.id.segundoApellidoLayout);
         emailLayout = findViewById(R.id.emailLayout);
         verifyEmailLayout = findViewById(R.id.verifyEmailLayout);
         passwordLayout = findViewById(R.id.passwordLayout);
@@ -83,6 +78,8 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
+        // Registro básico: sin fecha ni datos personales
+
         // Validación en tiempo real del email
         emailInput.addTextChangedListener(new TextWatcher() {
             @Override
@@ -151,12 +148,14 @@ public class RegisterActivity extends AppCompatActivity {
 
         organizerRoleButton.setOnClickListener(v -> {
             selectedRole[0] = UserRole.ORGANIZER;
+            usernameLayout.setHint("Nombre de la empresa");
             organizerRoleButton.setEnabled(false);
             attendeeRoleButton.setEnabled(true);
         });
 
         attendeeRoleButton.setOnClickListener(v -> {
             selectedRole[0] = UserRole.ATTENDEE;
+            usernameLayout.setHint("Nombre de usuario");
             attendeeRoleButton.setEnabled(false);
             organizerRoleButton.setEnabled(true);
         });
@@ -171,9 +170,7 @@ public class RegisterActivity extends AppCompatActivity {
     private void validateAndRegister(String role) {
         // Limpiar errores previos
         usernameLayout.setError(null);
-        nameLayout.setError(null);
-        primerApellidoLayout.setError(null);
-        segundoApellidoLayout.setError(null);
+        // Sin datos personales en registro básico
         emailLayout.setError(null);
         verifyEmailLayout.setError(null);
         passwordLayout.setError(null);
@@ -181,9 +178,6 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Obtener valores
         String username = usernameInput.getText().toString().trim();
-        String name = nameInput.getText().toString().trim();
-        String primerApellido = primerApellidoInput.getText().toString().trim();
-        String segundoApellido = segundoApellidoInput.getText().toString().trim();
         String email = emailInput.getText().toString().trim();
         String verifyEmail = verifyEmailInput.getText().toString().trim();
         String password = passwordInput.getText().toString();
@@ -200,15 +194,7 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        if (TextUtils.isEmpty(name)) {
-            nameLayout.setError("El nombre es obligatorio");
-            return;
-        }
-
-        if (TextUtils.isEmpty(primerApellido)) {
-            primerApellidoLayout.setError("El primer apellido es obligatorio");
-            return;
-        }
+        // Sin validaciones de datos personales
 
         if (TextUtils.isEmpty(email)) {
             emailLayout.setError("El email es obligatorio");
@@ -245,8 +231,8 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Registrar usuario usando ViewModel
-        userViewModel.registerUser(email, password, username, name, primerApellido, segundoApellido, role);
+        // Registrar usuario (registro básico)
+        userViewModel.registerUser(email, password, username, role);
     }
 
     private void observeViewModel() {

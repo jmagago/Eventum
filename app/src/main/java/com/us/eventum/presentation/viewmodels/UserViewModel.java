@@ -119,8 +119,7 @@ public class UserViewModel extends ViewModel {
     /**
      * Registrar un nuevo usuario
      */
-    public void registerUser(String email, String password, String username, String name, 
-                           String primerApellido, String segundoApellido, String role) {
+    public void registerUser(String email, String password, String username, String role) {
         if (userRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             return;
@@ -147,17 +146,7 @@ public class UserViewModel extends ViewModel {
             return;
         }
         
-        if (name == null || name.trim().isEmpty()) {
-            errorMessage.postValue("El nombre es obligatorio");
-            isLoading.postValue(false);
-            return;
-        }
-        
-        if (primerApellido == null || primerApellido.trim().isEmpty()) {
-            errorMessage.postValue("El primer apellido es obligatorio");
-            isLoading.postValue(false);
-            return;
-        }
+        // Registro básico no requiere datos personales aún
 
         // Primero verificar disponibilidad del username
         checkUsernameAvailability(username);
@@ -166,7 +155,7 @@ public class UserViewModel extends ViewModel {
         usernameAvailable.observeForever(isAvailable -> {
             if (isAvailable != null && isAvailable) {
                 // Username disponible, proceder con el registro
-                performUserRegistration(email, password, username, name, primerApellido, segundoApellido, role);
+                performUserRegistration(email, password, username, role);
             } else if (isAvailable != null && !isAvailable) {
                 // Username no disponible
                 errorMessage.postValue("Este username ya está en uso");
@@ -178,8 +167,7 @@ public class UserViewModel extends ViewModel {
     /**
      * Realizar el registro del usuario en Firebase Auth y Firestore
      */
-    private void performUserRegistration(String email, String password, String username, 
-                                       String name, String primerApellido, String segundoApellido, String role) {
+    private void performUserRegistration(String email, String password, String username, String role) {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -187,7 +175,9 @@ public class UserViewModel extends ViewModel {
                         if (firebaseUser != null) {
                             // Crear objeto User
                             String userId = firebaseUser.getUid();
-                            User user = new User(userId, email, username, name, primerApellido, segundoApellido, "", "", role != null && !role.trim().isEmpty() ? role : UserRole.ORGANIZER);
+                            User user = new User(userId, email, username, "", "", "",
+                                    "",
+                                    role != null && !role.trim().isEmpty() ? role : UserRole.ORGANIZER);
                             
                             // Guardar en repositorio
                                 userRepository.createUser(user, new UserRepository.RepositoryCallback<User>() {
@@ -217,8 +207,8 @@ public class UserViewModel extends ViewModel {
     /**
      * Actualizar datos del usuario
      */
-    public void updateUser(String username, String name, String primerApellido, 
-                          String segundoApellido, String fechaNacimiento, String lugarNacimiento) {
+    public void updateUser(String username, String name, String primerApellido,
+                           String segundoApellido, String fechaNacimiento, String dni, String phone) {
         if (userRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             return;
@@ -234,9 +224,23 @@ public class UserViewModel extends ViewModel {
         }
 
         String userId = firebaseUser.getUid();
-        User user = new User(userId, firebaseUser.getEmail(), username, name, 
-                           primerApellido, segundoApellido, fechaNacimiento, lugarNacimiento);
+        // Partimos del usuario actual para preservar campos inmutables
+        User base = currentUser.getValue();
+        if (base == null) {
+            base = new User(userId, firebaseUser.getEmail(), username, "", "", "", "");
+        }
+        // Username editable siempre
+        base.setUsername(username);
+        // Write-once: si ya están informados, se preservan; si no, se establecen
+        if (base.getNombre() == null || base.getNombre().trim().isEmpty()) base.setNombre(name);
+        if (base.getPrimerApellido() == null || base.getPrimerApellido().trim().isEmpty()) base.setPrimerApellido(primerApellido);
+        base.setSegundoApellido(segundoApellido); // opcional, puede cambiarse
+        if (base.getFechaNacimiento() == null || base.getFechaNacimiento().trim().isEmpty()) base.setFechaNacimiento(fechaNacimiento);
+        if (base.getDni() == null || base.getDni().trim().isEmpty()) base.setDni(dni);
+        // Teléfono sí puede cambiar
+        base.setPhone(phone);
 
+        User user = base;
         userRepository.updateUser(userId, user, new UserRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {

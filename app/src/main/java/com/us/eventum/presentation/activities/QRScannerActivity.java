@@ -116,10 +116,10 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
             }
         });
 
-        // Observar verificación exitosa
+        // Observar marcado de asistencia (escaneo) exitoso
         attendeeViewModel.getAttendeeVerified().observe(this, verified -> {
             if (verified != null && verified) {
-                ToastUtils.showCustomToast(this, "Asistente verificado correctamente", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, "Asistencia registrada correctamente", ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
                 // Esperar un momento para que el usuario vea el mensaje de éxito
                 new Handler().postDelayed(() -> {

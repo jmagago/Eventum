@@ -291,7 +291,7 @@
                     android:paddingEnd="8dp"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     app:strokeColor="@color/colorPrimary"
                     android:textColor="@color/colorPrimary"
                     android:layout_marginEnd="8dp"/>

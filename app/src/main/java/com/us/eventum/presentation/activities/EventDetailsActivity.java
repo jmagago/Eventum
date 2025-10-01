@@ -475,15 +475,15 @@ public class EventDetailsActivity extends AppCompatActivity {
         String formattedDate = fullDateFormat.format(event.getDate());
         formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
         
-        // Contar asistentes verificados
-        long verifiedCount = attendees.stream().filter(Attendee::isVerified).count();
+        // Contar asistentes escaneados (asistencia registrada)
+        long verifiedCount = attendees.stream().filter(Attendee::isScanned).count();
         
         // Formato más profesional para fecha, capacidad y ubicación
         String dateText = String.format("📅  %s", formattedDate);
         String capacityText = String.format("👥  %d de %d plazas ocupadas", 
             attendees.size(),
             event.getMaxParticipants());
-        String verifiedText = String.format("%d asistentes verificados", verifiedCount);
+        String verifiedText = String.format("%d asistentes registrados (escaneados)", verifiedCount);
         String locationText = String.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
@@ -739,8 +739,11 @@ public class EventDetailsActivity extends AppCompatActivity {
                 }
             }
 
-            // Usar AttendeeViewModel para añadir el asistente
-            attendeeViewModel.addAttendee(event.getId(), name, lastName, dni, email, phone, birthDate, requiresAuth);
+            // Usar AttendeeViewModel para añadir el asistente (incluye userId)
+            String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
+                    ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
+                    : null;
+            attendeeViewModel.addAttendee(event.getId(), uid, name, lastName, dni, email, phone, birthDate, requiresAuth);
             dialog.dismiss();
         });
 

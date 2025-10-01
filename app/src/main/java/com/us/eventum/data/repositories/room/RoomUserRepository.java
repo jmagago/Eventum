@@ -112,9 +112,11 @@ public class RoomUserRepository implements UserRepository {
             entity.getPrimerApellido(),
             entity.getSegundoApellido(),
             entity.getFechaNacimiento(),
-            entity.getLugarNacimiento(),
             entity.getRole()
         );
+        user.setVerified(entity.isVerified());
+        user.setConfirmationTime(entity.getConfirmationTime());
+        user.setRegistrationDate(entity.getRegistrationDate());
         return user;
     }
     
@@ -134,10 +136,12 @@ public class RoomUserRepository implements UserRepository {
             user.getNombre(),
             user.getPrimerApellido(),
             user.getSegundoApellido(),
-            user.getFechaNacimiento(),
-            user.getLugarNacimiento()
+            user.getFechaNacimiento()
         );
         entity.setRole(user.getRole());
+        entity.setVerified(user.isVerified());
+        entity.setConfirmationTime(user.getConfirmationTime());
+        entity.setRegistrationDate(user.getRegistrationDate());
         return entity;
     }
     

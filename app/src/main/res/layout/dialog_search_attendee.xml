@@ -44,7 +44,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:hint="DNI"
             app:startIconDrawable="@drawable/ic_id_card"
             app:startIconTint="@color/colorPrimary"
@@ -65,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:hint="Nombre"
             app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="@color/colorPrimary"
@@ -89,7 +89,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:hint="Primer Apellido"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary"
@@ -129,7 +129,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:hint="Segundo Apellido"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary"
@@ -165,7 +165,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:hint="Email"
             app:startIconDrawable="@drawable/ic_email"
             app:startIconTint="@color/colorPrimary"
@@ -185,7 +185,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:hint="Teléfono"
             app:startIconDrawable="@drawable/ic_phone"
             app:startIconTint="@color/colorPrimary"
@@ -216,7 +216,7 @@
                 android:textSize="14sp"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                style="@style/Widget.Material3.Button.TextButton"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/searchButton"
@@ -227,7 +227,7 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:layout_marginStart="8dp"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.Material3.Button"
                 app:backgroundTint="@color/colorPrimary"/>
 
         </LinearLayout>
@@ -235,6 +235,7 @@
     </LinearLayout>
 
 </ScrollView>
+
 
 
 

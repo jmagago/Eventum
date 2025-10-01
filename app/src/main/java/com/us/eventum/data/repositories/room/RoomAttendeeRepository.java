@@ -100,7 +100,7 @@ public class RoomAttendeeRepository implements AttendeeRepository {
                 AttendeeEntity entity = attendeeDao.getAttendeeById(attendeeId);
                 if (entity != null) {
                     if (entity.isVerified()) {
-                        callback.onError("Este asistente ya fue verificado");
+                        callback.onError("Este asistente ya fue escaneado");
                         return;
                     }
                     
@@ -109,7 +109,7 @@ public class RoomAttendeeRepository implements AttendeeRepository {
                         return;
                     }
                     
-                    attendeeDao.markAttendeeAsVerified(attendeeId, System.currentTimeMillis());
+                    attendeeDao.markAttendeeAsScanned(attendeeId, System.currentTimeMillis());
                     callback.onSuccess(null);
                 } else {
                     callback.onError("Asistente no encontrado");
@@ -182,9 +182,10 @@ public class RoomAttendeeRepository implements AttendeeRepository {
         );
         attendee.setId(entity.getId());
         attendee.setEventId(entity.getEventId());
+        attendee.setUserId(entity.getUserId());
         attendee.setRequiresParentalAuthorization(entity.isRequiresParentalAuthorization());
-        attendee.setVerified(entity.isVerified());
-        attendee.setConfirmationTime(entity.getVerificationTimestamp());
+        // Mapear estado de asistencia (scanned) usando columnas 'verified' como almacenamiento
+        attendee.setScanned(entity.isVerified());
         return attendee;
     }
     
@@ -203,8 +204,9 @@ public class RoomAttendeeRepository implements AttendeeRepository {
             attendee.getEventId(),
             attendee.isRequiresParentalAuthorization()
         );
-        entity.setVerified(attendee.isVerified());
-        entity.setVerificationTimestamp(attendee.getConfirmationTime());
+        entity.setUserId(attendee.getUserId());
+        // Guardar estado de asistencia (scanned) en columnas 'verified'
+        entity.setVerified(attendee.isScanned());
         entity.setSynced(false);
         return entity;
     }

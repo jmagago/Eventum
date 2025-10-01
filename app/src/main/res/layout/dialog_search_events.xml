@@ -70,7 +70,7 @@
                 app:startIconTint="@color/colorPrimary"
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/keywordsEditText"
@@ -87,7 +87,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:hint="Tipo de Evento"
                 app:startIconDrawable="@drawable/ic_check_circle"
                 app:startIconTint="@color/colorPrimary"
@@ -113,7 +113,7 @@
                 app:startIconTint="@color/colorPrimary"
                 app:boxStrokeColor="@color/colorPrimary"
                 app:hintTextColor="@color/colorPrimary"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/locationEditText"
@@ -151,7 +151,7 @@
                     app:startIconTint="@color/colorPrimary"
                     app:boxStrokeColor="@color/colorPrimary"
                     app:hintTextColor="@color/colorPrimary"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/dateFromEditText"
@@ -174,7 +174,7 @@
                     app:startIconTint="@color/colorPrimary"
                     app:boxStrokeColor="@color/colorPrimary"
                     app:hintTextColor="@color/colorPrimary"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/dateToEditText"
@@ -210,7 +210,7 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:layout_marginEnd="8dp"
-                style="@style/Widget.MaterialComponents.Button.TextButton" />
+                style="@style/Widget.Material3.Button.TextButton" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/searchButton"
@@ -220,7 +220,7 @@
                 android:textSize="14sp"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.Material3.Button"
                 app:backgroundTint="@color/colorPrimary" />
 
         </LinearLayout>
@@ -228,3 +228,4 @@
     </LinearLayout>
 
 </ScrollView>
+

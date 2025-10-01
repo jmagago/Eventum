@@ -19,7 +19,7 @@
             app:navigationIcon="@drawable/ic_arrow_back"
             app:title="Ajustes"
             app:titleTextColor="@color/white"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar" />
+            android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar" />
 
         <!-- Contenedor de perfil -->
         <LinearLayout
@@ -30,14 +30,15 @@
             android:padding="16dp">
 
             <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
                 android:layout_gravity="center_horizontal">
 
                 <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/profileImageView"
                     android:layout_width="96dp"
                     android:layout_height="96dp"
+                    android:layout_gravity="center"
                     android:src="@drawable/default_profile"
                     app:civ_border_width="2dp"
                     app:civ_border_color="@color/colorPrimary"/>
@@ -59,8 +60,14 @@
                     android:layout_gravity="end|bottom"
                     android:src="@drawable/ic_edit"
                     app:fabSize="mini"
+                    app:fabCustomSize="40dp"
+                    app:backgroundTint="#26C6DA"
                     app:tint="@color/white"
-                    android:layout_marginStart="-24dp"
+                    app:elevation="6dp"
+                    app:maxImageSize="20dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.Eventum.FloatingActionButton.Circle"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginBottom="4dp"
                     android:contentDescription="Editar foto de perfil"/>
 
             </FrameLayout>

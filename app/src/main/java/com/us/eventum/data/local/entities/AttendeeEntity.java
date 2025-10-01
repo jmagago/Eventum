@@ -41,6 +41,9 @@ public class AttendeeEntity {
     
     @ColumnInfo(name = "eventId")
     public String eventId;
+
+    @ColumnInfo(name = "userId")
+    public String userId;
     
     @ColumnInfo(name = "requiresParentalAuthorization")
     public boolean requiresParentalAuthorization;
@@ -119,6 +122,9 @@ public class AttendeeEntity {
     
     public String getEventId() { return eventId; }
     public void setEventId(String eventId) { this.eventId = eventId; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     
     public boolean isRequiresParentalAuthorization() { return requiresParentalAuthorization; }
     public void setRequiresParentalAuthorization(boolean requiresParentalAuthorization) { 

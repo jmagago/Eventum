@@ -35,7 +35,7 @@ android {
         targetSdk = 34
         
         // Versión de la aplicación
-        val majorVersion = 0  // Cambiado a 0 para indicar desarrollo temprano
+        val majorVersion = 1  // Cambiado a 0 para indicar desarrollo temprano
         val minorVersion = 3  // Incrementado a 3 para incluir pull-to-refresh y mejoras de sincronización
         val patchVersion = 0
         val buildNumber = getNextBuildNumber() // Obtener el siguiente número de build automáticamente

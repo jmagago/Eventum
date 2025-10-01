@@ -407,8 +407,143 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void editProfile() {
-        // TODO: Implementar edición de perfil
-        ToastUtils.showCustomToast(this, "Función en desarrollo", ToastUtils.ToastType.INFO);
+        // Detectar rol del usuario
+        userViewModel.getCurrentUser().observe(this, user -> {
+            if (user == null) return;
+            String role = user.getRole();
+            boolean isAttendee = UserRole.ATTENDEE.equalsIgnoreCase(role);
+            
+            if (isAttendee) {
+                showAttendeeProfileDialog(user);
+            } else {
+                showOrganizerProfileDialog(user);
+            }
+        });
+    }
+
+    private void showAttendeeProfileDialog(com.us.eventum.data.models.User user) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_attendee_profile, null);
+        com.google.android.material.textfield.TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
+        com.google.android.material.textfield.TextInputEditText firstSurnameInput = dialogView.findViewById(R.id.firstSurnameInput);
+        com.google.android.material.textfield.TextInputEditText secondSurnameInput = dialogView.findViewById(R.id.secondSurnameInput);
+        com.google.android.material.textfield.TextInputEditText dniInput = dialogView.findViewById(R.id.dniInput);
+        com.google.android.material.textfield.TextInputEditText phoneInput = dialogView.findViewById(R.id.phoneInput);
+        com.google.android.material.textfield.TextInputEditText birthDateInput = dialogView.findViewById(R.id.birthDateInput);
+
+        // Pre-cargar datos actuales
+        if (user.getNombre() != null) nameInput.setText(user.getNombre());
+        if (user.getPrimerApellido() != null) firstSurnameInput.setText(user.getPrimerApellido());
+        if (user.getSegundoApellido() != null) secondSurnameInput.setText(user.getSegundoApellido());
+        if (user.getDni() != null) dniInput.setText(user.getDni());
+        if (user.getPhone() != null) phoneInput.setText(user.getPhone());
+        if (user.getFechaNacimiento() != null) birthDateInput.setText(user.getFechaNacimiento());
+
+        // Write-once: bloquear si ya informados
+        boolean lockPersonal =
+                (user.getNombre() != null && !user.getNombre().trim().isEmpty()) ||
+                (user.getPrimerApellido() != null && !user.getPrimerApellido().trim().isEmpty()) ||
+                (user.getDni() != null && !user.getDni().trim().isEmpty()) ||
+                (user.getFechaNacimiento() != null && !user.getFechaNacimiento().trim().isEmpty());
+
+        if (lockPersonal) {
+            nameInput.setEnabled(false);
+            firstSurnameInput.setEnabled(false);
+            dniInput.setEnabled(false);
+            birthDateInput.setEnabled(false);
+            TextView title = dialogView.findViewById(R.id.dialogTitle);
+            title.setText("Perfil (datos no modificables)");
+        }
+
+        birthDateInput.setOnClickListener(v -> {
+            if (!birthDateInput.isEnabled()) return;
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            new android.app.DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+                String dd = dayOfMonth < 10 ? "0" + dayOfMonth : String.valueOf(dayOfMonth);
+                String mm = (month + 1) < 10 ? "0" + (month + 1) : String.valueOf(month + 1);
+                birthDateInput.setText(dd + "/" + mm + "/" + year);
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+        });
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        dialogView.findViewById(R.id.cancelButton).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.saveButton).setOnClickListener(v -> {
+            String name = String.valueOf(nameInput.getText()).trim();
+            String firstSurname = String.valueOf(firstSurnameInput.getText()).trim();
+            String secondSurname = String.valueOf(secondSurnameInput.getText()).trim();
+            String dni = String.valueOf(dniInput.getText()).trim();
+            String phone = String.valueOf(phoneInput.getText()).trim();
+            String birth = String.valueOf(birthDateInput.getText()).trim();
+
+            // Validaciones: todos obligatorios excepto segundo apellido
+            if (name.isEmpty() || firstSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
+                ToastUtils.showCustomToast(this, "Por favor, completa todos los campos obligatorios", ToastUtils.ToastType.ERROR);
+                return;
+            }
+
+            // Si es la primera vez que completa el perfil, mostrar advertencia
+            if (!user.isProfileComplete()) {
+                new MaterialAlertDialogBuilder(this)
+                        .setTitle("Importante")
+                        .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) solo pueden introducirse una vez y no podrán modificarse posteriormente.")
+                        .setPositiveButton("Aceptar", (d, w) -> {
+                            userViewModel.updateUser(user.getUsername(), name, firstSurname, secondSurname, birth, dni, phone);
+                            dialog.dismiss();
+                            ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                        })
+                        .setNegativeButton("Cancelar", null)
+                        .show();
+            } else {
+                // Si ya está completo, guardar directamente
+                userViewModel.updateUser(user.getUsername(), name, firstSurname, secondSurname, birth, dni, phone);
+                dialog.dismiss();
+                ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void showOrganizerProfileDialog(com.us.eventum.data.models.User user) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_organizer_profile, null);
+        com.google.android.material.textfield.TextInputEditText usernameInput = dialogView.findViewById(R.id.usernameInput);
+        com.google.android.material.textfield.TextInputEditText cifInput = dialogView.findViewById(R.id.cifInput);
+        com.google.android.material.textfield.TextInputEditText phoneInput = dialogView.findViewById(R.id.phoneInput);
+        com.google.android.material.textfield.TextInputEditText addressInput = dialogView.findViewById(R.id.addressInput);
+
+        // Pre-cargar datos actuales
+        usernameInput.setText(user.getUsername());
+        if (user.getDni() != null) cifInput.setText(user.getDni()); // Reutilizamos dni para CIF
+        if (user.getPhone() != null) phoneInput.setText(user.getPhone());
+        // addressInput se puede mapear a un nuevo campo en User si se desea en el futuro
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        dialogView.findViewById(R.id.cancelButton).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.saveButton).setOnClickListener(v -> {
+            String username = String.valueOf(usernameInput.getText()).trim();
+            String cif = String.valueOf(cifInput.getText()).trim();
+            String phone = String.valueOf(phoneInput.getText()).trim();
+
+            if (username.isEmpty()) {
+                ToastUtils.showCustomToast(this, "El nombre de la empresa es obligatorio", ToastUtils.ToastType.ERROR);
+                return;
+            }
+
+            // Para organizador: solo actualizamos username, dni (como CIF) y phone
+            // Los demás campos se mantienen vacíos
+            userViewModel.updateUser(username, "", "", "", "", cif, phone);
+            dialog.dismiss();
+            ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+        });
+
+        dialog.show();
     }
 
     private void changePassword() {

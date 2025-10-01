@@ -14,6 +14,7 @@
     <color name="colorBackground">#FAFAFA</color>
     <color name="colorSurface">#FFFFFF</color>
     <color name="ic_launcher_background">#1565C0</color>
+    <color name="splash_background">@color/colorPrimary</color> <!-- Mismo azul del degradado login -->
     
     <!-- Colores de texto -->
     <color name="colorPrimaryText">#212121</color>

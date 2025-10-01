@@ -7,6 +7,7 @@ import java.util.Date;
 public class Attendee implements Serializable {
     private String id;
     private String eventId;
+    private String userId; // referencia al usuario inscrito
     private String name;
     private String lastName;
     private String dni;
@@ -14,10 +15,7 @@ public class Attendee implements Serializable {
     private String phone;
     private Timestamp birthDate;
     private boolean requiresParentalAuthorization;
-    private Date registrationDate;
-    private long confirmationTime;
     private boolean scanned;
-    private boolean verified;
 
     public Attendee() {
         // Constructor vacío requerido para Firestore
@@ -30,10 +28,7 @@ public class Attendee implements Serializable {
         this.email = email;
         this.phone = phone;
         this.requiresParentalAuthorization = false;
-        this.registrationDate = new Date();
-        this.confirmationTime = 0;
         this.scanned = false;
-        this.verified = false;
         
         // Convertir String a Timestamp si se proporciona
         if (birthDate != null && !birthDate.isEmpty()) {
@@ -57,11 +52,8 @@ public class Attendee implements Serializable {
         this.dni = dni;
         this.email = email;
         this.phone = phone;
-        this.confirmationTime = confirmationTime;
         this.scanned = scanned;
         this.requiresParentalAuthorization = false;
-        this.registrationDate = new Date();
-        this.verified = false;
     }
 
     public String getId() {
@@ -79,6 +71,9 @@ public class Attendee implements Serializable {
     public void setEventId(String eventId) {
         this.eventId = eventId;
     }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     public String getName() {
         return name;
@@ -136,22 +131,6 @@ public class Attendee implements Serializable {
         this.requiresParentalAuthorization = requiresParentalAuthorization;
     }
 
-    public Date getRegistrationDate() {
-        return registrationDate;
-    }
-
-    public void setRegistrationDate(Date registrationDate) {
-        this.registrationDate = registrationDate;
-    }
-
-    public long getConfirmationTime() {
-        return confirmationTime;
-    }
-
-    public void setConfirmationTime(long confirmationTime) {
-        this.confirmationTime = confirmationTime;
-    }
-
     public boolean isScanned() {
         return scanned;
     }
@@ -160,11 +139,5 @@ public class Attendee implements Serializable {
         this.scanned = scanned;
     }
 
-    public boolean isVerified() {
-        return verified;
-    }
-
-    public void setVerified(boolean verified) {
-        this.verified = verified;
-    }
+    // Eliminados verified/registrationDate/confirmationTime (mueven a User)
 }

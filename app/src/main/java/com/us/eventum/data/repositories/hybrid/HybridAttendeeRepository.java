@@ -281,15 +281,44 @@ public class HybridAttendeeRepository implements AttendeeRepository {
      * @param callback Callback con el resultado
      */
     public void getEventAttendeesCount(String eventId, RepositoryCallback<Integer> callback) {
-        executor.execute(() -> {
-            try {
-                int count = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
-                callback.onSuccess(count);
-            } catch (Exception e) {
-                System.err.println("Error contando asistentes locales para evento " + eventId + ": " + e.getMessage());
-                callback.onError("Error contando asistentes: " + e.getMessage());
-            }
-        });
+        if (networkManager.isOnline()) {
+            // Online: obtener desde Firebase, actualizar caché y devolver tamaño
+            firebaseRepository.loadEventAttendees(eventId, new RepositoryCallback<List<Attendee>>() {
+                @Override
+                public void onSuccess(List<Attendee> result) {
+                    // Sincronizar caché local en background
+                    updateLocalCache(result);
+                    if (callback != null) {
+                        callback.onSuccess(result != null ? result.size() : 0);
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    // Fallback: contar desde Room
+                    executor.execute(() -> {
+                        try {
+                            int count = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
+                            if (callback != null) callback.onSuccess(count);
+                        } catch (Exception e) {
+                            System.err.println("Error contando asistentes locales para evento " + eventId + ": " + e.getMessage());
+                            if (callback != null) callback.onError("Error contando asistentes: " + e.getMessage());
+                        }
+                    });
+                }
+            });
+        } else {
+            // Offline: contar desde Room
+            executor.execute(() -> {
+                try {
+                    int count = roomRepository.attendeeDao.getEventAttendeesCount(eventId);
+                    if (callback != null) callback.onSuccess(count);
+                } catch (Exception e) {
+                    System.err.println("Error contando asistentes locales para evento " + eventId + ": " + e.getMessage());
+                    if (callback != null) callback.onError("Error contando asistentes: " + e.getMessage());
+                }
+            });
+        }
     }
     
     

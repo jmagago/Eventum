@@ -84,9 +84,11 @@
             app:backgroundTint="@color/colorPrimary"
             app:tint="@color/colorWhite"
             app:fabSize="mini"
-            app:maxImageSize="24dp"
+            app:fabCustomSize="40dp"
+            app:maxImageSize="28dp"
             app:borderWidth="0dp"
             android:visibility="visible"/>
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
+

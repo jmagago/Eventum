@@ -77,6 +77,12 @@ public interface AttendeeDao {
      */
     @Query("SELECT * FROM attendees WHERE eventId = :eventId AND email = :email LIMIT 1")
     AttendeeEntity getAttendeeByEventAndEmail(String eventId, String email);
+
+    /**
+     * Obtener asistentes por usuario
+     */
+    @Query("SELECT * FROM attendees WHERE userId = :userId AND isDeleted = 0 ORDER BY createdAt DESC")
+    List<AttendeeEntity> getUserAttendees(String userId);
     
     
     /**
@@ -86,22 +92,22 @@ public interface AttendeeDao {
     int getDniCountForEvent(String dni, String eventId);
     
     /**
-     * Marcar asistente como verificado
+     * Marcar asistente como escaneado (asistió)
      */
     @Query("UPDATE attendees SET verified = 1, verificationTimestamp = :timestamp WHERE id = :attendeeId")
-    void markAttendeeAsVerified(String attendeeId, long timestamp);
+    void markAttendeeAsScanned(String attendeeId, long timestamp);
     
     /**
-     * Obtener asistentes verificados de un evento
+     * Obtener asistentes escaneados de un evento
      */
     @Query("SELECT * FROM attendees WHERE eventId = :eventId AND verified = 1 ORDER BY verificationTimestamp DESC")
-    List<AttendeeEntity> getVerifiedAttendees(String eventId);
+    List<AttendeeEntity> getScannedAttendees(String eventId);
     
     /**
-     * Obtener asistentes no verificados de un evento
+     * Obtener asistentes no escaneados de un evento
      */
     @Query("SELECT * FROM attendees WHERE eventId = :eventId AND verified = 0 ORDER BY name ASC")
-    List<AttendeeEntity> getUnverifiedAttendees(String eventId);
+    List<AttendeeEntity> getUnscannedAttendees(String eventId);
     
     /**
      * Contar asistentes de un evento
@@ -110,10 +116,10 @@ public interface AttendeeDao {
     int getEventAttendeesCount(String eventId);
     
     /**
-     * Contar asistentes verificados de un evento
+     * Contar asistentes escaneados de un evento
      */
     @Query("SELECT COUNT(*) FROM attendees WHERE eventId = :eventId AND verified = 1")
-    int getVerifiedAttendeesCount(String eventId);
+    int getScannedAttendeesCount(String eventId);
     
     
     /**

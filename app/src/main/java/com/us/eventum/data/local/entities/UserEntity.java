@@ -40,11 +40,17 @@ public class UserEntity {
     @ColumnInfo(name = "fechaNacimiento")
     public String fechaNacimiento;
     
-    @ColumnInfo(name = "lugarNacimiento")
-    public String lugarNacimiento;
-    
     @ColumnInfo(name = "role")
     public String role;
+
+    @ColumnInfo(name = "verified")
+    public boolean verified;
+
+    @ColumnInfo(name = "confirmationTime")
+    public long confirmationTime;
+
+    @ColumnInfo(name = "registrationDate")
+    public long registrationDate;
     
     @ColumnInfo(name = "isSynced")
     public boolean isSynced;
@@ -61,12 +67,15 @@ public class UserEntity {
         this.lastUpdated = System.currentTimeMillis();
         this.createdAt = System.currentTimeMillis();
         this.isSynced = false;
+        this.verified = false;
+        this.confirmationTime = 0L;
+        this.registrationDate = System.currentTimeMillis();
     }
     
     // Constructor completo - ignorado por Room
     @androidx.room.Ignore
     public UserEntity(String uid, String email, String username, String nombre, String primerApellido,
-                     String segundoApellido, String fechaNacimiento, String lugarNacimiento) {
+                     String segundoApellido, String fechaNacimiento) {
         this.uid = uid;
         this.email = email;
         this.username = username;
@@ -74,8 +83,10 @@ public class UserEntity {
         this.primerApellido = primerApellido;
         this.segundoApellido = segundoApellido;
         this.fechaNacimiento = fechaNacimiento;
-        this.lugarNacimiento = lugarNacimiento;
         this.role = UserRole.ORGANIZER; // Valor por defecto para migraciones
+        this.verified = false;
+        this.confirmationTime = 0L;
+        this.registrationDate = System.currentTimeMillis();
         this.isSynced = false;
         this.lastUpdated = System.currentTimeMillis();
         this.createdAt = System.currentTimeMillis();
@@ -104,11 +115,19 @@ public class UserEntity {
     public String getFechaNacimiento() { return fechaNacimiento; }
     public void setFechaNacimiento(String fechaNacimiento) { this.fechaNacimiento = fechaNacimiento; }
     
-    public String getLugarNacimiento() { return lugarNacimiento; }
-    public void setLugarNacimiento(String lugarNacimiento) { this.lugarNacimiento = lugarNacimiento; }
+    // Eliminado lugarNacimiento
     
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public boolean isVerified() { return verified; }
+    public void setVerified(boolean verified) { this.verified = verified; }
+
+    public long getConfirmationTime() { return confirmationTime; }
+    public void setConfirmationTime(long confirmationTime) { this.confirmationTime = confirmationTime; }
+
+    public long getRegistrationDate() { return registrationDate; }
+    public void setRegistrationDate(long registrationDate) { this.registrationDate = registrationDate; }
     
     public boolean isSynced() { return isSynced; }
     public void setSynced(boolean synced) { isSynced = synced; }
