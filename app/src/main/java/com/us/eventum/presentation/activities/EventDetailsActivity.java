@@ -1,6 +1,7 @@
 package com.us.eventum.presentation.activities;
 
 import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -32,11 +33,15 @@ import com.google.android.material.card.MaterialCardView;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.adapters.AttendeeAdapter;
 import com.us.eventum.data.models.Attendee;
+import com.us.eventum.data.models.AttendeesToEvent;
+import com.us.eventum.data.repositories.AttendeeRepository;
+import com.us.eventum.data.repositories.AttendeesToEventRepository;
 import com.us.eventum.data.models.Event;
 import com.us.eventum.R;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
@@ -74,6 +79,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView dateTextView, locationTextView, descriptionTextView;
     private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
+    private ImageView eventPrivateIconDetails;
     private FloatingActionButton addAttendeeButton;
     private FloatingActionButton searchAttendeeFab;
     private FloatingActionButton verifyQrFab;
@@ -93,6 +99,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private boolean isSearchActive = false;
     private List<Attendee> allAttendees = new ArrayList<>(); // Lista completa de asistentes
     private List<Attendee> filteredAttendees = new ArrayList<>(); // Lista filtrada
+    private Map<String, Boolean> scannedAttendeesMap = new HashMap<>(); // Map de asistentes escaneados (userId -> isScanned)
     
     // Elementos del indicador de filtros
     private LinearLayout filterIndicatorLayout;
@@ -118,8 +125,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK) {
-                    // Recargar la lista de asistentes
+                    // Recargar la lista de asistentes y la información de escaneado
                     loadAttendees();
+                    loadScannedAttendeesInfo();
                 }
             }
         );
@@ -148,6 +156,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             displayEventDetails();
             observeViewModels();
             loadAttendees();
+            updateAddAttendeeButtonState();
 
             // Manejar extras para mostrar diálogos
             if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
@@ -167,6 +176,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         locationTextView = findViewById(R.id.eventLocationTextView);
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
         emptyAttendeesTextView = findViewById(R.id.emptyAttendeesTextView);
+        eventPrivateIconDetails = findViewById(R.id.eventPrivateIconDetails);
         Log.d("EventDetailsActivity", "emptyAttendeesTextView inicializado: " + (emptyAttendeesTextView != null ? "OK" : "NULL"));
         addAttendeeButton = findViewById(R.id.addAttendeeButton);
         searchAttendeeFab = findViewById(R.id.searchAttendeeFab);
@@ -212,6 +222,23 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (clearFiltersButton != null) {
             clearFiltersButton.setOnClickListener(v -> clearSearchFilters());
         }
+
+        // Configurar clic largo en el icono del candado para cambiar privacidad
+        if (eventPrivateIconDetails != null) {
+            eventPrivateIconDetails.setOnLongClickListener(v -> {
+                if (event != null) {
+                    boolean newPrivateState = !event.getPrivateEvent();
+                    // Actualizo el estado del evento local inmediatamente para que el icono se actualice
+                    event.setPrivateEvent(newPrivateState);
+                    // Actualizo el icono visualmente de inmediato
+                    updateLockIcon(newPrivateState);
+                    // Luego actualizo en el servidor
+                    eventViewModel.toggleEventPrivacy(event.getId(), newPrivateState);
+                    return true;
+                }
+                return false;
+            });
+        }
     }
 
     private void observeViewModels() {
@@ -229,6 +256,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                 
                 Log.d("EventDetailsActivity", "Asistentes actualizados en adapter: " + attendees.size());
                 
+                // Cargar información de escaneado para actualizar bordes
+                loadScannedAttendeesInfo();
+                
                 // Aplicar filtros si hay búsqueda activa
                 if (isSearchActive) {
                     applySearchFilters();
@@ -239,6 +269,8 @@ public class EventDetailsActivity extends AppCompatActivity {
                 
                 updateAttendeesCount();
                 updateSearchButtonState();
+                updateQRButtonState();
+                updateAddAttendeeButtonState();
                 
                 // Mostrar/ocultar mensaje cuando no hay asistentes
                 if (attendeesList.isEmpty()) {
@@ -270,10 +302,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
             if (deleted) {
                 Log.d("EventDetailsActivity", "Asistente eliminado, recargando lista...");
-                // Recargar la lista de asistentes
+                // Recargar la lista de asistentes (esto disparará el observer de getAttendees() 
+                // que actualizará el contador automáticamente)
                 loadAttendees();
-                // Actualizar el contador
-                updateAttendeesCount();
                 // Notificar al EventViewModel para actualizar el contador
                 if (event != null) {
                     eventViewModel.loadUserEvents();
@@ -318,19 +349,32 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeeViewModel.getAttendeesCleared().observe(this, cleared -> {
             if (cleared != null && cleared) {
                 ToastUtils.showCustomToast(this, "Lista de asistentes vaciada con éxito", ToastUtils.ToastType.SUCCESS);
+                // Recargar la lista de asistentes (esto disparará el observer de getAttendees() 
+                // que actualizará el contador automáticamente)
+                loadAttendees();
+                // Notificar al EventViewModel para actualizar el contador
+                if (event != null) {
+                    eventViewModel.loadUserEvents();
+                }
+                // Notificar al SharedViewModel para actualizar la actividad de origen
+                sharedViewModel.notifyEventsUpdated();
                 attendeeViewModel.clearOperationStates();
             }
         });
 
-        // Observar actualización de evento
         eventViewModel.getEventUpdated().observe(this, updated -> {
             if (updated != null && updated) {
-                ToastUtils.showCustomToast(this, "Evento actualizado correctamente", ToastUtils.ToastType.SUCCESS);
-                eventViewModel.clearOperationStates();
-                
-                // Actualizar el objeto evento local y la UI
-                displayEventDetails(); // Recargar datos del evento
+                // El mensaje se muestra en el observer de eventUpdateMessage
+                // El estado del evento ya se actualizó en el listener, solo actualizo la UI completa
+                displayEventDetails();
                 sharedViewModel.notifyEventsUpdated();
+            }
+        });
+
+        eventViewModel.getEventUpdateMessage().observe(this, message -> {
+            if (message != null && !message.isEmpty()) {
+                ToastUtils.showCustomToast(this, message, ToastUtils.ToastType.SUCCESS);
+                eventViewModel.clearOperationStates();
             }
         });
 
@@ -467,6 +511,34 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeesRecyclerView.setAdapter(attendeeAdapter);
     }
 
+    private void updateLockIcon(boolean isPrivate) {
+        if (eventPrivateIconDetails != null) {
+            if (isPrivate) {
+                eventPrivateIconDetails.setImageResource(R.drawable.ic_lock_closed);
+                eventPrivateIconDetails.setVisibility(View.VISIBLE);
+            } else {
+                eventPrivateIconDetails.setImageResource(R.drawable.ic_lock_open);
+                eventPrivateIconDetails.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    private void showDatePicker(TextInputEditText dateInput, Calendar calendar) {
+        DatePickerDialog datePicker = new DatePickerDialog(
+            this,
+            (view, year, month, dayOfMonth) -> {
+                calendar.set(Calendar.YEAR, year);
+                calendar.set(Calendar.MONTH, month);
+                calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                dateInput.setText(dateFormat.format(calendar.getTime()));
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        datePicker.show();
+    }
+
     private void displayEventDetails() {
         if (event == null) return;
         
@@ -475,15 +547,11 @@ public class EventDetailsActivity extends AppCompatActivity {
         String formattedDate = fullDateFormat.format(event.getDate());
         formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
         
-        // Contar asistentes escaneados (asistencia registrada)
-        long verifiedCount = attendees.stream().filter(Attendee::isScanned).count();
-        
         // Formato más profesional para fecha, capacidad y ubicación
         String dateText = String.format("📅  %s", formattedDate);
         String capacityText = String.format("👥  %d de %d plazas ocupadas", 
             attendees.size(),
             event.getMaxParticipants());
-        String verifiedText = String.format("%d asistentes registrados (escaneados)", verifiedCount);
         String locationText = String.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
@@ -508,9 +576,56 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextView verifiedTextView = findViewById(R.id.verifiedTextView);
         
         if (verifiedLayout != null && verifiedTextView != null) {
-            verifiedTextView.setText(verifiedText);
+            // No inicializar con 0 si ya hay un valor (evitar parpadeo)
+            String currentText = verifiedTextView.getText().toString();
+            if (currentText.isEmpty() || currentText.equals("0 asistentes verificados")) {
+                // Solo inicializar con 0 si no hay valor previo
+                verifiedTextView.setText("0 asistentes verificados");
+            }
             verifiedLayout.setVisibility(View.VISIBLE);
         }
+        
+        // Obtener lista de UIDs de asistentes actuales para filtrar
+        List<String> currentAttendeeIds = new ArrayList<>();
+        for (Attendee attendee : attendees) {
+            if (attendee.getUid() != null) {
+                currentAttendeeIds.add(attendee.getUid());
+            }
+        }
+        
+        // Contar asistentes escaneados (asistencia registrada)
+        // Solo contamos los que están en la lista actual (filtra registros huérfanos)
+        attendeeViewModel.loadScannedAttendeesCount(event.getId(), currentAttendeeIds, new AttendeeRepository.RepositoryCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer scannedCount) {
+                // Actualizar la UI con el conteo real de asistentes escaneados
+                runOnUiThread(() -> {
+                    TextView verifiedTextView = findViewById(R.id.verifiedTextView);
+                    if (verifiedTextView != null) {
+                        String verifiedText = String.format("%d asistentes verificados", scannedCount != null ? scannedCount : 0);
+                        verifiedTextView.setText(verifiedText);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                // En caso de error, mantener el valor anterior si existe
+                runOnUiThread(() -> {
+                    TextView verifiedTextView = findViewById(R.id.verifiedTextView);
+                    if (verifiedTextView != null) {
+                        String currentText = verifiedTextView.getText().toString();
+                        if (currentText.isEmpty() || currentText.equals("0 asistentes verificados")) {
+                            verifiedTextView.setText("0 asistentes verificados");
+                        }
+                        // Si ya hay un valor, mantenerlo en lugar de poner 0
+                    }
+                });
+            }
+        });
+
+        // Mostrar icono del candado según el estado de privacidad
+        updateLockIcon(event.getPrivateEvent());
         
         // Mostrar descripción si existe
         View descriptionLayout = findViewById(R.id.descriptionLayout);
@@ -547,6 +662,36 @@ public class EventDetailsActivity extends AppCompatActivity {
         displayEventDetails();
     }
 
+    private void loadScannedAttendeesInfo() {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+        
+        // Usar el repositorio directamente para obtener la lista de AttendeesToEvent
+        com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository repository = 
+            new com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository();
+        
+        repository.loadAttendeesToEvent(event.getId(), 
+            new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
+                @Override
+                public void onSuccess(List<AttendeesToEvent> result) {
+                    // Crear el Map con la información de escaneado
+                    scannedAttendeesMap.clear();
+                    for (AttendeesToEvent attendeeToEvent : result) {
+                        scannedAttendeesMap.put(attendeeToEvent.getUserId(), attendeeToEvent.isScannedQR());
+                    }
+                    
+                    // Actualizar el adapter con la información de escaneado
+                    attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e("EventDetailsActivity", "Error al cargar AttendeesToEvent: " + error);
+                }
+            });
+    }
+
     private void showAddAttendeeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_attendee, null);
@@ -558,7 +703,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextInputEditText emailEditText = dialogView.findViewById(R.id.emailEditText);
         TextInputEditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
         TextInputEditText birthDateEditText = dialogView.findViewById(R.id.birthDateEditText);
-        CheckBox parentalAuthCheckBox = dialogView.findViewById(R.id.parentalAuthCheckBox);
         MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
         MaterialButton addButton = dialogView.findViewById(R.id.addAttendeeButton);
         
@@ -567,8 +711,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         com.google.android.material.textfield.TextInputLayout phoneLayout = dialogView.findViewById(R.id.phoneLayout);
         com.google.android.material.textfield.TextInputLayout birthDateLayout = dialogView.findViewById(R.id.birthDateLayout);
 
-        // Por defecto, deshabilitar la autorización parental hasta seleccionar fecha
-        parentalAuthCheckBox.setEnabled(false);
 
         // Configurar validador de DNI (solo cuando pierde el foco)
         dniEditText.setOnFocusChangeListener(com.us.eventum.utils.DniValidator.createDniFocusValidator(dniLayout));
@@ -619,28 +761,17 @@ public class EventDetailsActivity extends AppCompatActivity {
                             int age = calculateAge(parsed);
                             if (age < 16) {
                                 birthDateLayout.setError("Debe tener al menos 16 años");
-                                parentalAuthCheckBox.setEnabled(false);
-                                parentalAuthCheckBox.setChecked(false);
                             } else {
                                 birthDateLayout.setError(null);
-                                if (age < 18) {
-                                    parentalAuthCheckBox.setEnabled(true);
-                                } else {
-                                    parentalAuthCheckBox.setChecked(false);
-                                    parentalAuthCheckBox.setEnabled(false);
-                                }
                             }
                         }
                     } catch (ParseException e) {
                         birthDateLayout.setError("Formato inválido (dd/MM/yyyy)");
-                        parentalAuthCheckBox.setEnabled(false);
                     }
                 } else if (!dateText.isEmpty()) {
                     birthDateLayout.setError("Formato: dd/MM/yyyy");
-                    parentalAuthCheckBox.setEnabled(false);
                 } else {
                     birthDateLayout.setError(null);
-                    parentalAuthCheckBox.setEnabled(false);
                 }
             }
         });
@@ -654,14 +785,6 @@ public class EventDetailsActivity extends AppCompatActivity {
                     calendar.set(year, month, dayOfMonth);
                     birthDateEditText.setText(dateFormat.format(calendar.getTime()));
 
-                    // Habilitar/deshabilitar autorización parental según edad
-                    int age = calculateAge(calendar.getTime());
-                    if (age < 18) {
-                        parentalAuthCheckBox.setEnabled(true);
-                    } else {
-                        parentalAuthCheckBox.setChecked(false);
-                        parentalAuthCheckBox.setEnabled(false);
-                    }
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -690,7 +813,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             String email = emailEditText.getText().toString().trim();
             String phone = phoneEditText.getText().toString().trim();
             String birthDate = birthDateEditText.getText().toString().trim();
-            boolean requiresAuth = parentalAuthCheckBox.isChecked();
 
             // Validar campos obligatorios
             if (name.isEmpty() || firstLastName.isEmpty() || dni.isEmpty() || email.isEmpty() || phone.isEmpty()) {
@@ -743,7 +865,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
                     ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
                     : null;
-            attendeeViewModel.addAttendee(event.getId(), uid, name, lastName, dni, email, phone, birthDate, requiresAuth);
+            attendeeViewModel.addAttendee(event.getId(), uid, name, lastName, dni, email, phone, birthDate, event.getRequiresParentalAuth());
             dialog.dismiss();
         });
 
@@ -780,7 +902,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         MaterialButton deleteButton = dialogView.findViewById(R.id.dialog_delete_button);
 
         // Mostrar nombre completo
-        String fullName = attendee.getName() + " " + (attendee.getLastName() != null ? attendee.getLastName() : "");
+        String fullName = attendee.getUsername() + " " + (attendee.getPrimerApellido() != null ? attendee.getPrimerApellido() : "");
         nameTextView.setText(fullName.trim());
         
         // Mostrar DNI
@@ -804,21 +926,21 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         // Mostrar fecha de nacimiento
-        if (attendee.getBirthDate() != null) {
+        if (attendee.getFechaNacimiento() != null) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            birthDateTextView.setText(dateFormat.format(attendee.getBirthDate().toDate()));
+            birthDateTextView.setText(dateFormat.format(attendee.getFechaNacimiento().toDate()));
         } else {
             birthDateTextView.setText("No especificada");
         }
 
-        // Mostrar estado de autorización parental
-        String authStatus = attendee.isRequiresParentalAuthorization() ? 
+        // Mostrar estado de autorización parental basado en el evento
+        String authStatus = event.getRequiresParentalAuth() ? 
             "Requiere autorización parental" : "No requiere autorización parental";
         parentalAuthTextView.setText(authStatus);
         
-        // Generar y mostrar el código QR
+        // Generar y mostrar el código QR con los datos del asistente y evento
         int qrSize = 800; // Tamaño del código QR en píxeles
-        qrCodeImageView.setImageBitmap(QRCodeGenerator.generateQRCode(attendee, qrSize));
+        qrCodeImageView.setImageBitmap(QRCodeGenerator.generateQRCode(attendee.getUid(), event.getId(), qrSize));
 
         // Configurar diálogo sin botones estándar
         builder.setView(dialogView);
@@ -856,8 +978,14 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     private void deleteAttendee(Attendee attendee, AlertDialog detailsDialog) {
-        // Usar AttendeeViewModel para eliminar el asistente
-        attendeeViewModel.deleteAttendee(attendee.getId());
+        // Usar AttendeeViewModel para eliminar el asistente del evento
+        // Esto elimina tanto el registro en AttendeesToEvent como el perfil del asistente
+        if (event != null && event.getId() != null) {
+            attendeeViewModel.removeAttendeeFromEvent(attendee.getUid(), event.getId());
+        } else {
+            // Fallback: si no hay evento, solo eliminar el perfil
+            attendeeViewModel.deleteAttendee(attendee.getUid());
+        }
         
         // Cerrar los diálogos
         if (detailsDialog != null) {
@@ -906,34 +1034,54 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextInputEditText titleInput = dialogView.findViewById(R.id.titleInput);
         TextInputEditText locationInput = dialogView.findViewById(R.id.locationInput);
         TextInputEditText dateInput = dialogView.findViewById(R.id.dateInput);
+        TextInputEditText timeInput = dialogView.findViewById(R.id.timeInput);
         TextInputEditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
         CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
+        CheckBox requiresParentalAuthCheckBox = dialogView.findViewById(R.id.requiresParentalAuthCheckBox);
         MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
         MaterialButton saveButton = dialogView.findViewById(R.id.saveButton);
+        
+        // Preparar Calendar con la fecha del evento
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(event.getDate());
+        
+        // Formato para hora
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         
         // Rellenar los campos con los datos actuales del evento
         titleInput.setText(event.getTitle());
         locationInput.setText(event.getLocation());
         dateInput.setText(dateFormat.format(event.getDate()));
+        timeInput.setText(timeFormat.format(event.getDate()));
         maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
         eventoPrivadoCheckBox.setChecked(event.getPrivateEvent());
+        requiresParentalAuthCheckBox.setChecked(event.getRequiresParentalAuth());
         
-        // Configurar el DatePicker para la fecha
-        dateInput.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(event.getDate());
-            
-            DatePickerDialog datePicker = new DatePickerDialog(
+        // Configurar el DatePicker para la fecha (solo se abre al hacer clic en el icono del calendario)
+        // El campo es editable para poder escribir directamente
+        TextInputLayout dateLayout = dialogView.findViewById(R.id.dateLayout);
+        if (dateLayout != null) {
+            // Configurar el icono de inicio (calendario) para abrir el DatePicker
+            dateLayout.setStartIconOnClickListener(v -> {
+                showDatePicker(dateInput, calendar);
+            });
+        }
+        
+        // Configurar el TimePicker para la hora
+        timeInput.setOnClickListener(v -> {
+            TimePickerDialog timePicker = new TimePickerDialog(
                 this,
-                (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    dateInput.setText(dateFormat.format(calendar.getTime()));
+                (view, hourOfDay, minute) -> {
+                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    calendar.set(Calendar.MINUTE, minute);
+                    timeInput.setText(timeFormat.format(calendar.getTime()));
                 },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                true
             );
-            datePicker.show();
+            // No establecer título para que sea similar al DatePicker
+            timePicker.show();
         });
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -946,15 +1094,36 @@ public class EventDetailsActivity extends AppCompatActivity {
             String title = titleInput.getText().toString().trim();
             String location = locationInput.getText().toString().trim();
             String dateStr = dateInput.getText().toString().trim();
+            String timeStr = timeInput.getText().toString().trim();
             String maxParticipantsStr = maxParticipantsInput.getText().toString().trim();
             
-            if (title.isEmpty() || location.isEmpty() || dateStr.isEmpty() || maxParticipantsStr.isEmpty()) {
+            if (title.isEmpty() || location.isEmpty() || dateStr.isEmpty() || timeStr.isEmpty() || maxParticipantsStr.isEmpty()) {
                 ToastUtils.showCustomToast(this, "Todos los campos son obligatorios", ToastUtils.ToastType.INFO);
                 return;
             }
             
             try {
-                Date newDate = dateFormat.parse(dateStr);
+                // Parsear fecha y hora por separado y combinarlas
+                Date dateOnly = dateFormat.parse(dateStr);
+                Calendar dateCalendar = Calendar.getInstance();
+                dateCalendar.setTime(dateOnly);
+                
+                // Parsear la hora (formato HH:mm)
+                String[] timeParts = timeStr.split(":");
+                if (timeParts.length != 2) {
+                    ToastUtils.showCustomToast(this, "Formato de hora inválido. Use HH:mm", ToastUtils.ToastType.INFO);
+                    return;
+                }
+                int hour = Integer.parseInt(timeParts[0]);
+                int minute = Integer.parseInt(timeParts[1]);
+                
+                // Combinar fecha y hora
+                dateCalendar.set(Calendar.HOUR_OF_DAY, hour);
+                dateCalendar.set(Calendar.MINUTE, minute);
+                dateCalendar.set(Calendar.SECOND, 0);
+                dateCalendar.set(Calendar.MILLISECOND, 0);
+                
+                Date newDate = dateCalendar.getTime();
                 int maxParticipants = Integer.parseInt(maxParticipantsStr);
                 
                 if (maxParticipants < attendees.size()) {
@@ -965,9 +1134,21 @@ public class EventDetailsActivity extends AppCompatActivity {
                     return;
                 }
                 
-                // Usar EventViewModel para actualizar el evento
+                // Actualizar el objeto evento local inmediatamente para feedback visual
+                boolean newPrivateState = eventoPrivadoCheckBox.isChecked();
+                event.setTitle(title);
+                event.setLocation(location);
+                event.setDate(newDate);
+                event.setMaxParticipants(maxParticipants);
+                event.setPrivateEvent(newPrivateState);
+                event.setRequiresParentalAuth(requiresParentalAuthCheckBox.isChecked());
+                
+                // Actualizar el icono del candado inmediatamente
+                updateLockIcon(newPrivateState);
+                
+                // Usar EventViewModel para actualizar el evento en el servidor
                 eventViewModel.updateEvent(event.getId(), title, event.getDescription(), newDate, 
-                    location, maxParticipants, event.getEventType(), eventoPrivadoCheckBox.isChecked());
+                    location, maxParticipants, event.getEventType(), newPrivateState, requiresParentalAuthCheckBox.isChecked());
                 
                 dialog.dismiss();
             } catch (ParseException e) {
@@ -1070,6 +1251,16 @@ public class EventDetailsActivity extends AppCompatActivity {
     
 
     private void startQRScanner() {
+        if (event == null || event.getId() == null) {
+            ToastUtils.showCustomToast(this, "Error: No se puede escanear QR sin un evento válido", ToastUtils.ToastType.ERROR);
+            return;
+        }
+        
+        if (qrScannerLauncher == null) {
+            ToastUtils.showCustomToast(this, "Error: El escáner QR no está disponible", ToastUtils.ToastType.ERROR);
+            return;
+        }
+        
         Intent intent = new Intent(this, QRScannerActivity.class);
         intent.putExtra("eventId", event.getId());
         qrScannerLauncher.launch(intent);
@@ -1162,6 +1353,32 @@ public class EventDetailsActivity extends AppCompatActivity {
             boolean hasAttendees = !allAttendees.isEmpty();
             searchAttendeeFab.setEnabled(hasAttendees);
             searchAttendeeFab.setAlpha(hasAttendees ? 1.0f : 0.5f);
+        }
+    }
+
+    /**
+     * Actualizar el estado del botón de QR
+     */
+    private void updateQRButtonState() {
+        if (verifyQrFab != null) {
+            // Deshabilitar si no hay asistentes
+            boolean hasAttendees = !allAttendees.isEmpty();
+            verifyQrFab.setEnabled(hasAttendees);
+            verifyQrFab.setAlpha(hasAttendees ? 1.0f : 0.5f);
+        }
+    }
+
+    /**
+     * Actualizar el estado del botón de añadir asistente
+     */
+    private void updateAddAttendeeButtonState() {
+        if (addAttendeeButton != null && event != null) {
+            // Verificar si el evento está completo
+            boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
+            
+            // Deshabilitar si el evento está completo
+            addAttendeeButton.setEnabled(!isEventFull);
+            addAttendeeButton.setAlpha(isEventFull ? 0.5f : 1.0f);
         }
     }
 } 

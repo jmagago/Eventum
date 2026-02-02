@@ -54,7 +54,8 @@
     
     <!-- Colores para el estado de verificación de asistentes -->
     <color name="attendee_stroke_color">#EEEEEE</color>
-    <color name="attendee_verified_stroke">#4CAF50</color>
+    <color name="attendee_verified_stroke">#A5D6A7</color>
+    <color name="attendee_verified_background">#F1F8E9</color>
     
     <!-- Colores para los toasts personalizados -->
     <color name="error">#F44336</color>
