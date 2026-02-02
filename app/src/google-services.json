@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "889082914827",
+    "firebase_url": "https://eventum-qr-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "eventum-qr",
     "storage_bucket": "eventum-qr.firebasestorage.app"
   },

@@ -16,6 +16,7 @@ public class Event implements Parcelable {
     private String eventType;
     private int currentParticipants;
     private boolean privateEvent;
+    private boolean requiresParentalAuth;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -31,6 +32,7 @@ public class Event implements Parcelable {
         this.eventType = "Otro"; // Valor predeterminado
         this.currentParticipants = 0;
         this.privateEvent = false; // Valor predeterminado
+        this.requiresParentalAuth = false; // Valor predeterminado
     }
 
     public Event(String title, String description, Date date, String location, String userId, int maxParticipants, String eventType) {
@@ -43,6 +45,7 @@ public class Event implements Parcelable {
         this.eventType = eventType;
         this.currentParticipants = 0;
         this.privateEvent = false; // Valor predeterminado
+        this.requiresParentalAuth = false; // Valor predeterminado
     }
 
     // Getters y Setters
@@ -146,6 +149,16 @@ public class Event implements Parcelable {
         this.privateEvent = privateEvent;
     }
 
+    @PropertyName("requiresParentalAuth")
+    public boolean getRequiresParentalAuth() {
+        return requiresParentalAuth;
+    }
+
+    @PropertyName("requiresParentalAuth")
+    public void setRequiresParentalAuth(boolean requiresParentalAuth) {
+        this.requiresParentalAuth = requiresParentalAuth;
+    }
+
     // Constructor para Parcelable
     protected Event(Parcel in) {
         id = in.readString();
@@ -159,6 +172,7 @@ public class Event implements Parcelable {
         eventType = in.readString();
         currentParticipants = in.readInt();
         privateEvent = in.readByte() != 0;
+        requiresParentalAuth = in.readByte() != 0;
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -190,5 +204,7 @@ public class Event implements Parcelable {
         dest.writeString(eventType);
         dest.writeInt(currentParticipants);
         dest.writeByte((byte) (privateEvent ? 1 : 0));
+        dest.writeByte((byte) (requiresParentalAuth ? 1 : 0));
     }
 }
+

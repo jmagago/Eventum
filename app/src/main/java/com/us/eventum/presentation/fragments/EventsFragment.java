@@ -23,6 +23,7 @@ import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.data.models.Event;
 import com.us.eventum.presentation.activities.EventDetailsActivity;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
+import com.us.eventum.utils.ToastUtils;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -204,5 +205,29 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         } else {
             Log.e("EventsFragment", "Activity does not implement EventContextMenuListener");
         }
+    }
+
+    @Override
+    public void onLockIconLongClick(Event event) {
+        // Invierto el estado de privacidad del evento
+        boolean newPrivateState = !event.getPrivateEvent();
+        // Actualizo el estado del evento local inmediatamente para feedback visual
+        event.setPrivateEvent(newPrivateState);
+        // Busco la posición del evento en la lista
+        int position = -1;
+        if (events != null) {
+            for (int i = 0; i < events.size(); i++) {
+                if (events.get(i).getId() != null && events.get(i).getId().equals(event.getId())) {
+                    position = i;
+                    break;
+                }
+            }
+        }
+        // Actualizo el adaptador para que el icono cambie de inmediato
+        if (position != -1 && eventAdapter != null) {
+            eventAdapter.notifyItemChanged(position);
+        }
+        // Luego actualizo en el servidor
+        eventViewModel.toggleEventPrivacy(event.getId(), newPrivateState);
     }
 } 

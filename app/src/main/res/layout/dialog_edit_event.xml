@@ -57,27 +57,58 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/dateLayout"
-        style="@style/Widget.Eventum.TextInputLayout"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Fecha del evento"
-        app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
-        app:startIconDrawable="@drawable/ic_calendar"
-        app:startIconTint="@color/colorPrimary">
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/dateLayout"
+            style="@style/Widget.Eventum.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Fecha del evento"
+            app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
+            app:startIconDrawable="@drawable/ic_calendar"
+            app:startIconTint="@color/colorPrimary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/dateInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             style="@style/TextAppearance.Eventum.Input"
-            android:inputType="none"
-            android:focusable="false"
+            android:inputType="date"
+            android:focusable="true"
             android:clickable="true"/>
 
-    </com.google.android.material.textfield.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/timeLayout"
+            style="@style/Widget.Eventum.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:hint="Hora del evento"
+            app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
+            app:startIconDrawable="@drawable/ic_time"
+            app:startIconTint="@color/colorPrimary">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/timeInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/TextAppearance.Eventum.Input"
+                android:inputType="none"
+                android:focusable="false"
+                android:clickable="true"/>
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/maxParticipantsLayout"
@@ -99,16 +130,34 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Checkbox para evento privado -->
-    <com.google.android.material.checkbox.MaterialCheckBox
-        android:id="@+id/eventoPrivadoCheckBox"
-        android:layout_width="wrap_content"
+    <!-- Checkboxes para evento privado y autorización parental -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:text="Evento privado"
-        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-        android:textColor="@color/colorPrimary"
-        app:buttonTint="@color/colorAccent" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/eventoPrivadoCheckBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/label_event_private"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:textColor="@color/colorPrimary"
+            app:buttonTint="@color/colorAccent" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/requiresParentalAuthCheckBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/label_parental_auth"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:textColor="@color/colorPrimary"
+            app:buttonTint="@color/colorAccent" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

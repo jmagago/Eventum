@@ -16,17 +16,18 @@ import com.us.eventum.data.models.Attendee;
 public class QRCodeGenerator {
     
     /**
-     * Genera un código QR para un asistente con sus datos
-     * @param attendee El asistente cuyos datos se codificarán
+     * Genera un código QR para verificar la asistencia de un usuario a un evento
+     * @param attendeeId ID del asistente a verificar
+     * @param eventId ID del evento al que pertenece la verificación
      * @param size Tamaño del código QR en píxeles
      * @return Un Bitmap con el código QR generado
      */
-    public static Bitmap generateQRCode(Attendee attendee, int size) {
+    public static Bitmap generateQRCode(String attendeeId, String eventId, int size) {
         try {
-            // Crear un objeto JSON solo con los datos necesarios para la verificación
+            // Crear un objeto JSON con los datos necesarios para la verificación
             JSONObject qrData = new JSONObject();
-            qrData.put("eventId", attendee.getEventId());
-            qrData.put("attendeeId", attendee.getId());
+            qrData.put("attendeeId", attendeeId);
+            qrData.put("eventId", eventId);
             
             // Convertir el JSON a string
             String qrContent = qrData.toString();

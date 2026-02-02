@@ -30,6 +30,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public interface OnEventClickListener {
         void onEventClick(Event event);
         void onEventLongClick(View view, Event event);
+        void onLockIconLongClick(Event event);
     }
 
     /**
@@ -112,6 +113,18 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             timeText = itemView.findViewById(R.id.eventTimeTextView);
             privateIcon = itemView.findViewById(R.id.eventPrivateIcon);
             displayDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
+
+            // Configurar clic largo en el icono del candado para cambiar privacidad
+            privateIcon.setOnLongClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null && 
+                    position < events.size() && !events.isEmpty()) {
+                    Log.d("EventAdapter", "Clic largo en candado para evento: " + events.get(position).getTitle());
+                    EventAdapter.this.listener.onLockIconLongClick(events.get(position));
+                    return true;
+                }
+                return false;
+            });
 
             // Configurar los clics usando el listener del adaptador
             itemView.setOnClickListener(v -> {

@@ -12,7 +12,7 @@ import com.us.eventum.data.repositories.FirebaseManager;
 import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.R;
 import com.us.eventum.utils.ToastUtils;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.AuthViewModel;
 
 public class ResetPasswordActivity extends AppCompatActivity {
     private FirebaseManager firebaseManager;
@@ -21,7 +21,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
     private MaterialButton resetPasswordButton;
     private MaterialButton backToLoginButton;
     private View progressBar;
-    private UserViewModel userViewModel;
+    private AuthViewModel authViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,10 +30,10 @@ public class ResetPasswordActivity extends AppCompatActivity {
 
         // Inicializar Firebase
         firebaseManager = FirebaseManager.getInstance();
-        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         
-        // Inicializar repositorio en ViewModel
-        userViewModel.initializeRepository(this);
+        // Inicializar repositorios en ViewModel
+        authViewModel.initializeRepositories(this);
 
         // Inicializar vistas
         initializeViews();
@@ -60,24 +60,23 @@ public class ResetPasswordActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         // Observar estado de carga
-        userViewModel.getIsLoading().observe(this, loading -> {
+        authViewModel.getIsLoading().observe(this, loading -> {
             if (loading != null) {
                 showProgress(loading);
             }
         });
 
         // Observar errores
-        userViewModel.getErrorMessage().observe(this, error -> {
+        authViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
             }
         });
 
         // Observar restablecimiento exitoso
-        userViewModel.getPasswordResetSent().observe(this, sent -> {
+        authViewModel.getPasswordResetSent().observe(this, sent -> {
             if (sent != null && sent) {
                 ToastUtils.showCustomToast(this, "Correo de recuperación enviado", ToastUtils.ToastType.SUCCESS);
-                userViewModel.clearOperationStates();
                 finish();
             }
         });
@@ -91,8 +90,8 @@ public class ResetPasswordActivity extends AppCompatActivity {
             return;
         }
 
-        // Usar UserViewModel para enviar email de restablecimiento
-        userViewModel.sendPasswordResetEmail(email);
+        // Usar AuthViewModel para enviar email de restablecimiento
+        authViewModel.sendPasswordResetEmail(email);
     }
 
     private boolean validateEmail(String email) {

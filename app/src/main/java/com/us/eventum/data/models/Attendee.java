@@ -5,98 +5,71 @@ import java.io.Serializable;
 import java.util.Date;
 
 public class Attendee implements Serializable {
-    private String id;
-    private String eventId;
-    private String userId; // referencia al usuario inscrito
-    private String name;
-    private String lastName;
-    private String dni;
+    private String uid;
+    private String username;
     private String email;
+    private String nombre; // Nombre real del asistente
+    private String dni;
     private String phone;
-    private Timestamp birthDate;
-    private boolean requiresParentalAuthorization;
-    private boolean scanned;
+    private String primerApellido;
+    private String segundoApellido;
+    private Timestamp fechaNacimiento;
+    private String usernameLower; // Para búsquedas case-insensitive
 
     public Attendee() {
         // Constructor vacío requerido para Firestore
     }
 
-    public Attendee(String name, String lastName, String dni, String email, String phone, String birthDate) {
-        this.name = name;
-        this.lastName = lastName;
-        this.dni = dni;
+    public Attendee(String uid, String username, String email, String nombre, String dni, String phone, 
+                   String primerApellido, String segundoApellido, String fechaNacimiento) {
+        this.uid = uid;
+        this.username = username;
         this.email = email;
+        this.nombre = nombre;
+        this.dni = dni;
         this.phone = phone;
-        this.requiresParentalAuthorization = false;
-        this.scanned = false;
+        this.primerApellido = primerApellido;
+        this.segundoApellido = segundoApellido;
+        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
         
         // Convertir String a Timestamp si se proporciona
-        if (birthDate != null && !birthDate.isEmpty()) {
+        if (fechaNacimiento != null && !fechaNacimiento.isEmpty()) {
             try {
                 // Asumir formato dd/MM/yyyy
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-                Date date = sdf.parse(birthDate);
-                this.birthDate = new Timestamp(date);
+                Date date = sdf.parse(fechaNacimiento);
+                
+                // Crear fecha a medianoche (00:00:00) para evitar incluir hora
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(date);
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                cal.set(java.util.Calendar.MINUTE, 0);
+                cal.set(java.util.Calendar.SECOND, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                
+                this.fechaNacimiento = new Timestamp(cal.getTime());
             } catch (Exception e) {
                 // Si falla la conversión, dejar como null
-                this.birthDate = null;
+                this.fechaNacimiento = null;
             }
         }
     }
 
-    public Attendee(String id, String eventId, String name, String lastName, String dni, String email, String phone, long confirmationTime, boolean scanned) {
-        this.id = id;
-        this.eventId = eventId;
-        this.name = name;
-        this.lastName = lastName;
-        this.dni = dni;
-        this.email = email;
-        this.phone = phone;
-        this.scanned = scanned;
-        this.requiresParentalAuthorization = false;
+    public String getUid() {
+        return uid;
     }
 
-    public String getId() {
-        return id;
+    public void setUid(String uid) {
+        this.uid = uid;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public String getUsername() {
+        return username;
     }
 
-    public String getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(String eventId) {
-        this.eventId = eventId;
-    }
-
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getDni() {
-        return dni;
-    }
-
-    public void setDni(String dni) {
-        this.dni = dni;
+    public void setUsername(String username) {
+        this.username = username;
+        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
     }
 
     public String getEmail() {
@@ -107,6 +80,22 @@ public class Attendee implements Serializable {
         this.email = email;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getDni() {
+        return dni;
+    }
+
+    public void setDni(String dni) {
+        this.dni = dni;
+    }
+
     public String getPhone() {
         return phone;
     }
@@ -115,29 +104,99 @@ public class Attendee implements Serializable {
         this.phone = phone;
     }
 
-    public Timestamp getBirthDate() {
-        return birthDate;
+    public String getPrimerApellido() {
+        return primerApellido;
     }
 
-    public void setBirthDate(Timestamp birthDate) {
-        this.birthDate = birthDate;
+    public void setPrimerApellido(String primerApellido) {
+        this.primerApellido = primerApellido;
+    }
+
+    public String getSegundoApellido() {
+        return segundoApellido;
+    }
+
+    public void setSegundoApellido(String segundoApellido) {
+        this.segundoApellido = segundoApellido;
+    }
+
+    public Timestamp getFechaNacimiento() {
+        return fechaNacimiento;
+    }
+
+    public void setFechaNacimiento(Timestamp fechaNacimiento) {
+        this.fechaNacimiento = fechaNacimiento;
+    }
+    
+    /**
+     * Establece la fecha de nacimiento desde un String en formato dd/MM/yyyy
+     * La fecha se guarda a medianoche (00:00:00) para evitar incluir hora
+     */
+    public void setFechaNacimientoFromString(String fechaNacimiento) {
+        if (fechaNacimiento != null && !fechaNacimiento.isEmpty()) {
+            try {
+                // Asumir formato dd/MM/yyyy
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                Date date = sdf.parse(fechaNacimiento);
+                
+                // Crear fecha a medianoche (00:00:00) para evitar incluir hora
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(date);
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                cal.set(java.util.Calendar.MINUTE, 0);
+                cal.set(java.util.Calendar.SECOND, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                
+                this.fechaNacimiento = new Timestamp(cal.getTime());
+            } catch (Exception e) {
+                // Si falla la conversión, dejar como null
+                this.fechaNacimiento = null;
+            }
+        } else {
+            this.fechaNacimiento = null;
+        }
+    }
+
+    public String getUsernameLower() {
+        return usernameLower;
+    }
+
+    public void setUsernameLower(String usernameLower) {
+        this.usernameLower = usernameLower;
+    }
+
+    /**
+     * Verifica si el perfil del asistente está completo
+     */
+    public boolean isProfileComplete() {
+        return username != null && !username.trim().isEmpty() &&
+               nombre != null && !nombre.trim().isEmpty() &&
+               primerApellido != null && !primerApellido.trim().isEmpty() &&
+               segundoApellido != null && !segundoApellido.trim().isEmpty() &&
+               dni != null && !dni.trim().isEmpty() &&
+               phone != null && !phone.trim().isEmpty() &&
+               fechaNacimiento != null;
+    }
+
+    // Métodos de compatibilidad para SettingsActivity
+    public String getLastName() {
+        return primerApellido; // Primer apellido como apellido principal
+    }
+
+    // Métodos de compatibilidad para mantener la interfaz existente
+    // Nota: getId() eliminado para evitar duplicación en Firestore
+
+    public Timestamp getBirthDate() {
+        return fechaNacimiento;
     }
 
     public boolean isRequiresParentalAuthorization() {
-        return requiresParentalAuthorization;
+        // Verificar si el asistente es menor de edad y requiere autorización parental
+        if (fechaNacimiento != null) {
+            long ageInMillis = System.currentTimeMillis() - fechaNacimiento.toDate().getTime();
+            long ageInYears = ageInMillis / (365L * 24L * 60L * 60L * 1000L);
+            return ageInYears < 18; // Menor de 18 años requiere autorización
+        }
+        return false;
     }
-
-    public void setRequiresParentalAuthorization(boolean requiresParentalAuthorization) {
-        this.requiresParentalAuthorization = requiresParentalAuthorization;
-    }
-
-    public boolean isScanned() {
-        return scanned;
-    }
-
-    public void setScanned(boolean scanned) {
-        this.scanned = scanned;
-    }
-
-    // Eliminados verified/registrationDate/confirmationTime (mueven a User)
 }

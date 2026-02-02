@@ -20,12 +20,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.us.eventum.R;
 import com.us.eventum.adapters.EventAdapter;
+import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.Event;
-import com.us.eventum.data.models.UserRole;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.ProfileImageManager;
+import com.us.eventum.utils.NetworkUtils;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
 
 import android.app.DatePickerDialog;
@@ -96,6 +97,14 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                     showUnsubscribeDialog(event);
                 }
             }
+
+            @Override
+            public void onLockIconLongClick(Event event) {
+                // Solo el organizador puede modificar la privacidad del evento
+                ToastUtils.showCustomToast(AttendeeHomeActivity.this, 
+                    "Solo el organizador puede cambiar la privacidad del evento", 
+                    ToastUtils.ToastType.INFO);
+            }
         });
         recyclerView.setAdapter(adapter);
 
@@ -117,25 +126,20 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         });
 
         // Pintar datos de usuario en header
-        com.us.eventum.presentation.viewmodels.UserViewModel userViewModel = new ViewModelProvider(this).get(com.us.eventum.presentation.viewmodels.UserViewModel.class);
-        userViewModel.initializeRepository(this);
+        // Usar attendeeViewModel para datos de usuario
         TextView nameTv = findViewById(R.id.userNameTextView);
         TextView emailTv = findViewById(R.id.userEmailTextView);
         TextView roleTv = findViewById(R.id.userRoleTextView);
-        userViewModel.getCurrentUser().observe(this, user -> {
-            if (user != null) {
-                if (user.getNombre() != null && !user.getNombre().isEmpty()) {
-                    nameTv.setText(user.getNombre());
-                } else if (user.getEmail() != null && user.getEmail().contains("@")) {
-                    nameTv.setText(user.getEmail().substring(0, user.getEmail().indexOf('@')));
-                }
-                emailTv.setText(user.getEmail());
+        attendeeViewModel.getCurrentAttendee().observe(this, attendee -> {
+            if (attendee != null) {
+                nameTv.setText(attendee.getUsername());
+                emailTv.setText(attendee.getEmail());
                 roleTv.setText(R.string.role_attendee);
                 roleTv.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
                 roleTv.setBackgroundResource(R.drawable.bg_role_badge_assistant);
             }
         });
-        userViewModel.loadCurrentUser();
+        attendeeViewModel.loadCurrentAttendee();
 
         // Configurar botón de settings
         setupSettingsButton();
@@ -160,6 +164,13 @@ public class AttendeeHomeActivity extends AppCompatActivity {
             }
         });
 
+        // Observar estado de carga del AttendeeViewModel para inscripciones/desinscripciones
+        attendeeViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null) {
+                progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+            }
+        });
+
         eventViewModel.getAllEvents().observe(this, events -> {
             if (events == null) {
                 showEvents(new ArrayList<>());
@@ -179,6 +190,11 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     }
 
     private void loadAvailableEvents() {
+        // Verificar conexión a internet
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        
         // Cargar todos los eventos públicos desde repositorio
         eventViewModel.loadAllEvents();
     }
@@ -402,61 +418,8 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                 : null;
 
         if (userEmail != null) {
-            attendeeViewModel.loadEventAttendees(event.getId());
-            attendeeViewModel.getAttendees().observe(this, attendees -> {
-                if (attendees != null) {
-                    boolean isAlreadyJoined = attendees.stream()
-                            .anyMatch(attendee -> attendee.getEventId().equals(event.getId()) && 
-                                    attendee.getEmail().equalsIgnoreCase(userEmail));
-                    
-                    if (isAlreadyJoined) {
-                        // Si ya está inscrito, puede darse de baja incluso si está lleno
-                        joinButton.setText("Darme de baja");
-                        joinButton.setEnabled(true);
-                        joinButton.setOnClickListener(v -> {
-                            unsubscribeFromEventDirectly(event, userEmail, dialog, joinButton, participantsText);
-                        });
-                    } else {
-                        joinButton.setText("Apuntarse");
-                        // Verificar si el evento está lleno
-                        if (isEventFull) {
-                            joinButton.setEnabled(false);
-                            joinButton.setAlpha(0.5f); // Hacer visualmente más transparente
-                        } else {
-                            joinButton.setEnabled(true);
-                            joinButton.setAlpha(1.0f);
-                        final String finalUserEmail = userEmail;
-                        joinButton.setOnClickListener(v -> {
-                            joinToEvent(event);
-                            // Observar cuando se complete la inscripción
-                            attendeeViewModel.getAttendeeAdded().observe(AttendeeHomeActivity.this, added -> {
-                                    if (added != null && added) {
-                                        // Actualizar contador real del evento
-                                        event.setCurrentParticipants(event.getCurrentParticipants() + 1);
-                                        // Actualizar UI
-                                        participantsText.setText(String.format("%d/%d asistentes", 
-                                                event.getCurrentParticipants(), event.getMaxParticipants()));
-                                        
-                                        // Verificar si ahora está lleno
-                                        boolean nowFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-                                        if (nowFull) {
-                                            participantsText.setTextColor(getResources().getColor(android.R.color.holo_red_dark, getTheme()));
-                                        }
-                                        
-                                        // Cambiar botón
-                                        joinButton.setText("Darme de baja");
-                                        joinButton.setEnabled(true);
-                                        joinButton.setAlpha(1.0f);
-                                        joinButton.setOnClickListener(v2 -> {
-                                            unsubscribeFromEventDirectly(event, finalUserEmail, dialog, joinButton, participantsText);
-                                        });
-                                    }
-                                });
-                            });
-                        }
-                    }
-                }
-            });
+            // Cargar asistentes una sola vez y configurar el botón
+            loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog);
         }
 
         cancelButton.setOnClickListener(v -> dialog.dismiss());
@@ -465,70 +428,94 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     }
 
     /**
-     * Dar de baja al usuario del evento sin cerrar el dialog
+     * Cargar asistentes del evento y configurar el botón según el estado
      */
-    private void unsubscribeFromEventDirectly(Event event, String userEmail, AlertDialog dialog, Button actionButton, TextView participantsText) {
-        attendeeViewModel.unsubscribeFromEvent(event.getId(), userEmail);
+    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
+        loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, true);
+    }
+
+    /**
+     * Cargar asistentes del evento y configurar el botón según el estado
+     * @param showAlreadyJoinedMessage Si debe mostrar el mensaje "Ya estás apuntado" (solo al abrir diálogo)
+     */
+    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog, boolean showAlreadyJoinedMessage) {
+        attendeeViewModel.loadEventAttendees(event.getId());
         
-        // Observar resultado
-        attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
-            if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Te has dado de baja del evento", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
+        // Observar asistentes UNA SOLA VEZ para este evento específico
+        attendeeViewModel.getAttendees().observe(this, attendees -> {
+            if (attendees != null) {
+                // Los asistentes ya están filtrados por evento específico
+                List<Attendee> eventAttendees = attendees;
                 
-                // Actualizar contador real del evento (restar 1)
-                event.setCurrentParticipants(Math.max(0, event.getCurrentParticipants() - 1));
+                // Verificar si el usuario ya está inscrito en este evento
+                boolean isAlreadyJoined = eventAttendees.stream()
+                        .anyMatch(attendee -> attendee.getEmail().equalsIgnoreCase(userEmail));
                 
-                // Actualizar UI
+                // Actualizar contador con el número real de asistentes de este evento
+                event.setCurrentParticipants(eventAttendees.size());
                 participantsText.setText(String.format("%d/%d asistentes", 
                         event.getCurrentParticipants(), event.getMaxParticipants()));
                 
-                // Verificar si ya no está lleno (se liberó un espacio)
-                boolean isNowFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-                if (isNowFull) {
+                // Verificar si está lleno
+                boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
+                if (isEventFull) {
                     participantsText.setTextColor(getResources().getColor(android.R.color.holo_red_dark, getTheme()));
                 } else {
                     participantsText.setTextColor(getResources().getColor(R.color.colorSecondaryText, getTheme()));
                 }
                 
-                // Cambiar botón a "Apuntarse" sin cerrar el dialog
-                actionButton.setText("Apuntarse");
-                actionButton.setEnabled(true);
-                actionButton.setAlpha(1.0f);
-                actionButton.setOnClickListener(v -> {
-                    // Verificar si ahora hay espacio
-                    boolean eventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-                    if (eventFull) {
-                        ToastUtils.showCustomToast(AttendeeHomeActivity.this, "El evento está completo", ToastUtils.ToastType.ERROR);
-                        return;
-                    }
-                    
-                    joinToEvent(event);
-                    // Observar cuando se complete la inscripción
-                    attendeeViewModel.getAttendeeAdded().observe(AttendeeHomeActivity.this, added -> {
-                        if (added != null && added) {
-                            // Actualizar contador real del evento
-                            event.setCurrentParticipants(event.getCurrentParticipants() + 1);
-                            // Actualizar UI
-                            participantsText.setText(String.format("%d/%d asistentes", 
-                                    event.getCurrentParticipants(), event.getMaxParticipants()));
-                            
-                            // Verificar si ahora está lleno
-                            boolean nowFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-                            if (nowFull) {
-                                participantsText.setTextColor(getResources().getColor(android.R.color.holo_red_dark, getTheme()));
-                            }
-                            
-                            // Volver a cambiar a "Darme de baja"
-                            actionButton.setText("Darme de baja");
-                            actionButton.setEnabled(true);
-                            actionButton.setAlpha(1.0f);
-                            actionButton.setOnClickListener(v2 -> {
-                                unsubscribeFromEventDirectly(event, userEmail, dialog, actionButton, participantsText);
-                            });
-                        }
+                // Configurar botón según el estado
+                if (isAlreadyJoined) {
+                    // Usuario ya inscrito - puede darse de baja
+                    joinButton.setText("Darme de baja");
+                    joinButton.setEnabled(true);
+                    joinButton.setAlpha(1.0f);
+                    joinButton.setOnClickListener(v -> {
+                        unsubscribeFromEvent(event, userEmail, joinButton, participantsText, dialog);
                     });
-                });
+                    
+                    // Mostrar mensaje solo cuando se abre el diálogo inicialmente y ya está inscrito
+                    if (showAlreadyJoinedMessage) {
+                        ToastUtils.showCustomToast(AttendeeHomeActivity.this, "Ya estás apuntado a este evento", ToastUtils.ToastType.INFO);
+                    }
+                } else {
+                    // Usuario no inscrito - puede inscribirse si hay espacio
+                    joinButton.setText("Apuntarse");
+                    if (isEventFull) {
+                        joinButton.setEnabled(false);
+                        joinButton.setAlpha(0.5f);
+                    } else {
+                        joinButton.setEnabled(true);
+                        joinButton.setAlpha(1.0f);
+                        joinButton.setOnClickListener(v -> {
+                            subscribeToEvent(event, userEmail, joinButton, participantsText, dialog);
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+
+    /**
+     * Desinscribirse del evento
+     */
+    private void unsubscribeFromEvent(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
+        // Verificar conexión a internet
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        
+        attendeeViewModel.unsubscribeFromEvent(event.getId(), userEmail);
+        
+        // Observar resultado UNA SOLA VEZ
+        attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
+            if (deleted != null && deleted) {
+                ToastUtils.showCustomToast(this, "Te has dado de baja del evento", ToastUtils.ToastType.SUCCESS);
+                attendeeViewModel.clearOperationStates();
+                
+                // Recargar asistentes para este evento específico (sin mostrar mensaje azul)
+                loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, false);
                 
                 // Recargar lista de eventos para actualizar contadores en background
                 loadAvailableEvents();
@@ -536,80 +523,64 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Apuntarse al evento directamente usando los datos del usuario autenticado
-     */
-    private void joinToEvent(Event event) {
-        String userEmail = FirebaseAuth.getInstance().getCurrentUser() != null
-                ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
-                : null;
 
+    /**
+     * Suscribirse al evento directamente usando los datos del usuario autenticado
+     */
+    private void subscribeToEvent(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
+        // Verificar conexión a internet
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        
         if (userEmail == null || userEmail.trim().isEmpty()) {
             ToastUtils.showCustomToast(this, "Error: No se pudo obtener el email del usuario", ToastUtils.ToastType.ERROR);
             return;
         }
 
         // Cargar perfil y validar campos obligatorios
-        com.us.eventum.presentation.viewmodels.UserViewModel userVm = new ViewModelProvider(this).get(com.us.eventum.presentation.viewmodels.UserViewModel.class);
-        userVm.initializeRepository(this);
-        
-        userVm.getCurrentUser().observe(this, user -> {
-            if (user == null) return;
+        attendeeViewModel.getCurrentAttendee().observe(this, attendee -> {
+            if (attendee == null) return;
 
             String userId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
                     ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
                     : null;
 
             // Verificar si el perfil está completo
-            if (!user.isProfileComplete()) {
-                showCompleteProfileDialog(event, user);
+            if (!attendee.isProfileComplete()) {
+                showCompleteProfileDialog(event, attendee);
                 return;
             }
 
-            // Verificar si ya está apuntado antes de añadir
-            attendeeViewModel.getAttendees().observe(this, attendees -> {
-                if (attendees == null) return;
-                
-                boolean alreadyJoined = attendees.stream()
-                        .anyMatch(attendee -> attendee.getEventId().equals(event.getId()) && 
-                                attendee.getEmail().equalsIgnoreCase(userEmail));
-                
-                if (alreadyJoined) {
-                    ToastUtils.showCustomToast(this, "Ya estás apuntado a este evento", ToastUtils.ToastType.INFO);
-                    return;
-                }
-
-                // Apuntarse al evento usando los datos del perfil
-                attendeeViewModel.addAttendee(
-                        event.getId(),
-                        userId,
-                        user.getNombre(),
-                        user.getPrimerApellido(),
-                        user.getDni(),
-                        userEmail,
-                        user.getPhone() != null ? user.getPhone() : "",
-                        user.getFechaNacimiento(),
-                        false
-                );
-            });
-            
-            // Cargar asistentes para verificar
-            attendeeViewModel.loadEventAttendees(event.getId());
+            // Apuntarse al evento usando los datos del perfil
+            attendeeViewModel.addAttendee(
+                    event.getId(),
+                    userId,
+                    attendee.getUsername(),
+                    attendee.getPrimerApellido(),
+                    attendee.getDni(),
+                    userEmail,
+                    attendee.getPhone() != null ? attendee.getPhone() : "",
+                    attendee.getFechaNacimiento() != null ? attendee.getFechaNacimiento().toDate().toString() : "",
+                    false
+            );
         });
         
-        userVm.loadCurrentUser();
-        
-        // Observar el resultado de la operación de añadir asistente
+        // Observar el resultado de la operación de añadir asistente UNA SOLA VEZ
         attendeeViewModel.getAttendeeAdded().observe(this, added -> {
             if (added != null && added) {
                 ToastUtils.showCustomToast(this, "Te has apuntado al evento correctamente", ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
-                // Recargar eventos para actualizar contadores
+                
+                // Recargar asistentes para este evento específico (sin mostrar mensaje azul)
+                loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, false);
+                
+                // Recargar eventos para actualizar contadores en la lista principal
                 loadAvailableEvents();
             }
         });
         
-        // Observar errores
+        // Observar errores UNA SOLA VEZ
         attendeeViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
@@ -621,7 +592,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     /**
      * Muestra dialog para completar perfil de asistente antes de inscribirse a evento
      */
-    private void showCompleteProfileDialog(Event event, com.us.eventum.data.models.User user) {
+    private void showCompleteProfileDialog(Event event, com.us.eventum.data.models.Attendee attendee) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_attendee_profile, null);
         TextView title = dialogView.findViewById(R.id.dialogTitle);
         title.setText("Completar perfil para inscribirte");
@@ -634,12 +605,15 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         com.google.android.material.textfield.TextInputEditText birthDateInput = dialogView.findViewById(R.id.birthDateInput);
 
         // Pre-cargar datos actuales si existen
-        if (user.getNombre() != null) nameInput.setText(user.getNombre());
-        if (user.getPrimerApellido() != null) firstSurnameInput.setText(user.getPrimerApellido());
-        if (user.getSegundoApellido() != null) secondSurnameInput.setText(user.getSegundoApellido());
-        if (user.getDni() != null) dniInput.setText(user.getDni());
-        if (user.getPhone() != null) phoneInput.setText(user.getPhone());
-        if (user.getFechaNacimiento() != null) birthDateInput.setText(user.getFechaNacimiento());
+        if (attendee.getUsername() != null) nameInput.setText(attendee.getUsername());
+        if (attendee.getPrimerApellido() != null) firstSurnameInput.setText(attendee.getPrimerApellido());
+        if (attendee.getSegundoApellido() != null) secondSurnameInput.setText(attendee.getSegundoApellido());
+        if (attendee.getDni() != null) dniInput.setText(attendee.getDni());
+        if (attendee.getPhone() != null) phoneInput.setText(attendee.getPhone());
+        if (attendee.getFechaNacimiento() != null) {
+            String fechaStr = attendee.getFechaNacimiento().toDate().toString();
+            birthDateInput.setText(fechaStr);
+        }
 
         birthDateInput.setOnClickListener(v -> {
             Calendar cal = Calendar.getInstance();
@@ -664,8 +638,8 @@ public class AttendeeHomeActivity extends AppCompatActivity {
             String phone = String.valueOf(phoneInput.getText()).trim();
             String birth = String.valueOf(birthDateInput.getText()).trim();
 
-            // Validaciones: todos obligatorios excepto segundo apellido
-            if (name.isEmpty() || firstSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
+            // Validaciones: todos obligatorios
+            if (name.isEmpty() || firstSurname.isEmpty() || secondSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
                 ToastUtils.showCustomToast(this, "Por favor, completa todos los campos obligatorios", ToastUtils.ToastType.ERROR);
                 return;
             }
@@ -673,12 +647,10 @@ public class AttendeeHomeActivity extends AppCompatActivity {
             // Mostrar advertencia antes de guardar
             new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle("Importante")
-                    .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) solo pueden introducirse una vez y no podrán modificarse posteriormente. ¿Deseas continuar?")
+                    .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) no se podrán modificar posteriormente. ¿Deseas continuar?")
                     .setPositiveButton("Aceptar", (d, w) -> {
                         // Actualizar perfil
-                        com.us.eventum.presentation.viewmodels.UserViewModel userVm = new ViewModelProvider(this).get(com.us.eventum.presentation.viewmodels.UserViewModel.class);
-                        userVm.initializeRepository(this);
-                        userVm.updateUser(user.getUsername(), name, firstSurname, secondSurname, birth, dni, phone);
+                        attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                         
                         dialog.dismiss();
                         ToastUtils.showCustomToast(this, "Perfil completado. Ahora puedes inscribirte al evento.", ToastUtils.ToastType.SUCCESS);

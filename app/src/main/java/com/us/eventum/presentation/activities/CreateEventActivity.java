@@ -44,7 +44,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private TextInputLayout nombreEventoLayout, fechaEventoLayout, horaEventoLayout, maxParticipantesLayout, 
                          lugarEventoLayout, descripcionEventoLayout, tipoEventoLayout;
     private AutoCompleteTextView tipoEventoAutoComplete;
-    private MaterialCheckBox eventoPrivadoCheckBox;
+    private MaterialCheckBox eventoPrivadoCheckBox, requiresParentalAuthCheckBox;
     private MaterialButton crearEventoButton;
     private CircularProgressIndicator progressBar;
     private Calendar calendar;
@@ -85,6 +85,7 @@ public class CreateEventActivity extends AppCompatActivity {
         descripcionEventoEditText = findViewById(R.id.descripcionEventoEditText);
         tipoEventoAutoComplete = findViewById(R.id.tipoEventoAutoComplete);
         eventoPrivadoCheckBox = findViewById(R.id.eventoPrivadoCheckBox);
+        requiresParentalAuthCheckBox = findViewById(R.id.requiresParentalAuthCheckBox);
 
         // Inicializar layouts
         nombreEventoLayout = findViewById(R.id.nombreEventoLayout);
@@ -287,10 +288,11 @@ public class CreateEventActivity extends AppCompatActivity {
         String location = lugarEventoEditText.getText().toString().trim();
         int maxParticipants = Integer.parseInt(maxParticipantesEditText.getText().toString());
         boolean privateEvent = eventoPrivadoCheckBox.isChecked();
+        boolean requiresParentalAuth = requiresParentalAuthCheckBox.isChecked();
 
         // Usar EventViewModel para crear el evento
         eventViewModel.createEvent(userId, title, description, calendar.getTime(), 
-                                 location, maxParticipants, selectedEventType, privateEvent);
+                                 location, maxParticipants, selectedEventType, privateEvent, requiresParentalAuth);
     }
 
     private void setupToolbar() {

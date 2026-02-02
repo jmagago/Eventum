@@ -1,6 +1,7 @@
 package com.us.eventum.presentation.activities;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -37,11 +38,14 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.us.eventum.R;
-import com.us.eventum.data.models.UserRole;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.AuthViewModel;
+import com.us.eventum.presentation.viewmodels.OrganizerViewModel;
+import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
+import com.us.eventum.data.models.Organizer;
+import com.us.eventum.data.models.Attendee;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -61,7 +65,10 @@ public class SettingsActivity extends AppCompatActivity {
     private CircularProgressIndicator progressIndicator;
     private Uri photoUri;
     private SharedViewModel sharedViewModel;
-    private UserViewModel userViewModel;
+    private AuthViewModel authViewModel;
+    private OrganizerViewModel organizerViewModel;
+    private AttendeeViewModel attendeeViewModel;
+    private String currentUserType = null; // Se determinará dinámicamente
     
     private final ActivityResultLauncher<String> requestPermissionLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -96,10 +103,14 @@ public class SettingsActivity extends AppCompatActivity {
 
         // Inicializar ViewModels
         sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
-        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
+        attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
         
-        // Inicializar repositorio en ViewModel
-        userViewModel.initializeRepository(this);
+        // Inicializar repositorios en ViewModels
+        authViewModel.initializeRepositories(this);
+        organizerViewModel.initializeRepository(this);
+        attendeeViewModel.initializeRepository(this);
 
         // Configurar Toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -143,50 +154,59 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
-        // Observar datos del usuario actual
-        userViewModel.getCurrentUser().observe(this, user -> {
-            if (user != null) {
-                TextView userNameTextView = findViewById(R.id.userNameTextView);
-                TextView userEmailTextView = findViewById(R.id.userEmailTextView);
-                TextView userRoleTextView = findViewById(R.id.userRoleTextView);
-                
-                userEmailTextView.setText(user.getEmail());
-                if (user.getNombre() != null && !user.getNombre().isEmpty()) {
-                    userNameTextView.setText(user.getNombre());
-                } else {
-                    userNameTextView.setText(user.getEmail().substring(0, user.getEmail().indexOf('@')));
-                }
-                if (userRoleTextView != null) {
-                    String role = user.getRole() != null ? user.getRole() : UserRole.ORGANIZER;
-                    boolean isAssistant = UserRole.ATTENDEE.equalsIgnoreCase(role);
-                    userRoleTextView.setText(isAssistant ? R.string.role_attendee : R.string.role_organizer);
-                    userRoleTextView.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
-                    userRoleTextView.setBackgroundResource(isAssistant ? R.drawable.bg_role_badge_assistant : R.drawable.bg_role_badge_organizer);
-                }
+        // Observar datos del organizador actual
+        organizerViewModel.getCurrentOrganizer().observe(this, organizer -> {
+            if (organizer != null) {
+                currentUserType = "ORGANIZER";
+                updateUserInfo(organizer.getUsername(), organizer.getEmail(), "ORGANIZER");
             }
         });
 
-        // Observar estado de carga
-        userViewModel.getIsLoading().observe(this, loading -> {
-            if (loading != null && loading) {
+        // Observar datos del asistente actual
+        attendeeViewModel.getCurrentAttendee().observe(this, attendee -> {
+            if (attendee != null) {
+                currentUserType = "ATTENDEE";
+                updateUserInfo(attendee.getUsername(), attendee.getEmail(), "ATTENDEE");
+            }
+        });
+
+        // Observar estado de carga de organizador
+        organizerViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null && loading && "ORGANIZER".equals(currentUserType)) {
                 progressIndicator.setVisibility(View.VISIBLE);
-            } else {
+            } else if (loading != null && !loading && "ORGANIZER".equals(currentUserType)) {
                 progressIndicator.setVisibility(View.GONE);
             }
         });
 
-        // Observar errores
-        userViewModel.getErrorMessage().observe(this, error -> {
-            if (error != null && !error.isEmpty()) {
+        // Observar estado de carga de asistente
+        attendeeViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null && loading && "ATTENDEE".equals(currentUserType)) {
+                progressIndicator.setVisibility(View.VISIBLE);
+            } else if (loading != null && !loading && "ATTENDEE".equals(currentUserType)) {
+                progressIndicator.setVisibility(View.GONE);
+            }
+        });
+
+        // Observar errores de organizador
+        organizerViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty() && "ORGANIZER".equals(currentUserType)) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            }
+        });
+
+        // Observar errores de asistente
+        attendeeViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty() && "ATTENDEE".equals(currentUserType)) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
             }
         });
 
         // Observar logout
-        userViewModel.getUserLoggedIn().observe(this, loggedIn -> {
+        authViewModel.getUserLoggedIn().observe(this, loggedIn -> {
             if (loggedIn != null && !loggedIn) {
                 // Usuario cerró sesión o eliminó cuenta
-                ToastUtils.showCustomToast(this, "Sesión cerrada", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, "Sesión cerrada", ToastUtils.ToastType.INFO);
                 goToLogin();
             }
         });
@@ -194,9 +214,41 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void loadUserData() {
         if (firebaseManager.getAuth().getCurrentUser() != null) {
-            // Usar UserViewModel para cargar datos del usuario
-            userViewModel.loadCurrentUser();
+            // Determinar tipo de usuario y cargar datos correspondientes
+            authViewModel.determineUserType();
+            
+            // Observar el tipo de usuario determinado y cargar solo los datos correspondientes
+            authViewModel.getUserType().observe(this, userType -> {
+                if (userType != null) {
+                    currentUserType = userType;
+                    if ("ATTENDEE".equals(userType)) {
+                        attendeeViewModel.loadCurrentAttendee();
+                    } else {
+                        organizerViewModel.loadCurrentOrganizer();
+                    }
+                }
+            });
+            
             loadProfileImage();
+        }
+    }
+
+    private void updateUserInfo(String username, String email, String userType) {
+        TextView userNameTextView = findViewById(R.id.userNameTextView);
+        TextView userEmailTextView = findViewById(R.id.userEmailTextView);
+        TextView userRoleTextView = findViewById(R.id.userRoleTextView);
+        
+        if (userNameTextView != null) {
+            userNameTextView.setText(username);
+        }
+        if (userEmailTextView != null) {
+            userEmailTextView.setText(email);
+        }
+        if (userRoleTextView != null) {
+            boolean isAttendee = "ATTENDEE".equals(userType);
+            userRoleTextView.setText(isAttendee ? R.string.role_attendee : R.string.role_organizer);
+            userRoleTextView.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+            userRoleTextView.setBackgroundResource(isAttendee ? R.drawable.bg_role_badge_assistant : R.drawable.bg_role_badge_organizer);
         }
     }
 
@@ -322,8 +374,7 @@ public class SettingsActivity extends AppCompatActivity {
                 .circleCrop()
                 .into(profileImageView);
 
-            // Guardar la URI de la imagen en SharedPreferences para sincronización inmediata
-            ProfileImageManager.saveImageUri(this, userId, imageUri.toString());
+            // Actualizar cache para sincronización inmediata
             ProfileImageManager.updateCurrentUri(imageUri.toString(), profileImageView);
 
             // Subir la imagen comprimida
@@ -344,31 +395,14 @@ public class SettingsActivity extends AppCompatActivity {
             ToastUtils.showCustomToast(this, "Error al procesar la imagen", ToastUtils.ToastType.ERROR);
         }
     }
-    
-    private String getImageUri() {
-        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
-        return ProfileImageManager.getImageUri(this, userId);
-    }
 
     private void loadProfileImage() {
         if (firebaseManager.getAuth().getCurrentUser() == null) {
             return;
         }
 
-        String userId = firebaseManager.getAuth().getCurrentUser().getUid();
-        
-        // Primero intentar cargar la imagen desde URI guardada
-        String savedUri = getImageUri();
-        
-        if (savedUri != null) {
-            ProfileImageManager.loadImageFromUri(this, profileImageView, savedUri);
-            return;
-        }
-        
-        // Si no hay URI guardada, establecer imagen por defecto
-        // SettingsActivity NUNCA debería cargar desde Firebase Storage
-        // porque OrganizerHomeActivity siempre carga primero y guarda la URI local
-        profileImageView.setImageResource(R.drawable.default_profile);
+        // Cargar directamente desde Firebase Storage (online-only)
+        ProfileImageManager.loadProfileImage(this, profileImageView);
     }
 
     private void showProgress(boolean show) {
@@ -407,22 +441,47 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void editProfile() {
-        // Detectar rol del usuario
-        userViewModel.getCurrentUser().observe(this, user -> {
-            if (user == null) return;
-            String role = user.getRole();
-            boolean isAttendee = UserRole.ATTENDEE.equalsIgnoreCase(role);
-            
-            if (isAttendee) {
-                showAttendeeProfileDialog(user);
+        // Verificar que el tipo de usuario esté determinado
+        if (currentUserType == null) {
+            ToastUtils.showCustomToast(this, "Cargando datos del usuario...", ToastUtils.ToastType.INFO);
+            return;
+        }
+
+        // Detectar rol del usuario según el tipo actual
+        if ("ATTENDEE".equals(currentUserType)) {
+            // Obtener datos actuales del asistente
+            Attendee attendee = attendeeViewModel.getCurrentAttendee().getValue();
+            if (attendee != null) {
+                showAttendeeProfileDialog(attendee);
             } else {
-                showOrganizerProfileDialog(user);
+                // Si no hay datos, cargar y luego abrir
+                attendeeViewModel.loadCurrentAttendee();
+                attendeeViewModel.getCurrentAttendee().observe(this, attendeeData -> {
+                    if (attendeeData != null) {
+                        showAttendeeProfileDialog(attendeeData);
+                    }
+                });
             }
-        });
+        } else if ("ORGANIZER".equals(currentUserType)) {
+            // Obtener datos actuales del organizador
+            Organizer organizer = organizerViewModel.getCurrentOrganizer().getValue();
+            if (organizer != null) {
+                showOrganizerProfileDialog(organizer);
+            } else {
+                // Si no hay datos, cargar y luego abrir
+                organizerViewModel.loadCurrentOrganizer();
+                organizerViewModel.getCurrentOrganizer().observe(this, organizerData -> {
+                    if (organizerData != null) {
+                        showOrganizerProfileDialog(organizerData);
+                    }
+                });
+            }
+        }
     }
 
-    private void showAttendeeProfileDialog(com.us.eventum.data.models.User user) {
+    private void showAttendeeProfileDialog(Attendee attendee) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_attendee_profile, null);
+        com.google.android.material.textfield.TextInputEditText usernameInput = dialogView.findViewById(R.id.usernameInput);
         com.google.android.material.textfield.TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
         com.google.android.material.textfield.TextInputEditText firstSurnameInput = dialogView.findViewById(R.id.firstSurnameInput);
         com.google.android.material.textfield.TextInputEditText secondSurnameInput = dialogView.findViewById(R.id.secondSurnameInput);
@@ -431,23 +490,32 @@ public class SettingsActivity extends AppCompatActivity {
         com.google.android.material.textfield.TextInputEditText birthDateInput = dialogView.findViewById(R.id.birthDateInput);
 
         // Pre-cargar datos actuales
-        if (user.getNombre() != null) nameInput.setText(user.getNombre());
-        if (user.getPrimerApellido() != null) firstSurnameInput.setText(user.getPrimerApellido());
-        if (user.getSegundoApellido() != null) secondSurnameInput.setText(user.getSegundoApellido());
-        if (user.getDni() != null) dniInput.setText(user.getDni());
-        if (user.getPhone() != null) phoneInput.setText(user.getPhone());
-        if (user.getFechaNacimiento() != null) birthDateInput.setText(user.getFechaNacimiento());
+        Log.d("SettingsActivity", "Cargando datos del asistente: " + attendee.getUsername());
+        if (attendee.getUsername() != null) usernameInput.setText(attendee.getUsername());
+        if (attendee.getNombre() != null) nameInput.setText(attendee.getNombre());
+        if (attendee.getPrimerApellido() != null) firstSurnameInput.setText(attendee.getPrimerApellido());
+        if (attendee.getSegundoApellido() != null) secondSurnameInput.setText(attendee.getSegundoApellido());
+        if (attendee.getDni() != null) dniInput.setText(attendee.getDni());
+        if (attendee.getPhone() != null) phoneInput.setText(attendee.getPhone());
+        if (attendee.getFechaNacimiento() != null) {
+            // Convertir Timestamp a String para mostrar en formato legible
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            String fechaStr = sdf.format(attendee.getFechaNacimiento().toDate());
+            birthDateInput.setText(fechaStr);
+        }
 
         // Write-once: bloquear si ya informados
         boolean lockPersonal =
-                (user.getNombre() != null && !user.getNombre().trim().isEmpty()) ||
-                (user.getPrimerApellido() != null && !user.getPrimerApellido().trim().isEmpty()) ||
-                (user.getDni() != null && !user.getDni().trim().isEmpty()) ||
-                (user.getFechaNacimiento() != null && !user.getFechaNacimiento().trim().isEmpty());
+                (attendee.getNombre() != null && !attendee.getNombre().trim().isEmpty()) ||
+                (attendee.getPrimerApellido() != null && !attendee.getPrimerApellido().trim().isEmpty()) ||
+                (attendee.getSegundoApellido() != null && !attendee.getSegundoApellido().trim().isEmpty()) ||
+                (attendee.getDni() != null && !attendee.getDni().trim().isEmpty()) ||
+                (attendee.getFechaNacimiento() != null);
 
         if (lockPersonal) {
             nameInput.setEnabled(false);
             firstSurnameInput.setEnabled(false);
+            secondSurnameInput.setEnabled(false);
             dniInput.setEnabled(false);
             birthDateInput.setEnabled(false);
             TextView title = dialogView.findViewById(R.id.dialogTitle);
@@ -464,10 +532,19 @@ public class SettingsActivity extends AppCompatActivity {
             }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
         });
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setView(dialogView)
-                .setCancelable(true)
-                .create();
+        // Crear Dialog personalizado con solo MaterialCardView
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(dialogView);
+        dialog.setCancelable(true);
+        
+        // Configurar ventana para fondo transparente y tamaño
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, 
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+        }
 
         dialogView.findViewById(R.id.cancelButton).setOnClickListener(v -> dialog.dismiss());
         dialogView.findViewById(R.id.saveButton).setOnClickListener(v -> {
@@ -478,19 +555,19 @@ public class SettingsActivity extends AppCompatActivity {
             String phone = String.valueOf(phoneInput.getText()).trim();
             String birth = String.valueOf(birthDateInput.getText()).trim();
 
-            // Validaciones: todos obligatorios excepto segundo apellido
-            if (name.isEmpty() || firstSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
+            // Validaciones: todos obligatorios
+            if (name.isEmpty() || firstSurname.isEmpty() || secondSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
                 ToastUtils.showCustomToast(this, "Por favor, completa todos los campos obligatorios", ToastUtils.ToastType.ERROR);
                 return;
             }
 
             // Si es la primera vez que completa el perfil, mostrar advertencia
-            if (!user.isProfileComplete()) {
+            if (!attendee.isProfileComplete()) {
                 new MaterialAlertDialogBuilder(this)
                         .setTitle("Importante")
-                        .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) solo pueden introducirse una vez y no podrán modificarse posteriormente.")
+                        .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) no se podrán modificar posteriormente.")
                         .setPositiveButton("Aceptar", (d, w) -> {
-                            userViewModel.updateUser(user.getUsername(), name, firstSurname, secondSurname, birth, dni, phone);
+                            attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                             dialog.dismiss();
                             ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
                         })
@@ -498,7 +575,7 @@ public class SettingsActivity extends AppCompatActivity {
                         .show();
             } else {
                 // Si ya está completo, guardar directamente
-                userViewModel.updateUser(user.getUsername(), name, firstSurname, secondSurname, birth, dni, phone);
+                attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                 dialog.dismiss();
                 ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
             }
@@ -507,23 +584,31 @@ public class SettingsActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void showOrganizerProfileDialog(com.us.eventum.data.models.User user) {
+    private void showOrganizerProfileDialog(Organizer organizer) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_organizer_profile, null);
         com.google.android.material.textfield.TextInputEditText usernameInput = dialogView.findViewById(R.id.usernameInput);
         com.google.android.material.textfield.TextInputEditText cifInput = dialogView.findViewById(R.id.cifInput);
         com.google.android.material.textfield.TextInputEditText phoneInput = dialogView.findViewById(R.id.phoneInput);
-        com.google.android.material.textfield.TextInputEditText addressInput = dialogView.findViewById(R.id.addressInput);
 
         // Pre-cargar datos actuales
-        usernameInput.setText(user.getUsername());
-        if (user.getDni() != null) cifInput.setText(user.getDni()); // Reutilizamos dni para CIF
-        if (user.getPhone() != null) phoneInput.setText(user.getPhone());
-        // addressInput se puede mapear a un nuevo campo en User si se desea en el futuro
+        Log.d("SettingsActivity", "Cargando datos del organizador: " + organizer.getUsername());
+        usernameInput.setText(organizer.getUsername());
+        if (organizer.getCif() != null) cifInput.setText(organizer.getCif());
+        if (organizer.getPhone() != null) phoneInput.setText(organizer.getPhone());
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setView(dialogView)
-                .setCancelable(true)
-                .create();
+        // Crear Dialog personalizado con solo MaterialCardView
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(dialogView);
+        dialog.setCancelable(true);
+        
+        // Configurar ventana para fondo transparente y tamaño
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, 
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+        }
 
         dialogView.findViewById(R.id.cancelButton).setOnClickListener(v -> dialog.dismiss());
         dialogView.findViewById(R.id.saveButton).setOnClickListener(v -> {
@@ -536,9 +621,8 @@ public class SettingsActivity extends AppCompatActivity {
                 return;
             }
 
-            // Para organizador: solo actualizamos username, dni (como CIF) y phone
-            // Los demás campos se mantienen vacíos
-            userViewModel.updateUser(username, "", "", "", "", cif, phone);
+            // Para organizador: solo actualizamos username, cif y phone
+            organizerViewModel.updateOrganizer(username, cif, phone);
             dialog.dismiss();
             ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
         });
@@ -569,9 +653,32 @@ public class SettingsActivity extends AppCompatActivity {
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
         
         dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
-            // Usar UserViewModel para eliminar cuenta
-            userViewModel.deleteAccount();
+            // Mostrar mensaje de confirmación más detallado
+            String message = "¿Estás seguro de que quieres eliminar tu cuenta?\n\n" +
+                           "Esta acción eliminará:\n" +
+                           "• Tu perfil y datos personales\n" +
+                           "• Tu foto de perfil\n" +
+                           "• Todos tus eventos (si eres organizador)\n" +
+                           "• Todas tus inscripciones (si eres asistente)\n\n" +
+                           "Esta acción NO se puede deshacer.";
+            
+            new AlertDialog.Builder(this)
+                .setTitle("Confirmar eliminación")
+                .setMessage(message)
+                .setPositiveButton("Eliminar cuenta", (dialog1, which) -> {
+                    // Mostrar progreso
+                    ToastUtils.showCustomToast(this, "Eliminando cuenta y datos relacionados...", ToastUtils.ToastType.INFO);
+            if ("ATTENDEE".equals(currentUserType)) {
+                attendeeViewModel.deleteAccount();
+            } else if ("ORGANIZER".equals(currentUserType)) {
+                organizerViewModel.deleteAccount();
+            } else {
+                ToastUtils.showCustomToast(this, "Error: Tipo de usuario no determinado", ToastUtils.ToastType.ERROR);
+            }
             dialog.dismiss();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
         });
         
         // Mostrar el diálogo
@@ -596,8 +703,8 @@ public class SettingsActivity extends AppCompatActivity {
         dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> dialog.dismiss());
         
         dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
-            // Usar UserViewModel para cerrar sesión
-            userViewModel.logout();
+            // Usar AuthViewModel para cerrar sesión
+            authViewModel.logout();
             dialog.dismiss();
         });
         

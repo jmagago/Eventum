@@ -37,17 +37,19 @@ public interface EventRepository {
     void updateEvent(String eventId, Event event, RepositoryCallback<Void> callback);
     
     /**
+     * Actualizar solo el estado de privacidad de un evento
+     * @param eventId ID del evento
+     * @param isPrivate Nuevo estado de privacidad
+     * @param callback Callback para manejar el resultado
+     */
+    void updateEventPrivacy(String eventId, boolean isPrivate, RepositoryCallback<Void> callback);
+    
+    /**
      * Eliminar un evento
      * @param eventId ID del evento
      * @param callback Callback para manejar el resultado
      */
     void deleteEvent(String eventId, RepositoryCallback<Void> callback);
-    
-    /**
-     * Sincronizar eventos pendientes
-     * @param callback Callback para manejar el resultado
-     */
-    void syncPendingEvents(RepositoryCallback<Void> callback);
     
     /**
      * Callback genérico para operaciones del repositorio

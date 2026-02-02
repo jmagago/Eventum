@@ -44,7 +44,7 @@ public class FirebaseEventRepository implements EventRepository {
     @Override
     public void loadAvailableEvents(RepositoryCallback<List<Event>> callback) {
         java.util.Date now = new java.util.Date();
-        // Mostrar TODOS los eventos futuros (públicos y privados).
+        // Cargamos todos los eventos futuros (públicos y privados) para mostrar en la lista
         db.collection("events")
                 .whereGreaterThanOrEqualTo("date", now)
                 .get()
@@ -111,6 +111,19 @@ public class FirebaseEventRepository implements EventRepository {
     }
     
     @Override
+    public void updateEventPrivacy(String eventId, boolean isPrivate, RepositoryCallback<Void> callback) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("privateEvent", isPrivate);
+        
+        db.collection("events").document(eventId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
+                .addOnFailureListener(e -> {
+                    callback.onError("Error al actualizar privacidad del evento: " + e.getMessage());
+                });
+    }
+    
+    @Override
     public void deleteEvent(String eventId, RepositoryCallback<Void> callback) {
         db.collection("events").document(eventId)
                 .delete()
@@ -120,11 +133,4 @@ public class FirebaseEventRepository implements EventRepository {
                 });
     }
     
-    @Override
-    public void syncPendingEvents(RepositoryCallback<Void> callback) {
-        // En Firebase, no hay eventos pendientes por sincronizar
-        // La sincronización se maneja desde RoomEventRepository
-        System.out.println("FirebaseEventRepository: syncPendingEvents llamado - no hay eventos pendientes en Firebase");
-        callback.onSuccess(null);
-    }
 }

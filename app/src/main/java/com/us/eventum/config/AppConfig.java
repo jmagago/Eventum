@@ -4,8 +4,6 @@ public class AppConfig {
     // URL de la base de datos de Firebase
     public static final String FIREBASE_DATABASE_URL = "https://eventum-8c0c1-default-rtdb.europe-west1.firebasedatabase.app";
     
-    // Configuración de la aplicación
-    public static final String APP_PREFS_NAME = "EventumPrefs";
     
     // Validación de contraseña
     public static final int MIN_PASSWORD_LENGTH = 8;

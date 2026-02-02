@@ -113,8 +113,8 @@ public class AttendeeSearchFilter {
             
             // Filtrar por nombre
             if (name != null && !name.trim().isEmpty()) {
-                matches &= attendee.getName() != null && 
-                          attendee.getName().toUpperCase().contains(name.toUpperCase());
+                matches &= attendee.getUsername() != null && 
+                          attendee.getUsername().toUpperCase().contains(name.toUpperCase());
             }
             
             // Filtrar por apellidos (combinar primer y segundo apellido)
@@ -122,8 +122,11 @@ public class AttendeeSearchFilter {
                 (secondLastName != null && !secondLastName.trim().isEmpty())) {
                 
                 String fullLastName = "";
-                if (attendee.getLastName() != null) {
-                    fullLastName = attendee.getLastName().toUpperCase();
+                if (attendee.getPrimerApellido() != null) {
+                    fullLastName = attendee.getPrimerApellido().toUpperCase();
+                }
+                if (attendee.getSegundoApellido() != null && !attendee.getSegundoApellido().trim().isEmpty()) {
+                    fullLastName += " " + attendee.getSegundoApellido().toUpperCase();
                 }
                 
                 // Verificar si coincide con primer apellido

@@ -74,7 +74,12 @@ public class ToastUtils {
         toastText.setText(message);
         
         Toast toast = new Toast(activity);
-        toast.setDuration(Toast.LENGTH_LONG);
+        // Usar duración más corta para mensajes de información
+        if (type == ToastType.INFO) {
+            toast.setDuration(Toast.LENGTH_SHORT);
+        } else {
+            toast.setDuration(Toast.LENGTH_LONG);
+        }
         toast.setView(toastView);
         toast.show();
     }

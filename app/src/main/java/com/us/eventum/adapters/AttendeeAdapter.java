@@ -10,12 +10,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Attendee;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHolder> {
 
     private List<Attendee> attendees = new ArrayList<>();
     private OnAttendeeClickListener onAttendeeClickListener;
+    private Map<String, Boolean> scannedAttendeesMap = new HashMap<>(); // Map de asistentes escaneados (userId -> isScanned)
 
     public interface OnAttendeeClickListener {
         void onAttendeeClick(Attendee attendee);
@@ -56,11 +59,11 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Attendee attendee = attendees.get(position);
-        android.util.Log.d("AttendeeAdapter", "onBindViewHolder posición: " + position + ", asistente: " + attendee.getName());
+        android.util.Log.d("AttendeeAdapter", "onBindViewHolder posición: " + position + ", asistente: " + attendee.getUsername());
         
         // Formato "Apellidos, Nombre"
-        String lastName = attendee.getLastName() != null ? attendee.getLastName() : "";
-        String name = attendee.getName() != null ? attendee.getName() : "";
+        String lastName = attendee.getPrimerApellido() != null ? attendee.getPrimerApellido() : "";
+        String name = attendee.getUsername() != null ? attendee.getUsername() : "";
         
         if (!lastName.isEmpty()) {
             holder.nameTextView.setText(lastName + ", " + name);
@@ -87,8 +90,13 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             holder.phoneTextView.setVisibility(View.GONE);
         }
 
-        // Borde estándar (verificación de email es global del usuario)
-        holder.itemView.setBackgroundResource(R.drawable.bg_card_normal);
+        // Verificar si el asistente ha sido escaneado (QR verificado)
+        boolean isScanned = scannedAttendeesMap.getOrDefault(attendee.getUid(), false);
+        if (isScanned) {
+            holder.itemView.setBackgroundResource(R.drawable.bg_card_verified);
+        } else {
+            holder.itemView.setBackgroundResource(R.drawable.bg_card_normal);
+        }
 
         holder.itemView.setOnClickListener(v -> {
             if (onAttendeeClickListener != null) {
@@ -122,5 +130,10 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     public void setOnAttendeeClickListener(OnAttendeeClickListener onAttendeeClickListener) {
         this.onAttendeeClickListener = onAttendeeClickListener;
+    }
+
+    public void setScannedAttendeesMap(Map<String, Boolean> scannedAttendeesMap) {
+        this.scannedAttendeesMap = scannedAttendeesMap != null ? scannedAttendeesMap : new HashMap<>();
+        notifyDataSetChanged();
     }
 } 

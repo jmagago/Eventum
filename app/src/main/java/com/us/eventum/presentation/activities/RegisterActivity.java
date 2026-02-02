@@ -5,48 +5,44 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.MenuItem;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.card.MaterialCardView;
 import com.us.eventum.R;
-import com.us.eventum.data.models.UserRole;
 import com.us.eventum.utils.ToastUtils;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.OrganizerViewModel;
+import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputEditText usernameInput, nameInput, primerApellidoInput, segundoApellidoInput, birthDateInput, emailInput, verifyEmailInput, passwordInput, confirmPasswordInput;
-    private TextInputLayout usernameLayout, nameLayout, primerApellidoLayout, segundoApellidoLayout, birthDateLayout, emailLayout, verifyEmailLayout, passwordLayout, confirmPasswordLayout;
+    private TextInputEditText usernameInput, emailInput, verifyEmailInput, passwordInput, confirmPasswordInput;
+    private TextInputLayout usernameLayout, emailLayout, verifyEmailLayout, passwordLayout, confirmPasswordLayout;
     private MaterialButton registerButton;
-    private MaterialButton organizerRoleButton;
-    private MaterialButton attendeeRoleButton;
+    private MaterialCardView organizerCard;
+    private MaterialCardView attendeeCard;
     private TextView loginLink;
-    private UserViewModel userViewModel;
+    private OrganizerViewModel organizerViewModel;
+    private AttendeeViewModel attendeeViewModel;
+    private String selectedRole = "ORGANIZER"; // Por defecto organizador
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        // Inicializar ViewModel
-        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        // Inicializar ViewModels
+        organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
+        attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
         
-        // Inicializar repositorio en ViewModel
-        userViewModel.initializeRepository(this);
-
-        // Configurar Toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        // Inicializar repositorios en ViewModels
+        organizerViewModel.initializeRepository(this);
+        attendeeViewModel.initializeRepository(this);
 
         // Inicializar vistas
         initializeViews();
@@ -58,7 +54,6 @@ public class RegisterActivity extends AppCompatActivity {
         // EditText
         usernameInput = findViewById(R.id.usernameInput);
         emailInput = findViewById(R.id.emailInput);
-        verifyEmailInput = findViewById(R.id.verifyEmailInput);
         verifyEmailInput = findViewById(R.id.verifyEmailInput);
         passwordInput = findViewById(R.id.passwordInput);
         confirmPasswordInput = findViewById(R.id.confirmPasswordInput);
@@ -73,12 +68,11 @@ public class RegisterActivity extends AppCompatActivity {
         // Buttons
         registerButton = findViewById(R.id.registerButton);
         loginLink = findViewById(R.id.loginLink);
-        organizerRoleButton = findViewById(R.id.organizerRoleButton);
-        attendeeRoleButton = findViewById(R.id.attendeeRoleButton);
+        organizerCard = findViewById(R.id.organizerCard);
+        attendeeCard = findViewById(R.id.attendeeCard);
     }
 
     private void setupListeners() {
-        // Registro básico: sin fecha ni datos personales
 
         // Validación en tiempo real del email
         emailInput.addTextChangedListener(new TextWatcher() {
@@ -144,33 +138,51 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         // Selección de rol (por defecto ORGANIZADOR)
-        final String[] selectedRole = new String[]{UserRole.ORGANIZER};
-
-        organizerRoleButton.setOnClickListener(v -> {
-            selectedRole[0] = UserRole.ORGANIZER;
+        organizerCard.setOnClickListener(v -> {
+            selectedRole = "ORGANIZER";
             usernameLayout.setHint("Nombre de la empresa");
-            organizerRoleButton.setEnabled(false);
-            attendeeRoleButton.setEnabled(true);
+            updateRoleSelection(true);
         });
 
-        attendeeRoleButton.setOnClickListener(v -> {
-            selectedRole[0] = UserRole.ATTENDEE;
+        attendeeCard.setOnClickListener(v -> {
+            selectedRole = "ATTENDEE";
             usernameLayout.setHint("Nombre de usuario");
-            attendeeRoleButton.setEnabled(false);
-            organizerRoleButton.setEnabled(true);
+            updateRoleSelection(false);
         });
 
-        registerButton.setOnClickListener(v -> validateAndRegister(selectedRole[0]));
+        registerButton.setOnClickListener(v -> validateAndRegister(selectedRole));
         loginLink.setOnClickListener(v -> {
             startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
             finish();
         });
+
+        // Inicializar selección por defecto (Organizador)
+        updateRoleSelection(true);
+    }
+
+    private void updateRoleSelection(boolean isOrganizer) {
+        if (isOrganizer) {
+            // Seleccionar organizador - borde fucsia más grueso que los campos
+            organizerCard.setStrokeColor(getResources().getColor(R.color.colorAccent, getTheme()));
+            organizerCard.setStrokeWidth(4);
+            
+            // Deseleccionar asistente - borde normal igual que los campos
+            attendeeCard.setStrokeColor(getResources().getColor(R.color.colorBorder, getTheme()));
+            attendeeCard.setStrokeWidth(2);
+        } else {
+            // Seleccionar asistente - borde fucsia más grueso que los campos
+            attendeeCard.setStrokeColor(getResources().getColor(R.color.colorAccent, getTheme()));
+            attendeeCard.setStrokeWidth(4);
+            
+            // Deseleccionar organizador - borde normal igual que los campos
+            organizerCard.setStrokeColor(getResources().getColor(R.color.colorBorder, getTheme()));
+            organizerCard.setStrokeWidth(2);
+        }
     }
 
     private void validateAndRegister(String role) {
         // Limpiar errores previos
         usernameLayout.setError(null);
-        // Sin datos personales en registro básico
         emailLayout.setError(null);
         verifyEmailLayout.setError(null);
         passwordLayout.setError(null);
@@ -194,7 +206,6 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Sin validaciones de datos personales
 
         if (TextUtils.isEmpty(email)) {
             emailLayout.setError("El email es obligatorio");
@@ -231,13 +242,17 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Registrar usuario (registro básico)
-        userViewModel.registerUser(email, password, username, role);
+        // Registrar usuario según el rol seleccionado
+        if ("ORGANIZER".equals(role)) {
+            organizerViewModel.registerOrganizer(email, password, username, "", "");
+        } else {
+            attendeeViewModel.registerAttendee(email, password, username, "", "", "", "", "", "");
+        }
     }
 
     private void observeViewModel() {
-        // Observar registro exitoso
-        userViewModel.getUserRegistered().observe(this, registered -> {
+        // Observar registro exitoso de organizador
+        organizerViewModel.getOrganizerRegistered().observe(this, registered -> {
             if (registered != null && registered) {
                 ToastUtils.showCustomToast(RegisterActivity.this,
                         "Registro exitoso. Por favor, verifica tu email antes de iniciar sesión",
@@ -251,8 +266,23 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
-        // Observar errores
-        userViewModel.getErrorMessage().observe(this, error -> {
+        // Observar registro exitoso de asistente
+        attendeeViewModel.getAttendeeRegistered().observe(this, registered -> {
+            if (registered != null && registered) {
+                ToastUtils.showCustomToast(RegisterActivity.this,
+                        "Registro exitoso. Por favor, verifica tu email antes de iniciar sesión",
+                        ToastUtils.ToastType.SUCCESS);
+                
+                // Redirigir al login
+                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            }
+        });
+
+        // Observar errores de organizador
+        organizerViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(RegisterActivity.this, error, ToastUtils.ToastType.ERROR);
                 
@@ -264,25 +294,42 @@ public class RegisterActivity extends AppCompatActivity {
                 } else if (error.contains("contraseña")) {
                     passwordLayout.setError("La contraseña debe tener al menos 6 caracteres");
                 }
+                registerButton.setEnabled(true);
             }
         });
 
-        // Observar estado de carga
-        userViewModel.getIsLoading().observe(this, loading -> {
-            registerButton.setEnabled(!loading);
+        // Observar errores de asistente
+        attendeeViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(RegisterActivity.this, error, ToastUtils.ToastType.ERROR);
+                
+                // Mostrar error específico en el campo correspondiente
+                if (error.contains("username")) {
+                    usernameLayout.setError("Este usuario ya está en uso");
+                } else if (error.contains("email")) {
+                    emailLayout.setError("Email no válido");
+                } else if (error.contains("contraseña")) {
+                    passwordLayout.setError("La contraseña debe tener al menos 6 caracteres");
+                }
+                registerButton.setEnabled(true);
+            }
+        });
+
+        // Observar estado de carga de organizador
+        organizerViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null && selectedRole.equals("ORGANIZER")) {
+                registerButton.setEnabled(!loading);
+            }
+        });
+
+        // Observar estado de carga de asistente
+        attendeeViewModel.getIsLoading().observe(this, loading -> {
+            if (loading != null && selectedRole.equals("ATTENDEE")) {
+                registerButton.setEnabled(!loading);
+            }
         });
     }
 
 
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
 } 

@@ -25,15 +25,13 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.android.material.card.MaterialCardView;
 import de.hdodenhof.circleimageview.CircleImageView;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.R;
 import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.data.models.Event;
-import com.us.eventum.data.models.UserRole;
 import com.us.eventum.presentation.fragments.EventsFragment;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.OrganizerViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.PermissionUtils;
 import com.us.eventum.utils.ProfileImageManager;
@@ -80,7 +78,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private SimpleDateFormat dateFormat;
     private SharedViewModel sharedViewModel;
     private EventViewModel eventViewModel;
-    private UserViewModel userViewModel;
+    private OrganizerViewModel organizerViewModel;
     private AttendeeViewModel attendeeViewModel;
     private boolean isLoadingEvents = false;
     
@@ -104,12 +102,12 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             // Inicializar ViewModels
         sharedViewModel = SharedViewModel.getInstance();
             eventViewModel = new ViewModelProvider(this).get(EventViewModel.class);
-            userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+            organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
             attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
             
             // Inicializar repositorios en ViewModels
             eventViewModel.initializeRepository(this);
-            userViewModel.initializeRepository(this);
+            organizerViewModel.initializeRepository(this);
             attendeeViewModel.initializeRepository(this);
 
         // Inicializar vistas
@@ -168,7 +166,13 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
         eventViewModel.getEventUpdated().observe(this, updated -> {
             if (updated != null && updated) {
-                ToastUtils.showCustomToast(this, "Evento actualizado con éxito", ToastUtils.ToastType.SUCCESS);
+                // El mensaje se muestra en el observer de eventUpdateMessage
+            }
+        });
+
+        eventViewModel.getEventUpdateMessage().observe(this, message -> {
+            if (message != null && !message.isEmpty()) {
+                ToastUtils.showCustomToast(this, message, ToastUtils.ToastType.SUCCESS);
                 eventViewModel.clearOperationStates();
             }
         });
@@ -180,34 +184,24 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             }
         });
 
-        // Observar datos del usuario del UserViewModel
-        userViewModel.getCurrentUser().observe(this, user -> {
-            if (user != null) {
+        // Observar datos del organizador
+        organizerViewModel.getCurrentOrganizer().observe(this, organizer -> {
+            if (organizer != null) {
                 TextView userNameTextView = findViewById(R.id.userNameTextView);
-                if (user.getNombre() != null && !user.getNombre().isEmpty()) {
-                    userNameTextView.setText(user.getNombre());
-                } else {
-                    // Usar email como fallback
-                    String email = user.getEmail();
-                    if (email != null && email.contains("@")) {
-                        userNameTextView.setText(email.substring(0, email.indexOf('@')));
-                    }
-                }
+                userNameTextView.setText(organizer.getUsername());
 
                 // Mostrar etiqueta de rol (esta pantalla es para ORGANIZADOR)
-                String role = user.getRole() != null ? user.getRole() : UserRole.ORGANIZER;
-                boolean isAssistant = UserRole.ATTENDEE.equalsIgnoreCase(role);
                 TextView userRoleTextView = findViewById(R.id.userRoleTextView);
                 if (userRoleTextView != null) {
-                    userRoleTextView.setText(isAssistant ? R.string.role_attendee : R.string.role_organizer);
+                    userRoleTextView.setText(R.string.role_organizer);
                     userRoleTextView.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
-                    userRoleTextView.setBackgroundResource(isAssistant ? R.drawable.bg_role_badge_assistant : R.drawable.bg_role_badge_organizer);
+                    userRoleTextView.setBackgroundResource(R.drawable.bg_role_badge_organizer);
                 }
             }
         });
 
-        // Observar errores del UserViewModel
-        userViewModel.getErrorMessage().observe(this, error -> {
+        // Observar errores del OrganizerViewModel
+        organizerViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
             }
@@ -351,8 +345,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             // Establecer el email inmediatamente
             userEmailTextView.setText(email);
             
-            // Usar UserViewModel para cargar datos del usuario
-            userViewModel.loadCurrentUser();
+            // Usar OrganizerViewModel para cargar datos del organizador
+            organizerViewModel.loadCurrentOrganizer();
         }
 
         // Ajustar estado del FAB según la pestaña seleccionada
@@ -528,6 +522,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         EditText dateInput = dialogView.findViewById(R.id.dateInput);
         EditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
         CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
+        CheckBox requiresParentalAuthCheckBox = dialogView.findViewById(R.id.requiresParentalAuthCheckBox);
         Button cancelButton = dialogView.findViewById(R.id.cancelButton);
         Button saveButton = dialogView.findViewById(R.id.saveButton);
         
@@ -537,6 +532,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         dateInput.setText(dateFormat.format(event.getDate()));
         maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
         eventoPrivadoCheckBox.setChecked(event.getPrivateEvent());
+        requiresParentalAuthCheckBox.setChecked(event.getRequiresParentalAuth());
         
         // Configurar el DatePicker para la fecha
         dateInput.setOnClickListener(v -> {
@@ -588,7 +584,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 
                 // Usar EventViewModel para actualizar el evento
                 eventViewModel.updateEvent(event.getId(), title, event.getDescription(), newDate, 
-                    location, maxParticipants, event.getEventType(), eventoPrivadoCheckBox.isChecked());
+                    location, maxParticipants, event.getEventType(), eventoPrivadoCheckBox.isChecked(), requiresParentalAuthCheckBox.isChecked());
                 
                         dialog.dismiss();
             } catch (ParseException e) {

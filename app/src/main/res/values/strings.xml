@@ -4,7 +4,6 @@
     <!-- Información de la app -->
     <string name="app_info_title">Información de la app</string>
     <string name="app_info_description"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
-    <string name="app_info_desc"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
     <string name="app_info_contact">Información de Contacto</string>
     <string name="app_info_technical">Información Técnica</string>
     <string name="app_info_email">juagagpoy@alum.us.es</string>
@@ -32,11 +31,6 @@
     <string name="role_organizer">ORGANIZADOR</string>
     <string name="role_attendee">ASISTENTE</string>
     
-    <!-- Pantalla de Registro -->
-    <string name="register_select_role">Selecciona tu rol:</string>
-    <string name="register_role_organizer">Organizador</string>
-    <string name="register_role_attendee">Asistente</string>
-    <string name="register_role_required">Debes seleccionar un rol</string>
     
     <!-- Pantalla Home Asistente -->
     <string name="attendee_home_title">Eventos disponibles</string>
@@ -51,5 +45,9 @@
     
     <!-- Filtros -->
     <string name="filter_active_indicator">Filtros activos</string>
+    
+    <!-- Etiquetas de checkboxes en crear/editar evento -->
+    <string name="label_event_private">Evento privado</string>
+    <string name="label_parental_auth">Autorización parental</string>
     
 </resources>

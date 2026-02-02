@@ -211,16 +211,34 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Checkbox para evento privado -->
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/eventoPrivadoCheckBox"
-                    android:layout_width="wrap_content"
+                <!-- Checkboxes para evento privado y autorización parental -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="Evento privado"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:textColor="@color/colorPrimary"
-                    app:buttonTint="@color/colorAccent" />
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/eventoPrivadoCheckBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_event_private"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="@color/colorPrimary"
+                        app:buttonTint="@color/colorAccent" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/requiresParentalAuthCheckBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_parental_auth"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="@color/colorPrimary"
+                        app:buttonTint="@color/colorAccent" />
+
+                </LinearLayout>
 
                 <!-- Descripción del evento (opcional) -->
                 <com.google.android.material.textfield.TextInputLayout

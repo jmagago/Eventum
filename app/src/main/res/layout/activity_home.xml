@@ -114,7 +114,8 @@
         android:layout_marginBottom="4dp"
         app:cardCornerRadius="28dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="@android:color/transparent">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:strokeWidth="0dp">
 
         <RelativeLayout
             android:layout_width="match_parent"

@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -76,14 +77,33 @@
             app:cardBackgroundColor="#F0F8FF"
             app:strokeWidth="0dp">
 
-            <LinearLayout
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
                 android:paddingHorizontal="20dp"
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp"
                 android:background="@drawable/card_background_ripple">
+
+                <ImageView
+                    android:id="@+id/eventPrivateIconDetails"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentTop="true"
+                    android:src="@drawable/ic_lock_closed"
+                    android:tint="@color/colorPrimary"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="4dp"
+                    android:visibility="gone"
+                    android:contentDescription="Estado de privacidad del evento"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_toStartOf="@id/eventPrivateIconDetails"
+                    android:layout_marginEnd="8dp">
 
                 <TextView
                     android:id="@+id/eventDateTextView"
@@ -184,7 +204,9 @@
                         android:textColor="@color/colorSecondaryText"/>
                 </LinearLayout>
 
-            </LinearLayout>
+                </LinearLayout>
+
+            </RelativeLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
@@ -272,7 +294,8 @@
         android:layout_marginBottom="4dp"
         app:cardCornerRadius="28dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="@android:color/transparent">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:strokeWidth="0dp">
 
         <RelativeLayout
             android:layout_width="match_parent"

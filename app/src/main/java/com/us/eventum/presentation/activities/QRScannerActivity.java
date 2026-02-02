@@ -30,9 +30,7 @@ import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class QRScannerActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 100;
@@ -49,6 +47,9 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_qr_scanner);
 
+        // Inicializar Firebase primero
+        firebaseManager = FirebaseManager.getInstance();
+
         // Verificar que el usuario está autenticado
         if (firebaseManager.getAuth().getCurrentUser() == null) {
             ToastUtils.showCustomToast(this, "Debes iniciar sesión para escanear códigos QR", ToastUtils.ToastType.ERROR);
@@ -61,14 +62,11 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
 
         // Obtener el ID del evento
         eventId = getIntent().getStringExtra("eventId");
-        if (eventId == null) {
+        if (eventId == null || eventId.isEmpty()) {
             ToastUtils.showCustomToast(this, "Error: No se pudo obtener el ID del evento", ToastUtils.ToastType.ERROR);
             finish();
             return;
         }
-
-        // Inicializar Firebase
-        firebaseManager = FirebaseManager.getInstance();
         attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
         
         // Inicializar repositorio en ViewModel
@@ -108,11 +106,13 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
                 isProcessingFrame = false;
-                camera.setPreviewCallback((data, camera) -> {
-                    if (!isProcessingFrame) {
-                        processImageData(data, camera);
-                    }
-                });
+                if (camera != null) {
+                    camera.setPreviewCallback((data, camera) -> {
+                        if (!isProcessingFrame) {
+                            processImageData(data, camera);
+                        }
+                    });
+                }
             }
         });
 
@@ -166,6 +166,13 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
     public void surfaceCreated(SurfaceHolder holder) {
         try {
             camera = Camera.open();
+            if (camera == null) {
+                Log.e("QRScanner", "Error: No se pudo abrir la cámara");
+                ToastUtils.showCustomToast(this, "Error: No se pudo acceder a la cámara", ToastUtils.ToastType.ERROR);
+                finish();
+                return;
+            }
+            
             camera.setPreviewDisplay(holder);
 
             // Configurar parámetros de la cámara
@@ -179,10 +186,12 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
 
             // Configurar el enfoque automático continuo si está disponible
             List<String> focusModes = parameters.getSupportedFocusModes();
-            if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
-                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            if (focusModes != null) {
+                if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                }
             }
 
             camera.setParameters(parameters);
@@ -194,13 +203,19 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
             
             // Configurar el callback para procesar los frames
             camera.setPreviewCallback((data, camera) -> {
-                if (!isProcessingFrame) {
+                if (!isProcessingFrame && camera != null) {
                     processImageData(data, camera);
                 }
             });
         } catch (IOException e) {
-            Log.e("QRScanner", "Error al iniciar la cámara: " + e.getMessage());
-            ToastUtils.showCustomToast(this, "Error al iniciar la cámara", ToastUtils.ToastType.ERROR);
+            Log.e("QRScanner", "Error al iniciar la cámara: " + e.getMessage(), e);
+            ToastUtils.showCustomToast(this, "Error al iniciar la cámara: " + e.getMessage(), ToastUtils.ToastType.ERROR);
+            releaseCamera();
+            finish();
+        } catch (RuntimeException e) {
+            Log.e("QRScanner", "Error de runtime al iniciar la cámara: " + e.getMessage(), e);
+            ToastUtils.showCustomToast(this, "Error al acceder a la cámara", ToastUtils.ToastType.ERROR);
+            releaseCamera();
             finish();
         }
     }
@@ -397,17 +412,15 @@ public class QRScannerActivity extends AppCompatActivity implements SurfaceHolde
     }
 
     private void verifyEventPermissions() {
-        // Verificar que el usuario actual es el propietario del evento
-        String currentUserId = firebaseManager.getAuth().getCurrentUser().getUid();
-        if (currentUserId == null) {
+        // Verificar que el usuario actual está autenticado
+        if (firebaseManager == null || firebaseManager.getAuth() == null || 
+            firebaseManager.getAuth().getCurrentUser() == null) {
             ToastUtils.showCustomToast(this, "Usuario no autenticado", ToastUtils.ToastType.ERROR);
             finish();
             return;
         }
         
-        // Por ahora, asumimos que el usuario tiene permisos si está autenticado
-        // En una implementación más robusta, se podría verificar contra el EventViewModel
-        // pero para QRScanner esto es suficiente ya que el evento se pasa desde EventDetailsActivity
+        // El evento se valida desde EventDetailsActivity, aquí solo verificamos autenticación
     }
 
     @Override

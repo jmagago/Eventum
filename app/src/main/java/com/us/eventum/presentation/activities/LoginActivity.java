@@ -16,18 +16,10 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.us.eventum.data.repositories.FirebaseManager;
-import com.us.eventum.config.AppConfig;
 import com.us.eventum.utils.ToastUtils;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.AuthViewModel;
 import androidx.annotation.NonNull;
-import com.google.firebase.auth.FirebaseAuthInvalidUserException;
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.FirebaseNetworkException;
-import com.google.firebase.FirebaseTooManyRequestsException;
 import com.us.eventum.R;
-import com.us.eventum.data.models.UserRole;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
     private FirebaseManager firebaseManager;
@@ -40,7 +32,7 @@ public class LoginActivity extends AppCompatActivity {
     private MaterialCheckBox rememberMeCheckBox;
     private View progressBar;
     private SharedPreferences sharedPreferences;
-    private UserViewModel userViewModel;
+    private AuthViewModel authViewModel;
     private int loginAttempts = 0;
     private static final int MAX_LOGIN_ATTEMPTS = 5;
 
@@ -51,11 +43,11 @@ public class LoginActivity extends AppCompatActivity {
 
         // Inicializar Firebase
         firebaseManager = FirebaseManager.getInstance();
-        sharedPreferences = getSharedPreferences(AppConfig.APP_PREFS_NAME, MODE_PRIVATE);
-        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        sharedPreferences = getSharedPreferences("EventumLogin", MODE_PRIVATE);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         
-        // Inicializar repositorio en ViewModel
-        userViewModel.initializeRepository(this);
+        // Inicializar repositorios en ViewModel
+        authViewModel.initializeRepositories(this);
 
         // Inicializar vistas
         initializeViews();
@@ -107,6 +99,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+
     private void startAnimations() {
         View[] views = {
             findViewById(R.id.logoImageView),
@@ -140,14 +133,14 @@ public class LoginActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         // Observar estado de carga
-        userViewModel.getIsLoading().observe(this, loading -> {
+        authViewModel.getIsLoading().observe(this, loading -> {
             if (loading != null) {
                 showProgress(loading);
             }
         });
 
         // Observar errores
-        userViewModel.getErrorMessage().observe(this, error -> {
+        authViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 if (error.contains("email")) {
                     showErrorStable(emailErrorText, error);
@@ -159,8 +152,15 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        // Email no verificado: bloquear navegación y mostrar aviso
+        authViewModel.getEmailNotVerified().observe(this, notVerified -> {
+            if (Boolean.TRUE.equals(notVerified)) {
+                showErrorStable(emailErrorText, "Debes verificar tu email para continuar. Revisa tu bandeja.");
+            }
+        });
+
         // Observar login exitoso y, cuando cargue el usuario, bifurcar por rol
-        userViewModel.getUserLoggedIn().observe(this, loggedIn -> {
+        authViewModel.getUserLoggedIn().observe(this, loggedIn -> {
             if (loggedIn != null && loggedIn) {
                 // Resetear intentos de inicio de sesión
                 loginAttempts = 0;
@@ -175,11 +175,10 @@ public class LoginActivity extends AppCompatActivity {
                 }
 
                 // Esperar a que se cargue el usuario y decidir navegación por rol
-                userViewModel.getCurrentUser().observe(this, user -> {
-                    if (user != null) {
-                        String role = user.getRole() != null ? user.getRole() : UserRole.ORGANIZER;
+                authViewModel.getUserType().observe(this, userType -> {
+                    if (userType != null) {
                         Intent intent;
-                        if (UserRole.ATTENDEE.equalsIgnoreCase(role)) {
+                        if ("ATTENDEE".equals(userType)) {
                             intent = new Intent(LoginActivity.this, AttendeeHomeActivity.class);
                         } else {
                             intent = new Intent(LoginActivity.this, OrganizerHomeActivity.class);
@@ -207,8 +206,8 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Usar UserViewModel para hacer login
-        userViewModel.loginUser(email, password);
+        // Usar AuthViewModel para hacer login
+        authViewModel.login(email, password);
     }
 
     // Método de validación estable que no causa reajustes del layout
@@ -247,6 +246,17 @@ public class LoginActivity extends AppCompatActivity {
         errorTextView.setVisibility(View.INVISIBLE);
     }
 
+
+    private void navigateToRegister() {
+        Intent intent = new Intent(this, RegisterActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    private void showProgress(boolean show) {
+        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
     private void saveCredentials(String email, String password) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("email", email);
@@ -261,15 +271,5 @@ public class LoginActivity extends AppCompatActivity {
         editor.remove("password");
         editor.remove("rememberMe");
         editor.apply();
-    }
-
-    private void navigateToRegister() {
-        Intent intent = new Intent(this, RegisterActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
-    private void showProgress(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 } 

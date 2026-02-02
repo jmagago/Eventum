@@ -234,33 +234,6 @@
                 android:background="@color/colorBorder"
                 android:layout_marginBottom="16dp"/>
 
-            <!-- Sección: Autorización -->
-            <TextView
-                style="@style/FormSectionTitle"
-                android:text="Autorización"
-                android:layout_marginBottom="12dp"/>
-
-            <!-- Autorización parental -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="32dp"
-                android:padding="16dp"
-                android:background="@color/colorPrimaryLight"
-                android:backgroundTint="@color/colorPrimaryLight">
-
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/parentalAuthCheckBox"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Requiere autorización parental"
-                    android:buttonTint="@color/colorAccent"
-                    android:textColor="@color/colorPrimaryText"
-                    android:textSize="14sp"/>
-
-            </LinearLayout>
 
                 <!-- Botón de registrar asistente -->
                 <com.google.android.material.button.MaterialButton

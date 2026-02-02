@@ -12,36 +12,29 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ProfileImageManager {
     private static final String TAG = "ProfileImageManager";
-    private static final String PREFS_NAME = "profile_images";
-    private static final String URI_KEY_PREFIX = "profile_uri_";
     
-    // Cache para evitar recargas innecesarias
+    // Cache simple para evitar recargas innecesarias
     private static String currentImageUri;
     private static CircleImageView currentImageView;
     
     /**
-     * Carga la imagen de perfil desde URI local o Firebase Storage
+     * Carga la imagen de perfil desde Firebase Storage (online-only)
      */
     public static void loadProfileImage(Context context, CircleImageView profileImageView) {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             Log.d(TAG, "Usuario no autenticado");
+            profileImageView.setImageResource(R.drawable.default_profile);
             return;
         }
         
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        String savedUri = getImageUri(context, userId);
         
-        if (savedUri != null) {
-            loadImageFromUri(context, profileImageView, savedUri);
-            return;
-        }
-        
-        // Si no hay URI guardada, intentar cargar desde Firebase Storage
+        // Cargar directamente desde Firebase Storage
         loadFromFirebaseStorage(context, profileImageView, userId);
     }
     
     /**
-     * Carga imagen desde URI local
+     * Carga imagen desde URI (para uso interno)
      */
     public static void loadImageFromUri(Context context, CircleImageView profileImageView, String uri) {
         // Verificar si ya tenemos la misma URI cargada
@@ -53,6 +46,8 @@ public class ProfileImageManager {
         Glide.with(context).clear(profileImageView);
         Glide.with(context)
             .load(Uri.parse(uri))
+            .placeholder(R.drawable.default_profile)
+            .error(R.drawable.default_profile)
             .circleCrop()
             .into(profileImageView);
         currentImageUri = uri; // Actualizar URI actual
@@ -85,11 +80,9 @@ public class ProfileImageManager {
 
                         @Override
                         public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
-                            // Guardar la URI de Firebase para evitar recargas innecesarias
+                            // Actualizar cache para evitar recargas innecesarias
                             currentImageUri = uri.toString();
                             currentImageView = profileImageView;
-                            // Guardar la URI en SharedPreferences para uso local
-                            saveImageUri(context, userId, uri.toString());
                             return false;
                         }
                     })
@@ -102,31 +95,9 @@ public class ProfileImageManager {
     }
     
     /**
-     * Guarda la URI de la imagen en SharedPreferences
+     * Limpia el cache (útil para logout)
      */
-    public static void saveImageUri(Context context, String userId, String imageUri) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(URI_KEY_PREFIX + userId, imageUri)
-            .apply();
-    }
-    
-    /**
-     * Obtiene la URI guardada de la imagen
-     */
-    public static String getImageUri(Context context, String userId) {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(URI_KEY_PREFIX + userId, null);
-    }
-    
-    /**
-     * Limpia la URI guardada (útil para logout)
-     */
-    public static void clearImageUri(Context context, String userId) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .remove(URI_KEY_PREFIX + userId)
-            .apply();
+    public static void clearCache() {
         currentImageUri = null;
         currentImageView = null;
     }

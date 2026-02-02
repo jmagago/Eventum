@@ -15,7 +15,7 @@ import com.us.eventum.data.repositories.FirebaseManager;
 import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.R;
 import com.us.eventum.utils.ToastUtils;
-import com.us.eventum.presentation.viewmodels.UserViewModel;
+import com.us.eventum.presentation.viewmodels.AuthViewModel;
 
 public class ChangePasswordActivity extends AppCompatActivity {
 
@@ -25,7 +25,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
     private MaterialButton changePasswordButton;
     private CircularProgressIndicator progressIndicator;
     private FirebaseManager firebaseManager;
-    private UserViewModel userViewModel;
+    private AuthViewModel authViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,10 +33,10 @@ public class ChangePasswordActivity extends AppCompatActivity {
         setContentView(R.layout.activity_change_password);
 
         firebaseManager = FirebaseManager.getInstance();
-        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         
-        // Inicializar repositorio en ViewModel
-        userViewModel.initializeRepository(this);
+        // Inicializar repositorios en ViewModel
+        authViewModel.initializeRepositories(this);
 
         // Inicializar vistas
         currentPasswordLayout = findViewById(R.id.currentPasswordLayout);
@@ -57,24 +57,23 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         // Observar estado de carga
-        userViewModel.getIsLoading().observe(this, loading -> {
+        authViewModel.getIsLoading().observe(this, loading -> {
             if (loading != null) {
                 showLoading(loading);
             }
         });
 
         // Observar errores
-        userViewModel.getErrorMessage().observe(this, error -> {
+        authViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
             }
         });
 
         // Observar cambio de contraseña exitoso
-        userViewModel.getPasswordChanged().observe(this, changed -> {
+        authViewModel.getPasswordChanged().observe(this, changed -> {
             if (changed != null && changed) {
                 ToastUtils.showCustomToast(this, "Contraseña actualizada correctamente", ToastUtils.ToastType.SUCCESS);
-                userViewModel.clearOperationStates();
                 finish();
             }
         });
@@ -115,8 +114,8 @@ public class ChangePasswordActivity extends AppCompatActivity {
             return;
         }
 
-        // Usar UserViewModel para cambiar la contraseña
-        userViewModel.changePassword(currentPassword, newPassword);
+        // Usar AuthViewModel para cambiar la contraseña
+        authViewModel.changePassword(currentPassword, newPassword);
     }
 
 
