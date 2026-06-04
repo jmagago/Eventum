@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -12,6 +11,12 @@
         android:layout_height="wrap_content"
         android:background="@color/colorPrimary"
         android:elevation="0dp">
+
+        <View
+            android:id="@+id/statusBarStripe"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/login_header_bg" />
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -22,22 +27,12 @@
             <LinearLayout
                 style="@style/ToolbarProfileContainer">
 
-                <ImageButton
-                    android:id="@+id/backButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_arrow_back"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="@color/white"
-                    android:padding="12dp"
-                    android:contentDescription="Volver atrás"/>
-
                 <TextView
                     android:id="@+id/toolbarTitleTextView"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="16dp"
                     android:layout_marginEnd="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
@@ -51,7 +46,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="@color/white"
                     android:padding="12dp"
-                    android:contentDescription="Menú del evento"/>
+                    android:contentDescription="@string/cd_event_menu"/>
 
             </LinearLayout>
 
@@ -92,11 +87,11 @@
                     android:layout_alignParentEnd="true"
                     android:layout_alignParentTop="true"
                     android:src="@drawable/ic_lock_closed"
-                    android:tint="@color/colorPrimary"
+                    app:tint="@color/colorPrimary"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:padding="4dp"
                     android:visibility="gone"
-                    android:contentDescription="Estado de privacidad del evento"/>
+                    android:contentDescription="@string/cd_event_private"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -113,27 +108,15 @@
                     android:textColor="@color/colorSecondaryText"
                     android:layout_marginBottom="8dp"/>
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventTimeTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_time_colored"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventTimeTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="16sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
+                    android:layout_marginBottom="12dp"
+                    android:drawablePadding="8dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"
+                    app:drawableStartCompat="@drawable/ic_time_colored" />
 
                 <TextView
                     android:id="@+id/eventCapacityTextView"
@@ -143,29 +126,16 @@
                     android:textColor="@color/colorSecondaryText"
                     android:layout_marginBottom="12dp"/>
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/verifiedTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:visibility="gone"
                     android:layout_marginBottom="12dp"
-                    android:id="@+id/verifiedLayout">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_verified"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/verifiedTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="16sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
+                    android:drawablePadding="8dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"
+                    android:visibility="gone"
+                    app:drawableStartCompat="@drawable/ic_verified" />
 
                 <TextView
                     android:id="@+id/eventLocationTextView"
@@ -180,29 +150,16 @@
                     android:visibility="gone"
                     android:id="@+id/descriptionSpacer"/>
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventDescriptionTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
+                    android:drawablePadding="8dp"
+                    android:textSize="16sp"
+                    android:textColor="@color/colorSecondaryText"
                     android:visibility="gone"
-                    android:id="@+id/descriptionLayout">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_description"
-                        app:tint="@color/colorPrimary"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventDescriptionTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="16sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
+                    app:drawableStartCompat="@drawable/ic_description"
+                    app:drawableTint="@color/colorPrimary" />
 
                 </LinearLayout>
 
@@ -226,6 +183,7 @@
                 android:layout_height="20dp"
                 android:src="@drawable/ic_search_person"
                 app:tint="@color/white"
+                android:contentDescription="@null"
                 android:layout_marginEnd="8dp" />
 
             <TextView
@@ -233,7 +191,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Filtros activos"
+                android:text="@string/filter_active_indicator"
                 android:textColor="@color/white"
                 android:textSize="14sp" />
 
@@ -243,114 +201,168 @@
                 android:layout_height="24dp"
                 android:src="@drawable/ic_clear"
                 app:tint="@color/white"
+                android:contentDescription="@string/search_clear"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="4dp" />
 
         </LinearLayout>
 
-        <!-- Mensaje cuando no hay asistentes -->
-        <TextView
-            android:id="@+id/emptyAttendeesTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No hay asistentes registrados para este evento"
-            android:textColor="@color/colorPrimary"
-            android:textSize="18sp"
-            android:gravity="center"
-            android:padding="24dp"
-            android:layout_margin="16dp"
-            android:visibility="gone"/>
-
-        <!-- Lista de asistentes con scroll -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/attendeesRecyclerView"
+        <!-- Deslizar hacia abajo para actualizar asistentes (mismo patrón que la lista de eventos) -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/attendeesSwipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingHorizontal="16dp"
-            android:clipToPadding="false"
-            android:paddingBottom="5dp"/>
+            android:layout_weight="1">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/attendeesRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingHorizontal="16dp"
+                    android:clipToPadding="false"
+                    android:paddingBottom="5dp"/>
+
+                <TextView
+                    android:id="@+id/emptyAttendeesTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="@string/event_no_attendees"
+                    android:textColor="@color/colorPrimary"
+                    android:textSize="18sp"
+                    android:gravity="center"
+                    android:padding="24dp"
+                    android:layout_margin="16dp"
+                    android:visibility="gone"/>
+
+            </FrameLayout>
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 
-    <!-- Overlay para detectar gestos (parte inferior) -->
-    <View
-        android:id="@+id/gestureOverlay"
+    <FrameLayout
+        android:id="@+id/fabDock"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="0dp"
-        android:background="@android:color/transparent" />
+        android:layout_marginBottom="@dimen/fab_bar_margin_bottom"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
-    <!-- Contenedor de FABs (similar a Home) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/fabContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
         app:cardCornerRadius="28dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="@android:color/transparent"
+        app:cardBackgroundColor="@color/fab_bar_background"
         app:strokeWidth="0dp">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="10dp">
 
-            <!-- Buscar asistente (izquierda) -->
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/searchAttendeeFab"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
+                android:contentDescription="@string/cd_fab_search_attendees"
                 app:srcCompat="@drawable/ic_search_person"
                 app:backgroundTint="@color/colorAccent"
                 app:tint="@color/white"
                 app:fabSize="normal"
                 app:maxImageSize="44dp"
                 app:borderWidth="0dp"
-                app:elevation="8dp" />
+                app:elevation="4dp" />
 
-            <!-- Añadir asistente (centro) -->
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/addAttendeeButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
+                android:contentDescription="@string/cd_fab_add_attendee"
                 android:src="@drawable/ic_add"
                 app:backgroundTint="@color/colorPrimary"
                 app:tint="@color/colorWhite"
                 app:fabSize="normal"
                 app:maxImageSize="32dp"
                 app:borderWidth="0dp"
-                app:elevation="8dp" />
+                app:elevation="4dp" />
 
-            <!-- Verificar por QR (derecha) -->
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/verifyQrFab"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
+                android:contentDescription="@string/cd_fab_scan_qr"
                 android:src="@drawable/ic_qr_code"
                 app:backgroundTint="@color/colorPrimaryDark"
                 app:tint="@color/colorWhite"
                 app:fabSize="normal"
                 app:maxImageSize="28dp"
                 app:borderWidth="0dp"
-                app:elevation="8dp" />
+                app:elevation="4dp" />
 
-        </RelativeLayout>
+            <ImageButton
+                android:id="@+id/fabBarCollapse"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_fab_bar_collapse_btn"
+                android:contentDescription="@string/fab_bar_collapse_actions"
+                android:padding="10dp"
+                android:scaleType="centerInside"
+                app:srcCompat="@drawable/ic_chevron_right"
+                app:tint="@color/colorPrimary" />
+
+        </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
+
+    <FrameLayout
+        android:id="@+id/fabBarHandle"
+        android:layout_width="@dimen/fab_bar_handle_width"
+        android:layout_height="@dimen/fab_bar_handle_height"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/bg_fab_bar_handle"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:contentDescription="@string/fab_bar_show_actions"
+        android:elevation="8dp">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:scaleX="-1"
+            android:importantForAccessibility="no"
+            app:srcCompat="@drawable/ic_chevron_right"
+            app:tint="@android:color/white" />
+    </FrameLayout>
+
+    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

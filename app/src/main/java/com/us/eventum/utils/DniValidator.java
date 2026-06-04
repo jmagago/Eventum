@@ -1,8 +1,8 @@
 package com.us.eventum.utils;
 
-import android.text.TextWatcher;
-import android.text.Editable;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.Locale;
 
 public class DniValidator {
     
@@ -12,7 +12,7 @@ public class DniValidator {
     public static android.view.View.OnFocusChangeListener createDniFocusValidator(TextInputLayout dniLayout) {
         return (v, hasFocus) -> {
             if (!hasFocus) {
-                String dni = ((android.widget.EditText) v).getText().toString().trim().toUpperCase();
+                String dni = ((android.widget.EditText) v).getText().toString().trim().toUpperCase(Locale.ROOT);
                 if (dni.isEmpty()) {
                     AnimationUtils.showErrorWithAnimation(dniLayout, "El DNI es requerido");
                 } else if (!isValidDni(dni)) {
@@ -59,7 +59,7 @@ public class DniValidator {
         if (dni == null) return "";
         
         // Eliminar espacios y convertir a mayúsculas
-        String cleanDni = dni.replaceAll("\\s", "").toUpperCase();
+        String cleanDni = dni.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
         
         // Si tiene 8 dígitos, añadir la letra calculada
         if (cleanDni.matches("\\d{8}")) {

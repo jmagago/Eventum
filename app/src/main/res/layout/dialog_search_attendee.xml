@@ -13,39 +13,25 @@
         android:background="@drawable/dialog_background"
         android:elevation="8dp">
 
-        <!-- Header -->
-        <LinearLayout
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="24dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:text="@string/search_attendee_title"
+            android:textSize="20sp"
+            android:textColor="@color/colorPrimary"
+            android:textStyle="bold"
+            android:drawablePadding="12dp"
+            app:drawableStartCompat="@drawable/ic_search_person"
+            app:drawableTint="@color/colorPrimary" />
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_search_person"
-                android:tint="@color/colorPrimary"
-                android:layout_marginEnd="12dp" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Buscar Asistente"
-                android:textSize="20sp"
-                android:textColor="@color/colorPrimary"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-        <!-- DNI -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="DNI"
+            android:hint="@string/hint_dni"
             app:startIconDrawable="@drawable/ic_id_card"
             app:startIconTint="@color/colorPrimary"
             app:boxStrokeColor="@color/colorPrimary"
@@ -60,13 +46,12 @@
                 android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Nombre -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="Nombre"
+            android:hint="@string/hint_name"
             app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="@color/colorPrimary"
             app:boxStrokeColor="@color/colorPrimary"
@@ -80,7 +65,6 @@
                 android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Apellido 1 -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -90,7 +74,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:hint="Primer Apellido"
+                android:hint="@string/hint_first_surname"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary"
                 app:boxStrokeColor="@color/colorPrimary"
@@ -103,8 +87,7 @@
                     android:inputType="textPersonName"
                     android:textSize="16sp"/>
             </com.google.android.material.textfield.TextInputLayout>
-            
-            <!-- Número superpuesto -->
+
             <TextView
                 android:layout_width="16dp"
                 android:layout_height="16dp"
@@ -112,15 +95,14 @@
                 android:layout_marginStart="24dp"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:text="1"
+                android:text="@string/label_badge_1"
                 android:textColor="@android:color/white"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:background="@color/colorPrimary"
                 android:elevation="2dp"/>
         </FrameLayout>
 
-        <!-- Apellido 2 -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -130,7 +112,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:hint="Segundo Apellido"
+                android:hint="@string/hint_second_surname"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary"
                 app:boxStrokeColor="@color/colorPrimary"
@@ -143,8 +125,7 @@
                     android:inputType="textPersonName"
                     android:textSize="16sp"/>
             </com.google.android.material.textfield.TextInputLayout>
-            
-            <!-- Número superpuesto -->
+
             <TextView
                 android:layout_width="16dp"
                 android:layout_height="16dp"
@@ -152,21 +133,20 @@
                 android:layout_marginStart="24dp"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:text="2"
+                android:text="@string/label_badge_2"
                 android:textColor="@android:color/white"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:background="@color/colorPrimary"
                 android:elevation="2dp"/>
         </FrameLayout>
 
-        <!-- Email -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="Email"
+            android:hint="@string/hint_email"
             app:startIconDrawable="@drawable/ic_email"
             app:startIconTint="@color/colorPrimary"
             app:boxStrokeColor="@color/colorPrimary"
@@ -180,13 +160,12 @@
                 android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Teléfono -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="Teléfono"
+            android:hint="@string/hint_phone"
             app:startIconDrawable="@drawable/ic_phone"
             app:startIconTint="@color/colorPrimary"
             app:boxStrokeColor="@color/colorPrimary"
@@ -200,7 +179,6 @@
                 android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Botones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -212,7 +190,7 @@
                 android:id="@+id/cancelButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cancelar"
+                android:text="@string/cancel"
                 android:textSize="14sp"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
@@ -222,7 +200,7 @@
                 android:id="@+id/searchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Buscar"
+                android:text="@string/search_action"
                 android:textSize="14sp"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
@@ -235,7 +213,3 @@
     </LinearLayout>
 
 </ScrollView>
-
-
-
-

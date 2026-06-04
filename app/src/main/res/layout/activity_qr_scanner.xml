@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout
+    android:id="@+id/qr_scanner_root"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:keepScreenOn="true"
-    android:background="@android:color/black">
+    android:keepScreenOn="true">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <SurfaceView
+        <androidx.camera.view.PreviewView
             android:id="@+id/preview_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            app:scaleType="fillCenter" />
 
     </FrameLayout>
 
@@ -30,27 +31,43 @@
         android:layout_height="240dp"
         android:layout_gravity="center"
         android:src="@drawable/qr_frame"
-        android:alpha="0.8"/>
+        android:alpha="0.8"
+        android:contentDescription="@null"/>
 
-    <ImageButton
-        android:id="@+id/backButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_arrow_back"
-        android:tint="@android:color/white"
-        android:contentDescription="Volver"/>
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/scanStatusCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="@dimen/qr_scanner_status_margin_bottom"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/colorPrimary"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp">
+
+        <TextView
+            android:id="@+id/scanStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="16dp"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
+        android:id="@+id/scanHintText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center|bottom"
-        android:layout_marginBottom="32dp"
-        android:text="Escanea el código QR del asistente"
+        android:layout_marginBottom="96dp"
+        android:text="@string/qr_scanner_hint"
         android:textColor="@android:color/white"
         android:textSize="16sp"
         android:padding="16dp"
         android:background="#77000000"/>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout> 
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -5,8 +5,6 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
-import android.os.Build;
-import androidx.annotation.RequiresApi;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -26,10 +24,7 @@ public class NetworkStateManager {
         this.connectivityManager = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
         this.listeners = new CopyOnWriteArrayList<>();
         this.isOnline = isNetworkAvailable();
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            registerNetworkCallback();
-        }
+        registerNetworkCallback();
     }
     
     /**
@@ -63,29 +58,26 @@ public class NetworkStateManager {
      * Verificar disponibilidad de red
      */
     private boolean isNetworkAvailable() {
-        if (connectivityManager == null) return false;
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Network network = connectivityManager.getActiveNetwork();
-            if (network == null) return false;
-            
-            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
-            return capabilities != null && (
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-            );
-        } else {
-            // Para versiones anteriores a Android 6.0
-            android.net.NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-            return networkInfo != null && networkInfo.isConnected();
+        if (connectivityManager == null) {
+            return false;
         }
+
+        Network network = connectivityManager.getActiveNetwork();
+        if (network == null) {
+            return false;
+        }
+
+        NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+        return capabilities != null && (
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                        || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                        || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        );
     }
     
     /**
-     * Registrar callback de red para Android 7.0+
+     * Registrar callback de red
      */
-    @RequiresApi(api = Build.VERSION_CODES.N)
     private void registerNetworkCallback() {
         NetworkRequest request = new NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)

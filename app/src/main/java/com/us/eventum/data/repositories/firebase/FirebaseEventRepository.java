@@ -43,10 +43,11 @@ public class FirebaseEventRepository implements EventRepository {
     
     @Override
     public void loadAvailableEvents(RepositoryCallback<List<Event>> callback) {
-        java.util.Date now = new java.util.Date();
-        // Cargamos todos los eventos futuros (públicos y privados) para mostrar en la lista
+        // Para la home de asistente se necesita el catálogo completo:
+        // - Descubrir (no inscritos y futuros)
+        // - Mis eventos (inscritos)
+        // - Historial (pasados + QR validado)
         db.collection("events")
-                .whereGreaterThanOrEqualTo("date", now)
                 .get()
                 .addOnSuccessListener(snap -> {
                     List<Event> events = new java.util.ArrayList<>();
@@ -57,25 +58,7 @@ public class FirebaseEventRepository implements EventRepository {
                     }
                     callback.onSuccess(events);
                 })
-                .addOnFailureListener(e -> {
-                    // Fallback: traer todo y filtrar por fecha >= hoy
-                    db.collection("events")
-                            .get()
-                            .addOnSuccessListener(all -> {
-                                List<Event> future = new java.util.ArrayList<>();
-                                for (QueryDocumentSnapshot d2 : all) {
-                                    try {
-                                        Event ev2 = d2.toObject(Event.class);
-                                        ev2.setId(d2.getId());
-                                        if (ev2.getDate() != null && !ev2.getDate().before(now)) {
-                                            future.add(ev2);
-                                        }
-                                    } catch (Exception ignore) {}
-                                }
-                                callback.onSuccess(future);
-                            })
-                            .addOnFailureListener(e3 -> callback.onError("Error al cargar eventos: " + e3.getMessage()));
-                });
+                .addOnFailureListener(e -> callback.onError("Error al cargar eventos: " + e.getMessage()));
     }
     
     @Override
@@ -131,6 +114,31 @@ public class FirebaseEventRepository implements EventRepository {
                 .addOnFailureListener(e -> {
                     callback.onError("Error al eliminar evento: " + e.getMessage());
                 });
+    }
+
+    @Override
+    public void getEventById(String eventId, RepositoryCallback<Event> callback) {
+        if (eventId == null || eventId.isEmpty()) {
+            callback.onError("ID de evento no válido");
+            return;
+        }
+        db.collection("events").document(eventId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (!document.exists()) {
+                        callback.onError("Evento no encontrado");
+                        return;
+                    }
+                    Event event = document.toObject(Event.class);
+                    if (event == null) {
+                        callback.onError("Error al leer el evento");
+                        return;
+                    }
+                    event.setId(document.getId());
+                    callback.onSuccess(event);
+                })
+                .addOnFailureListener(e ->
+                        callback.onError("Error al cargar evento: " + e.getMessage()));
     }
     
 }

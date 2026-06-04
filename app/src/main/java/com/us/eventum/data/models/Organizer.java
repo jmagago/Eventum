@@ -1,6 +1,7 @@
 package com.us.eventum.data.models;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 public class Organizer implements Serializable {
     private String uid;
@@ -20,7 +21,7 @@ public class Organizer implements Serializable {
         this.email = email;
         this.cif = cif;
         this.phone = phone;
-        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
+        this.usernameLower = username != null ? username.trim().toLowerCase(Locale.ROOT) : null;
     }
 
     public String getUid() {
@@ -37,7 +38,7 @@ public class Organizer implements Serializable {
 
     public void setUsername(String username) {
         this.username = username;
-        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
+        this.usernameLower = username != null ? username.trim().toLowerCase(Locale.ROOT) : null;
     }
 
     public String getEmail() {

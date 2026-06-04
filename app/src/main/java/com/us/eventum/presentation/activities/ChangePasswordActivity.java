@@ -5,6 +5,8 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
@@ -31,6 +33,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_change_password);
+        setupStatusBarStripe();
 
         firebaseManager = FirebaseManager.getInstance();
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
@@ -45,14 +48,26 @@ public class ChangePasswordActivity extends AppCompatActivity {
         changePasswordButton = findViewById(R.id.changePasswordButton);
         progressIndicator = findViewById(R.id.progressIndicator);
 
-        // Configurar toolbar
-        findViewById(R.id.topAppBar).setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
-
         // Configurar botón de cambio de contraseña
         changePasswordButton.setOnClickListener(v -> validateAndChangePassword());
         
         // Observar ViewModel
         observeViewModel();
+    }
+
+    private void setupStatusBarStripe() {
+        View stripe = findViewById(R.id.statusBarStripe);
+        if (stripe == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
+            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+            lp.height = topInset;
+            v.setLayoutParams(lp);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(stripe);
     }
 
     private void observeViewModel() {

@@ -6,19 +6,23 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.graphics.Typeface;
+import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
@@ -36,6 +40,12 @@ import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.PermissionUtils;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.utils.NotificationPermissionHelper;
+import com.us.eventum.utils.OrganizerNotificationDispatcher;
+import com.us.eventum.utils.OrganizerNotificationHelper;
+import com.us.eventum.utils.OrganizerNotificationWatcher;
+import com.us.eventum.utils.FabBarController;
+import com.us.eventum.data.models.OrganizerNotification;
 import com.us.eventum.data.repositories.FirebaseManager;
 
 import java.io.File;
@@ -43,6 +53,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -50,15 +61,29 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.us.eventum.utils.EventSearchFilter;
 import com.google.android.material.textfield.TextInputEditText;
-import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageView;
+import androidx.appcompat.widget.ListPopupWindow;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 public class OrganizerHomeActivity extends AppCompatActivity implements EventsPagerAdapter.EventContextMenuListener {
+
+    private enum FutureEventSort {
+        DATE_ASC,
+        PLACES_ASC,
+        PLACES_DESC,
+        ATTENDEES_ASC,
+        ATTENDEES_DESC,
+        OCCUPANCY_ASC,
+        OCCUPANCY_DESC
+    }
+
     private static final String TAG = "OrganizerHomeActivity";
     private FloatingActionButton settingsButton, createEventButton, searchEventsButton;
     private FirebaseManager firebaseManager;
@@ -69,6 +94,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private boolean isSearchActive = false;
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
+    private ImageButton sortFutureEventsButton;
+    private FutureEventSort futureEventSort = FutureEventSort.DATE_ASC;
     private EventsPagerAdapter pagerAdapter;
     private TabLayoutMediator tabLayoutMediator;
     private CircleImageView profileImageView;
@@ -82,16 +109,16 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private AttendeeViewModel attendeeViewModel;
     private boolean isLoadingEvents = false;
     
-    // MaterialCardView y GestureDetector para FABs
     private MaterialCardView fabContainer;
-    private View gestureOverlay;
-    private GestureDetector gestureDetector;
-    private boolean isFabContainerVisible = true;
+    private FabBarController fabBarController;
+    private OrganizerNotificationWatcher notificationWatcher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        setupStatusBarStripe();
 
         // Inicializar Firebase
         firebaseManager = FirebaseManager.getInstance();
@@ -112,15 +139,31 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
         // Inicializar vistas
         initializeViews();
-        setupGestureDetector();
         setupClickListeners();
         setupViewPager();
         observeViewModels();
         loadEvents();
-        
-        
+
+        notificationWatcher = new OrganizerNotificationWatcher(this);
+        NotificationPermissionHelper.requestIfNeeded(this);
+
         // Configurar observador de actualización de imagen de perfil
         setupProfileImageObserver();
+    }
+
+    private void setupStatusBarStripe() {
+        View stripe = findViewById(R.id.statusBarStripe);
+        if (stripe == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
+            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            lp.height = topInset;
+            v.setLayoutParams(lp);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(stripe);
     }
 
     private void observeViewModels() {
@@ -223,6 +266,18 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
             }
         });
+
+        // Aviso en pantalla si la notificación del sistema no se muestra
+        OrganizerNotificationDispatcher.getLatestNotification().observe(this, notification -> {
+            if (notification == null) {
+                return;
+            }
+            String body = OrganizerNotificationHelper.buildBody(this, notification);
+            ToastUtils.ToastType type = OrganizerNotification.TYPE_ATTENDEE_LEFT.equals(notification.getType())
+                    ? ToastUtils.ToastType.WARNING
+                    : ToastUtils.ToastType.INFO;
+            ToastUtils.showCustomToast(this, body, type);
+        });
     }
 
     @Override
@@ -257,6 +312,22 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         // Cargar imagen de perfil
         ProfileImageManager.loadProfileImage(this, profileImageView);
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (notificationWatcher != null && userId != null) {
+            notificationWatcher.start(userId);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (notificationWatcher != null) {
+            notificationWatcher.stop();
+        }
+        super.onStop();
+    }
     
     private void setupProfileImageObserver() {
         sharedViewModel.getProfileImageUpdated().observe(this, profileImageUpdated -> {
@@ -267,73 +338,24 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         });
     }
     
-    private void setupGestureDetector() {
-        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (e1 == null || e2 == null) {
-                    return false;
-                }
-                
-                // Detectar gestos en el overlay (parte inferior)
-                float deltaY = e2.getY() - e1.getY();
-                float deltaX = e2.getX() - e1.getX();
-                
-                // Verificar que sea un movimiento vertical significativo
-                if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 30) {
-                    if (deltaY > 0) {
-                        // Swipe hacia abajo - ocultar
-                        hideFabContainer();
-                    } else {
-                        // Swipe hacia arriba - mostrar
-                        showFabContainer();
-                    }
-                    return true;
-                }
-                return false;
-            }
-        });
-        
-        // Aplicar al overlay transparente
-        gestureOverlay.setOnTouchListener((v, event) -> {
-            gestureDetector.onTouchEvent(event);
-            return true; // Consumir el evento para que no pase a otros elementos
-        });
-    }
-    
-    private void hideFabContainer() {
-        if (isFabContainerVisible) {
-            isFabContainerVisible = false;
-            fabContainer.animate()
-                    .translationY(fabContainer.getHeight() + 50)
-                    .setDuration(300)
-                    .start();
-        }
-    }
-    
-    private void showFabContainer() {
-        if (!isFabContainerVisible) {
-            isFabContainerVisible = true;
-            fabContainer.animate()
-                    .translationY(0)
-                    .setDuration(300)
-                    .start();
-        }
-    }
-
     private void initializeViews() {
         createEventButton = findViewById(R.id.createEventFab);
         searchEventsButton = findViewById(R.id.searchEventsFab);
         settingsButton = findViewById(R.id.settingsButton);
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
+        sortFutureEventsButton = findViewById(R.id.sortFutureEventsButton);
         profileImageView = findViewById(R.id.profileImageView);
         filterIndicatorLayout = findViewById(R.id.filterIndicatorLayout);
         filterIndicatorText = findViewById(R.id.filterIndicatorText);
         clearFiltersButton = findViewById(R.id.clearFiltersButton);
+        View fabDock = findViewById(R.id.fabDock);
         fabContainer = findViewById(R.id.fabContainer);
-        gestureOverlay = findViewById(R.id.gestureOverlay);
-        
+        View fabBarHandle = findViewById(R.id.fabBarHandle);
+        View fabBarCollapse = findViewById(R.id.fabBarCollapse);
+        fabBarController = new FabBarController(this, fabDock, fabContainer, fabBarHandle, fabBarCollapse);
+        fabBarController.attachToActivity(this);
+
         // Inicializar vistas de información de usuario
         TextView userNameTextView = findViewById(R.id.userNameTextView);
         TextView userEmailTextView = findViewById(R.id.userEmailTextView);
@@ -355,8 +377,134 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             public void onPageSelected(int position) {
                 boolean isArchivedTab = position == 1;
                 createEventButton.setAlpha(isArchivedTab ? 0.5f : 1f);
+                updateSortButtonState(position);
             }
         });
+
+        if (sortFutureEventsButton != null) {
+            sortFutureEventsButton.setOnClickListener(v -> showFutureEventsSortMenu());
+            updateSortButtonState(viewPager.getCurrentItem());
+        }
+    }
+
+    private void updateSortButtonState(int tabPosition) {
+        if (sortFutureEventsButton != null) {
+            boolean enabled = tabPosition == 0;
+            sortFutureEventsButton.setEnabled(enabled);
+            sortFutureEventsButton.setAlpha(enabled ? 1.0f : 0.38f);
+        }
+    }
+
+    private void showFutureEventsSortMenu() {
+        if (sortFutureEventsButton == null || !sortFutureEventsButton.isEnabled()) {
+            return;
+        }
+
+        final FutureEventSort[] options = FutureEventSort.values();
+        ListPopupWindow popup = new ListPopupWindow(this);
+        popup.setAnchorView(sortFutureEventsButton);
+        popup.setModal(true);
+        popup.setBackgroundDrawable(ContextCompat.getDrawable(this, R.drawable.bg_sort_popup));
+        float density = getResources().getDisplayMetrics().density;
+        popup.setWidth((int) (240 * density));
+        popup.setVerticalOffset((int) (4 * density));
+        popup.setAdapter(new BaseAdapter() {
+            @Override
+            public int getCount() {
+                return options.length;
+            }
+
+            @Override
+            public Object getItem(int position) {
+                return options[position];
+            }
+
+            @Override
+            public long getItemId(int position) {
+                return position;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View optionView = convertView;
+                if (optionView == null) {
+                    optionView = getLayoutInflater().inflate(R.layout.item_sort_option, parent, false);
+                }
+                FutureEventSort sort = options[position];
+                TextView titleView = optionView.findViewById(R.id.sortOptionTitle);
+                ImageView checkView = optionView.findViewById(R.id.sortOptionCheck);
+                titleView.setText(getSortOptionLabel(sort));
+                boolean selected = sort == futureEventSort;
+                checkView.setVisibility(selected ? View.VISIBLE : View.GONE);
+                titleView.setTextColor(getResources().getColor(
+                        selected ? R.color.colorAccent : R.color.colorPrimary, getTheme()));
+                titleView.setTypeface(null, selected ? Typeface.BOLD : Typeface.NORMAL);
+                return optionView;
+            }
+        });
+        popup.setOnItemClickListener((parent, view, position, id) -> {
+            futureEventSort = options[position];
+            updateUI();
+            popup.dismiss();
+        });
+        popup.show();
+    }
+
+    private int getSortOptionLabel(FutureEventSort sort) {
+        switch (sort) {
+            case DATE_ASC:
+                return R.string.sort_date_asc;
+            case PLACES_ASC:
+                return R.string.sort_places_asc;
+            case PLACES_DESC:
+                return R.string.sort_places_desc;
+            case ATTENDEES_ASC:
+                return R.string.sort_attendees_asc;
+            case ATTENDEES_DESC:
+                return R.string.sort_attendees_desc;
+            case OCCUPANCY_ASC:
+                return R.string.sort_occupancy_asc;
+            case OCCUPANCY_DESC:
+                return R.string.sort_occupancy_desc;
+            default:
+                return R.string.sort_date_asc;
+        }
+    }
+
+    private void sortFutureEventsList() {
+        Comparator<Event> comparator;
+        switch (futureEventSort) {
+            case PLACES_ASC:
+                comparator = Comparator.comparingInt(Event::getMaxParticipants);
+                break;
+            case PLACES_DESC:
+                comparator = Comparator.comparingInt(Event::getMaxParticipants).reversed();
+                break;
+            case ATTENDEES_ASC:
+                comparator = Comparator.comparingInt(Event::getCurrentParticipants);
+                break;
+            case ATTENDEES_DESC:
+                comparator = Comparator.comparingInt(Event::getCurrentParticipants).reversed();
+                break;
+            case OCCUPANCY_ASC:
+                comparator = Comparator.comparingDouble(this::occupancyRate);
+                break;
+            case OCCUPANCY_DESC:
+                comparator = Comparator.comparingDouble(this::occupancyRate).reversed();
+                break;
+            case DATE_ASC:
+            default:
+                comparator = Comparator.comparing(Event::getDate, Comparator.nullsLast(Comparator.naturalOrder()));
+                break;
+        }
+        futureEvents.sort(comparator);
+    }
+
+    private double occupancyRate(Event event) {
+        if (event == null || event.getMaxParticipants() <= 0) {
+            return 0d;
+        }
+        return (double) event.getCurrentParticipants() / (double) event.getMaxParticipants();
     }
 
     private void setupViewPager() {
@@ -383,6 +531,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private void setupClickListeners() {
         settingsButton.setOnClickListener(v -> {
             Intent intent = new Intent(OrganizerHomeActivity.this, SettingsActivity.class);
+            intent.putExtra(SettingsActivity.EXTRA_USER_TYPE, SettingsActivity.USER_TYPE_ORGANIZER);
             startActivity(intent);
         });
 
@@ -417,9 +566,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     }
 
     private void updateUI() {
-        // Ordenar eventos futuros por fecha ascendente
-        futureEvents.sort((e1, e2) -> e1.getDate().compareTo(e2.getDate()));
-        
+        sortFutureEventsList();
+
         // Ordenar eventos pasados por fecha descendente
         pastEvents.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
         
@@ -448,11 +596,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             viewPager.setAdapter(pagerAdapter);
         } else {
             pagerAdapter.updateEvents();
-        }
-        
-        // Forzar actualización del adaptador para refrescar los iconos
-        if (pagerAdapter != null) {
-            pagerAdapter.notifyDataSetChanged();
         }
         
         // Actualizar títulos de pestañas
@@ -503,9 +646,13 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             ToastUtils.showCustomToast(this, "Próximamente: Enviar invitaciones", ToastUtils.ToastType.INFO);
             return true;
         } else if (id == R.id.action_verify_attendees) {
+            if (event.getId() == null || event.getId().isEmpty()) {
+                ToastUtils.showCustomToast(this, "Error: evento sin identificador", ToastUtils.ToastType.ERROR);
+                return true;
+            }
             intent = new Intent(this, QRScannerActivity.class);
             intent.putExtra("eventId", event.getId());
-        startActivity(intent);
+            startActivity(intent);
             return true;
         } else if (id == R.id.action_clear_list) {
             showClearAttendeeListConfirmation(event);
@@ -604,8 +751,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
         MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
         
-        confirmTitleTextView.setText("Eliminar evento");
-        confirmMessageTextView.setText("¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.");
+        confirmTitleTextView.setText(R.string.delete_event_title);
+        confirmMessageTextView.setText(R.string.delete_event_message);
         
         AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
         confirmBuilder.setView(confirmDialogView);
@@ -623,51 +770,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         confirmDialog.show();
     }
 
-    private void showSuccessToast(String message) {
-        View toastView = getLayoutInflater().inflate(R.layout.toast_success, null);
-        TextView toastText = toastView.findViewById(R.id.toast_text);
-        toastText.setText(message);
-        
-        Toast toast = new Toast(this);
-        toast.setDuration(Toast.LENGTH_SHORT);
-        toast.setView(toastView);
-        toast.show();
-    }
-
-    public enum ToastType {
-        SUCCESS, ERROR, WARNING, INFO
-    }
-
-    private void showCustomToast(String message, ToastType type) {
-        int layoutRes;
-        switch (type) {
-            case SUCCESS:
-                layoutRes = R.layout.toast_success;
-                break;
-            case ERROR:
-                layoutRes = R.layout.toast_error;
-                break;
-            case WARNING:
-                layoutRes = R.layout.toast_warning;
-                break;
-            case INFO:
-                layoutRes = R.layout.toast_info;
-                break;
-            default:
-                layoutRes = R.layout.toast_success;
-        }
-
-        View toastView = getLayoutInflater().inflate(layoutRes, null);
-        TextView toastText = toastView.findViewById(R.id.toast_text);
-        toastText.setText(message);
-        
-        Toast toast = new Toast(this);
-        toast.setDuration(Toast.LENGTH_SHORT);
-        toast.setView(toastView);
-        toast.show();
-    }
-
-
     private void showClearAttendeeListConfirmation(Event event) {
         View confirmDialogView = getLayoutInflater().inflate(R.layout.dialog_confirm_delete, null);
         TextView confirmTitleTextView = confirmDialogView.findViewById(R.id.confirm_title);
@@ -675,9 +777,9 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
         MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
         
-        confirmTitleTextView.setText("Vaciar lista de asistentes");
-        confirmMessageTextView.setText("¿Estás seguro de que deseas eliminar todos los asistentes? Esta acción no se puede deshacer.");
-        confirmDeleteButton.setText("Vaciar lista");
+        confirmTitleTextView.setText(R.string.clear_attendees_title);
+        confirmMessageTextView.setText(R.string.clear_attendees_message);
+        confirmDeleteButton.setText(R.string.menu_clear_list);
         
         AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
         confirmBuilder.setView(confirmDialogView);
@@ -869,14 +971,14 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             
             // Mostrar indicador de filtros
             filterIndicatorLayout.setVisibility(View.VISIBLE);
-            filterIndicatorText.setText("Filtros: " + currentSearchFilter.getActiveFiltersSummary());
+            filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary()));
             
             // Mostrar mensaje con número de resultados
             if (filteredEvents.isEmpty()) {
                 ToastUtils.showCustomToast(this, "No se encontraron eventos que coincidan con los criterios de búsqueda en esta pestaña", ToastUtils.ToastType.INFO);
             } else {
-                String message = String.format("Se encontraron %d evento%s que coinciden con los criterios de búsqueda", 
-                    filteredEvents.size(), filteredEvents.size() == 1 ? "" : "s");
+                String message = getResources().getQuantityString(
+                        R.plurals.search_results_events, filteredEvents.size(), filteredEvents.size());
                 ToastUtils.showCustomToast(this, message, ToastUtils.ToastType.INFO);
             }
         } else {
@@ -912,24 +1014,24 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 int currentTab = tabLayout.getSelectedTabPosition();
                 if (futureTab != null) {
                     if (currentTab == 0) {
-                        futureTab.setText(String.format("Próximos (%d*)", futureCount));
+                        futureTab.setText(getString(R.string.organizer_tab_future_filtered, futureCount));
                     } else {
-                        futureTab.setText(String.format("Próximos (%d)", futureCount));
+                        futureTab.setText(getString(R.string.organizer_tab_future, futureCount));
                     }
                 }
                 if (pastTab != null) {
                     if (currentTab == 1) {
-                        pastTab.setText(String.format("Archivados (%d*)", pastCount));
+                        pastTab.setText(getString(R.string.organizer_tab_past_filtered, pastCount));
                     } else {
-                        pastTab.setText(String.format("Archivados (%d)", pastCount));
+                        pastTab.setText(getString(R.string.organizer_tab_past, pastCount));
                     }
                 }
             } else {
                 if (futureTab != null) {
-                    futureTab.setText(String.format("Próximos (%d)", futureCount));
+                    futureTab.setText(getString(R.string.organizer_tab_future, futureCount));
                 }
                 if (pastTab != null) {
-                    pastTab.setText(String.format("Archivados (%d)", pastCount));
+                    pastTab.setText(getString(R.string.organizer_tab_past, pastCount));
                 }
             }
         }

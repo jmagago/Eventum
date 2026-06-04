@@ -2,6 +2,7 @@ package com.us.eventum.data.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.PropertyName;
 import java.util.Date;
 
@@ -17,6 +18,10 @@ public class Event implements Parcelable {
     private int currentParticipants;
     private boolean privateEvent;
     private boolean requiresParentalAuth;
+    /** Solo UI (lista de asistente): inscripción del usuario actual; no se persiste en Firestore. */
+    private boolean currentUserJoined;
+    /** Solo UI (lista de asistente): check-in QR validado; no se persiste en Firestore. */
+    private boolean currentUserScannedQR;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -159,6 +164,26 @@ public class Event implements Parcelable {
         this.requiresParentalAuth = requiresParentalAuth;
     }
 
+    @Exclude
+    public boolean isCurrentUserJoined() {
+        return currentUserJoined;
+    }
+
+    @Exclude
+    public void setCurrentUserJoined(boolean currentUserJoined) {
+        this.currentUserJoined = currentUserJoined;
+    }
+
+    @Exclude
+    public boolean isCurrentUserScannedQR() {
+        return currentUserScannedQR;
+    }
+
+    @Exclude
+    public void setCurrentUserScannedQR(boolean currentUserScannedQR) {
+        this.currentUserScannedQR = currentUserScannedQR;
+    }
+
     // Constructor para Parcelable
     protected Event(Parcel in) {
         id = in.readString();
@@ -173,6 +198,8 @@ public class Event implements Parcelable {
         currentParticipants = in.readInt();
         privateEvent = in.readByte() != 0;
         requiresParentalAuth = in.readByte() != 0;
+        currentUserJoined = in.readByte() != 0;
+        currentUserScannedQR = in.readByte() != 0;
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -205,6 +232,8 @@ public class Event implements Parcelable {
         dest.writeInt(currentParticipants);
         dest.writeByte((byte) (privateEvent ? 1 : 0));
         dest.writeByte((byte) (requiresParentalAuth ? 1 : 0));
+        dest.writeByte((byte) (currentUserJoined ? 1 : 0));
+        dest.writeByte((byte) (currentUserScannedQR ? 1 : 0));
     }
 }
 

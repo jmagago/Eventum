@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Barra de FABs (buscar / + / QR): margen base + inset de navegación en runtime -->
+    <dimen name="fab_bar_margin_bottom">8dp</dimen>
+    <dimen name="fab_bar_handle_width">44dp</dimen>
+    <dimen name="fab_bar_handle_height">80dp</dimen>
+    <!-- Tarjeta de resultado del escáner QR: por encima de la barra de navegación del sistema -->
+    <dimen name="qr_scanner_status_margin_bottom">140dp</dimen>
+</resources>

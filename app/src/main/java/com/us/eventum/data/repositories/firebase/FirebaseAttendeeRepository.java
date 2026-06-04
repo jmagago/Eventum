@@ -64,6 +64,12 @@ public class FirebaseAttendeeRepository implements AttendeeRepository {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         Attendee attendee = documentSnapshot.toObject(Attendee.class);
+                        if (attendee == null) {
+                            callback.onError("Asistente no encontrado");
+                            return;
+                        }
+                        // El id del documento es el UID de Auth; conviene fijarlo aunque el mapa no traiga el campo
+                        attendee.setUid(uid);
                         callback.onSuccess(attendee);
                     } else {
                         callback.onError("Asistente no encontrado");
@@ -119,7 +125,7 @@ public class FirebaseAttendeeRepository implements AttendeeRepository {
 
     @Override
     public void checkUsernameAvailability(String username, AttendeeRepository.RepositoryCallback<Boolean> callback) {
-        String normalized = username == null ? null : username.trim().toLowerCase();
+        String normalized = username == null ? null : username.trim().toLowerCase(java.util.Locale.ROOT);
         if (normalized == null || normalized.isEmpty()) {
             callback.onSuccess(false);
             return;

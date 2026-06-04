@@ -11,8 +11,20 @@ import com.us.eventum.data.repositories.AttendeeRepository;
 import com.us.eventum.data.repositories.AttendeesToEventRepository;
 import com.us.eventum.data.repositories.firebase.FirebaseAttendeeRepository;
 import com.us.eventum.utils.FirebaseAuthErrorHandler;
+import com.us.eventum.utils.QrCheckInResult;
 import com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository;
+import com.us.eventum.data.repositories.firebase.FirebaseOrganizerNotificationRepository;
+import com.us.eventum.data.repositories.firebase.FirebaseAttendeeNotificationRepository;
+import com.us.eventum.data.repositories.firebase.FirebaseEventRepository;
+import com.us.eventum.data.repositories.OrganizerNotificationRepository;
+import com.us.eventum.data.repositories.AttendeeNotificationRepository;
+import com.us.eventum.data.repositories.EventRepository;
 import com.us.eventum.data.models.AttendeesToEvent;
+import com.us.eventum.data.models.Event;
+import com.us.eventum.data.models.OrganizerNotification;
+import com.us.eventum.data.models.AttendeeNotification;
+
+import android.util.Log;
 
 import java.util.List;
 
@@ -26,8 +38,13 @@ public class AttendeeViewModel extends ViewModel {
     private MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
     
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private Context appContext;
     private AttendeeRepository attendeeRepository;
     private AttendeesToEventRepository attendeesToEventRepository;
+    private OrganizerNotificationRepository organizerNotificationRepository;
+    private AttendeeNotificationRepository attendeeNotificationRepository;
+    private EventRepository eventRepository;
+    private static final String TAG = "AttendeeViewModel";
 
     // Getters para LiveData
     public LiveData<Attendee> getCurrentAttendee() { return currentAttendee; }
@@ -42,12 +59,138 @@ public class AttendeeViewModel extends ViewModel {
      * Inicializar el repositorio
      */
     public void initializeRepository(Context context) {
+        appContext = context.getApplicationContext();
         if (attendeeRepository == null) {
             attendeeRepository = new FirebaseAttendeeRepository();
         }
         if (attendeesToEventRepository == null) {
             attendeesToEventRepository = new FirebaseAttendeesToEventRepository();
         }
+        if (organizerNotificationRepository == null) {
+            organizerNotificationRepository = new FirebaseOrganizerNotificationRepository();
+        }
+        if (attendeeNotificationRepository == null) {
+            attendeeNotificationRepository = new FirebaseAttendeeNotificationRepository();
+        }
+        if (eventRepository == null) {
+            eventRepository = new FirebaseEventRepository();
+        }
+    }
+
+    /**
+     * Crea la notificación en Firestore leyendo siempre el organizador desde el evento en Firebase.
+     */
+    private void notifyOrganizerAfterRegistrationChange(
+            String eventId,
+            String attendeeDisplayName,
+            String type,
+            String eventTitleHint) {
+        if (organizerNotificationRepository == null || eventId == null || eventId.isEmpty()) {
+            return;
+        }
+        if (eventRepository == null) {
+            eventRepository = new FirebaseEventRepository();
+        }
+        eventRepository.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                if (event == null || event.getUserId() == null || event.getUserId().isEmpty()) {
+                    Log.w(TAG, "No se pudo notificar: evento sin userId (organizador)");
+                    return;
+                }
+                String title = event.getTitle();
+                if (title == null || title.trim().isEmpty()) {
+                    title = eventTitleHint;
+                }
+                persistOrganizerNotification(
+                        event.getUserId(),
+                        eventId,
+                        title,
+                        attendeeDisplayName,
+                        type);
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "No se pudo cargar evento para notificar al organizador: " + error);
+            }
+        });
+    }
+
+    private void persistOrganizerNotification(String organizerId, String eventId, String eventTitle,
+                                              String attendeeDisplayName, String type) {
+        if (organizerId == null || organizerId.isEmpty()) {
+            return;
+        }
+        String name = attendeeDisplayName != null && !attendeeDisplayName.trim().isEmpty()
+                ? attendeeDisplayName.trim()
+                : "Un asistente";
+        String title = eventTitle != null ? eventTitle.trim() : "";
+        OrganizerNotification notification = new OrganizerNotification(
+                organizerId, eventId, title, name, type);
+        organizerNotificationRepository.create(notification,
+                new OrganizerNotificationRepository.RepositoryCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        Log.d(TAG, "Notificación de organizador creada: " + type);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.e(TAG, "Error al crear notificación de organizador: " + error);
+                    }
+                });
+    }
+
+    private void notifyAttendeeAttendanceVerified(String attendeeId, String eventId) {
+        if (attendeeNotificationRepository == null || eventRepository == null
+                || attendeeId == null || eventId == null) {
+            return;
+        }
+        eventRepository.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                String title = event != null && event.getTitle() != null
+                        ? event.getTitle().trim()
+                        : "";
+                persistAttendeeNotification(
+                        attendeeId,
+                        eventId,
+                        title,
+                        AttendeeNotification.TYPE_ATTENDANCE_VERIFIED);
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "No se pudo cargar evento para notificar al asistente: " + error);
+                persistAttendeeNotification(
+                        attendeeId,
+                        eventId,
+                        "",
+                        AttendeeNotification.TYPE_ATTENDANCE_VERIFIED);
+            }
+        });
+    }
+
+    private void persistAttendeeNotification(String attendeeId, String eventId,
+                                             String eventTitle, String type) {
+        if (attendeeId == null || attendeeId.isEmpty()) {
+            return;
+        }
+        AttendeeNotification notification = new AttendeeNotification(
+                attendeeId, eventId, eventTitle != null ? eventTitle : "", type);
+        attendeeNotificationRepository.create(notification,
+                new AttendeeNotificationRepository.RepositoryCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        Log.d(TAG, "Notificación de asistente creada: " + type);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.e(TAG, "Error al crear notificación de asistente: " + error);
+                    }
+                });
     }
 
     /**
@@ -160,18 +303,20 @@ public class AttendeeViewModel extends ViewModel {
                             });
                                     } else {
                                         // Error enviando email de verificación
-                                        errorMessage.postValue("Error enviando email de verificación: " + verificationTask.getException().getMessage());
+                                        errorMessage.postValue(FirebaseAuthErrorHandler.getVerificationEmailError(
+                                                appContext, verificationTask.getException()));
                                         isLoading.postValue(false);
                                     }
                                 });
                         } else {
-                            errorMessage.postValue("Error de autenticación: Usuario de Firebase nulo.");
+                            errorMessage.postValue(
+                                    FirebaseAuthErrorHandler.getNullFirebaseUserMessage(appContext));
                             isLoading.postValue(false);
                         }
                     } else {
                         // Manejo profesional de errores de Firebase Auth usando utilidad centralizada
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                        this.errorMessage.postValue(errorMessage);
+                        errorMessage.postValue(FirebaseAuthErrorHandler.getErrorMessage(
+                                appContext, task.getException()));
                         isLoading.postValue(false);
                     }
                 });
@@ -276,8 +421,8 @@ public class AttendeeViewModel extends ViewModel {
                                 currentAttendee.postValue(null);
                                 isLoading.postValue(false);
                             } else {
-                                String errorMsg = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                                errorMessage.postValue("Error al eliminar cuenta de autenticación: " + errorMsg);
+                                errorMessage.postValue(FirebaseAuthErrorHandler.getErrorMessage(
+                                        appContext, task.getException()));
                                 isLoading.postValue(false);
                             }
                         });
@@ -292,55 +437,59 @@ public class AttendeeViewModel extends ViewModel {
     }
 
     /**
-     * Marca a un asistente como verificado mediante escaneo de QR
-     * Esto actualiza su estado de asistencia en el evento específico
+     * Check-in por QR: válido, ya usado o no inscrito en el evento.
      */
-    public void verifyAttendee(String attendeeId, String eventId) {
+    public void verifyAttendeeCheckIn(String attendeeId, String eventId) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
-            isLoading.postValue(false);
+            qrCheckInResult.postValue(QrCheckInResult.INVALID_TOKEN);
             return;
         }
-        
+
         isLoading.postValue(true);
         errorMessage.postValue(null);
-        
-        // Buscamos el registro del asistente en el evento para marcarlo como verificado
-        attendeesToEventRepository.loadAttendeesToEvent(eventId, new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
-            @Override
-            public void onSuccess(List<AttendeesToEvent> result) {
-                // Buscar el registro específico del asistente
-                for (AttendeesToEvent attendeeToEvent : result) {
-                    if (attendeeToEvent.getUserId().equals(attendeeId)) {
-                        // Marcar como escaneado
-                        attendeeToEvent.setScannedQR(true);
-                        attendeesToEventRepository.updateAttendeeToEvent(attendeeToEvent, new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
-                            @Override
-                            public void onSuccess(AttendeesToEvent updatedResult) {
-                                attendeeUpdated.postValue(true);
-                                isLoading.postValue(false);
-                            }
+        qrCheckInResult.postValue(null);
 
-                            @Override
-                            public void onError(String error) {
-                                errorMessage.postValue(error);
-                                isLoading.postValue(false);
+        attendeesToEventRepository.loadAttendeesToEvent(eventId,
+                new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
+                    @Override
+                    public void onSuccess(List<AttendeesToEvent> result) {
+                        for (AttendeesToEvent attendeeToEvent : result) {
+                            if (!attendeeId.equals(attendeeToEvent.getUserId())) {
+                                continue;
                             }
-                        });
-                        return;
+                            if (attendeeToEvent.isScannedQR()) {
+                                qrCheckInResult.postValue(QrCheckInResult.ALREADY_USED);
+                                isLoading.postValue(false);
+                                return;
+                            }
+                            attendeeToEvent.setScannedQR(true);
+                            attendeesToEventRepository.updateAttendeeToEvent(attendeeToEvent,
+                                    new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
+                                        @Override
+                                        public void onSuccess(AttendeesToEvent updatedResult) {
+                                            qrCheckInResult.postValue(QrCheckInResult.VALID);
+                                            notifyAttendeeAttendanceVerified(attendeeId, eventId);
+                                            isLoading.postValue(false);
+                                        }
+
+                                        @Override
+                                        public void onError(String error) {
+                                            errorMessage.postValue(error);
+                                            isLoading.postValue(false);
+                                        }
+                                    });
+                            return;
+                        }
+                        qrCheckInResult.postValue(QrCheckInResult.NOT_REGISTERED);
+                        isLoading.postValue(false);
                     }
-                }
-                // Si no se encuentra el asistente
-                errorMessage.postValue("Asistente no encontrado en el evento");
-                isLoading.postValue(false);
-            }
 
-            @Override
-            public void onError(String error) {
-                errorMessage.postValue(error);
-                isLoading.postValue(false);
-            }
-        });
+                    @Override
+                    public void onError(String error) {
+                        errorMessage.postValue(error);
+                        isLoading.postValue(false);
+                    }
+                });
     }
 
     /**
@@ -405,7 +554,14 @@ public class AttendeeViewModel extends ViewModel {
     public void clearOperationStates() {
         attendeeRegistered.postValue(false);
         attendeeUpdated.postValue(false);
+        attendeeAdded.postValue(false);
+        attendeeDeleted.postValue(false);
         usernameAvailable.postValue(false);
+        qrCheckInResult.postValue(null);
+    }
+
+    public LiveData<QrCheckInResult> getQrCheckInResult() {
+        return qrCheckInResult;
     }
 
     /**
@@ -426,9 +582,15 @@ public class AttendeeViewModel extends ViewModel {
     private MutableLiveData<List<Attendee>> attendees = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeAdded = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeDeleted = new MutableLiveData<>();
+    private MutableLiveData<QrCheckInResult> qrCheckInResult = new MutableLiveData<>();
 
     public LiveData<List<Attendee>> getAttendees() {
         return attendees;
+    }
+
+    /** Evita que un observer reciba la lista de un evento anterior al abrir otro diálogo. */
+    public void clearAttendeesList() {
+        attendees.setValue(null);
     }
 
     public LiveData<Boolean> getAttendeeAdded() {
@@ -450,6 +612,7 @@ public class AttendeeViewModel extends ViewModel {
             return;
         }
         
+        attendees.setValue(null);
         isLoading.postValue(true);
         errorMessage.postValue(null);
         
@@ -509,7 +672,18 @@ public class AttendeeViewModel extends ViewModel {
      * Inscribe a un asistente en un evento específico
      * Crea el registro de inscripción en la base de datos
      */
-    public void addAttendee(String eventId, String uid, String name, String lastName, String dni, String email, String phone, String birthDate, boolean requiresAuth) {
+    public void addAttendee(String eventId, String uid, String name, String lastName, String dni,
+                            String email, String phone, String birthDate, boolean requiresAuth) {
+        addAttendee(eventId, uid, name, lastName, dni, email, phone, birthDate, requiresAuth,
+                null, null, null);
+    }
+
+    /**
+     * Inscribe a un asistente. Si se indican organizerId y eventTitle, notifica al organizador.
+     */
+    public void addAttendee(String eventId, String uid, String name, String lastName, String dni,
+                            String email, String phone, String birthDate, boolean requiresAuth,
+                            String organizerId, String eventTitle, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
@@ -518,6 +692,7 @@ public class AttendeeViewModel extends ViewModel {
         
         isLoading.postValue(true);
         errorMessage.postValue(null);
+        attendeeAdded.postValue(false);
         
         // Creamos el registro de inscripción del asistente al evento
         AttendeesToEvent attendeeToEvent = new AttendeesToEvent();
@@ -530,6 +705,11 @@ public class AttendeeViewModel extends ViewModel {
             public void onSuccess(AttendeesToEvent result) {
                 attendeeAdded.postValue(true);
                 isLoading.postValue(false);
+                notifyOrganizerAfterRegistrationChange(
+                        eventId,
+                        attendeeDisplayName,
+                        OrganizerNotification.TYPE_ATTENDEE_JOINED,
+                        eventTitle);
             }
 
             @Override
@@ -545,6 +725,11 @@ public class AttendeeViewModel extends ViewModel {
      * Elimina su registro de asistencia de la base de datos
      */
     public void unsubscribeFromEvent(String eventId, String email) {
+        unsubscribeFromEvent(eventId, email, null, null, null);
+    }
+
+    public void unsubscribeFromEvent(String eventId, String email, String organizerId,
+                                     String eventTitle, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
@@ -553,6 +738,7 @@ public class AttendeeViewModel extends ViewModel {
         
         isLoading.postValue(true);
         errorMessage.postValue(null);
+        attendeeDeleted.postValue(false);
         
         // Obtenemos el ID del usuario autenticado
         String uid = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
@@ -575,6 +761,11 @@ public class AttendeeViewModel extends ViewModel {
                             public void onSuccess(Void deleteResult) {
                                 attendeeDeleted.postValue(true);
                                 isLoading.postValue(false);
+                                notifyOrganizerAfterRegistrationChange(
+                                        eventId,
+                                        attendeeDisplayName,
+                                        OrganizerNotification.TYPE_ATTENDEE_LEFT,
+                                        eventTitle);
                             }
 
                             @Override

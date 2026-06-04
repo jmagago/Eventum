@@ -15,7 +15,9 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
+import com.google.android.material.appbar.MaterialToolbar;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
@@ -49,7 +51,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private CircularProgressIndicator progressBar;
     private Calendar calendar;
     private SimpleDateFormat dateFormat;
-    private Toolbar toolbar;
+    private MaterialToolbar toolbar;
     private FirebaseManager firebaseManager;
     private String selectedEventType;
     private SharedViewModel sharedViewModel;
@@ -60,6 +62,7 @@ public class CreateEventActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_event);
+        setupStatusBarStripe();
 
         firebaseManager = FirebaseManager.getInstance();
         sharedViewModel = SharedViewModel.getInstance();
@@ -73,6 +76,21 @@ public class CreateEventActivity extends AppCompatActivity {
         setupClickListeners();
         setupToolbar();
         observeViewModel();
+    }
+
+    private void setupStatusBarStripe() {
+        View stripe = findViewById(R.id.statusBarStripe);
+        if (stripe == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
+            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+            lp.height = topInset;
+            v.setLayoutParams(lp);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(stripe);
     }
 
     private void initializeViews() {
@@ -102,7 +120,7 @@ public class CreateEventActivity extends AppCompatActivity {
 
         // Inicializar calendario y formato de fecha
         calendar = Calendar.getInstance();
-        dateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
+        dateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", com.us.eventum.utils.LocaleUtils.spanish());
         dateFormat.setCalendar(calendar);
     }
 
@@ -298,7 +316,9 @@ public class CreateEventActivity extends AppCompatActivity {
     private void setupToolbar() {
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("Crear un nuevo Evento");
-        toolbar.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+        toolbar.setTitle(R.string.create_event_title);
     }
 } 

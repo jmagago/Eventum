@@ -120,7 +120,7 @@ public class FirebaseOrganizerRepository implements OrganizerRepository {
 
     @Override
     public void checkUsernameAvailability(String username, OrganizerRepository.RepositoryCallback<Boolean> callback) {
-        String normalized = username == null ? null : username.trim().toLowerCase();
+        String normalized = username == null ? null : username.trim().toLowerCase(java.util.Locale.ROOT);
         if (normalized == null || normalized.isEmpty()) {
             callback.onSuccess(false);
             return;

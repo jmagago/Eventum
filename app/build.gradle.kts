@@ -2,15 +2,14 @@ import java.io.File
 import java.util.Properties
 
 plugins {
-    id("com.android.application") version "9.0.0"
-    id("org.jetbrains.kotlin.android")
+    id("com.android.application")
     id("com.google.gms.google-services")
 }
 
 // Función para leer y actualizar el número de build
 fun getNextBuildNumber(): Int {
     val versionFile = File("version.properties")
-    val properties = Properties()
+    val properties = Properties()   
     
     if (versionFile.exists()) {
         properties.load(versionFile.inputStream())
@@ -27,12 +26,27 @@ fun getNextBuildNumber(): Int {
 
 android {
     namespace = "com.us.eventum"
-    compileSdk = 34
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+    }
+    val qrSigningSecret = (localProperties.getProperty("qrSigningSecret")
+        ?: "eventum-dev-qr-secret-change-in-prod")
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
 
     defaultConfig {
         applicationId = "com.us.eventum"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
+        buildConfigField("String", "QR_SIGNING_SECRET", "\"$qrSigningSecret\"")
         
         // Versión de la aplicación
         val majorVersion = 1  // Cambiado a 0 para indicar desarrollo temprano
@@ -61,7 +75,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -78,12 +93,9 @@ android {
         options.compilerArgs.addAll(listOf("-Xlint:deprecation"))
     }
     
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
     
     // Configuración para compatibilidad con 16 KB page size
@@ -110,15 +122,21 @@ dependencies {
     implementation(libs.firebaseAuth)
     implementation(libs.firebaseFirestore)
     implementation(libs.firebaseDatabase)
-    implementation("com.google.firebase:firebase-storage")
+    implementation(libs.firebaseStorage)
     
     // Google Play Services
     implementation(libs.playServicesBase)
     implementation(libs.playServicesAuth)
     
+    // CameraX (vista previa y análisis de frames para QR)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.guava)
+
     // ML Kit para escanear códigos de barras
     implementation(libs.mlkitBarcodeScanning)
-    implementation(libs.playServicesMlkitBarcodeScanning)
     
     // ZXing para generar códigos QR
     implementation(libs.zxing)
@@ -135,14 +153,14 @@ dependencies {
     
     
     // Lifecycle components
-    implementation("androidx.lifecycle:lifecycle-viewmodel:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-livedata:2.7.0")
+    implementation(libs.lifecycleViewmodel)
+    implementation(libs.lifecycleLivedata)
     
     // SwipeRefreshLayout
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation(libs.swiperefreshlayout)
     
     // Testing
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit4)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.espressoCore)
 }

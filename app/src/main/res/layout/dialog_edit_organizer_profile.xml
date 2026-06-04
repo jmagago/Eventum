@@ -25,7 +25,7 @@
                 android:id="@+id/dialogTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Editar perfil"
+                android:text="@string/edit_organizer_profile_title"
                 android:textStyle="bold"
                 android:textSize="20sp"
                 android:textColor="@color/colorPrimaryText"
@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Como organizador, puedes actualizar el nombre de tu empresa y otros datos opcionales."
+                android:text="@string/edit_organizer_profile_message"
                 android:textSize="14sp"
                 android:textColor="@color/colorSecondaryText"
                 android:paddingBottom="16dp"/>
@@ -45,7 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Nombre de la empresa *"
+                android:hint="@string/hint_company_name_required"
                 app:startIconDrawable="@drawable/ic_title"
                 app:startIconTint="@color/colorPrimary">
 
@@ -65,7 +65,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="CIF/NIF (opcional)"
+                android:hint="@string/hint_cif_optional"
                 app:startIconDrawable="@drawable/ic_id_card"
                 app:startIconTint="@color/colorPrimary">
 
@@ -86,7 +86,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="Teléfono de contacto (opcional)"
+                android:hint="@string/hint_contact_phone_optional"
                 app:startIconDrawable="@drawable/ic_phone"
                 app:startIconTint="@color/colorPrimary">
 
@@ -113,7 +113,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cancelar"
+                    android:text="@string/cancel"
                     android:layout_marginEnd="8dp"/>
 
                 <com.google.android.material.button.MaterialButton
@@ -121,7 +121,8 @@
                     style="@style/Widget.Material3.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Guardar"/>
+                    android:text="@string/save"
+                    app:backgroundTint="@color/colorPrimary"/>
             </LinearLayout>
 
         </LinearLayout>

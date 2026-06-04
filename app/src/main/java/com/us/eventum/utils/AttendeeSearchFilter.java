@@ -3,6 +3,7 @@ package com.us.eventum.utils;
 import com.us.eventum.data.models.Attendee;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Filtro para búsqueda de asistentes
@@ -107,14 +108,19 @@ public class AttendeeSearchFilter {
             
             // Filtrar por DNI
             if (dni != null && !dni.trim().isEmpty()) {
-                matches &= attendee.getDni() != null && 
-                          attendee.getDni().toUpperCase().contains(dni.toUpperCase());
+                matches &= attendee.getDni() != null &&
+                          attendee.getDni().toUpperCase(Locale.ROOT).contains(dni.toUpperCase(Locale.ROOT));
             }
             
             // Filtrar por nombre
             if (name != null && !name.trim().isEmpty()) {
-                matches &= attendee.getUsername() != null && 
-                          attendee.getUsername().toUpperCase().contains(name.toUpperCase());
+                String nameUpper = name.toUpperCase(Locale.ROOT);
+                boolean nameMatch = attendee.getSortedNameLabel().toUpperCase(Locale.ROOT).contains(nameUpper)
+                        || (attendee.getNombre() != null
+                        && attendee.getNombre().toUpperCase(Locale.ROOT).contains(nameUpper))
+                        || (attendee.getUsername() != null
+                        && attendee.getUsername().toUpperCase(Locale.ROOT).contains(nameUpper));
+                matches &= nameMatch;
             }
             
             // Filtrar por apellidos (combinar primer y segundo apellido)
@@ -123,27 +129,27 @@ public class AttendeeSearchFilter {
                 
                 String fullLastName = "";
                 if (attendee.getPrimerApellido() != null) {
-                    fullLastName = attendee.getPrimerApellido().toUpperCase();
+                    fullLastName = attendee.getPrimerApellido().toUpperCase(Locale.ROOT);
                 }
                 if (attendee.getSegundoApellido() != null && !attendee.getSegundoApellido().trim().isEmpty()) {
-                    fullLastName += " " + attendee.getSegundoApellido().toUpperCase();
+                    fullLastName += " " + attendee.getSegundoApellido().toUpperCase(Locale.ROOT);
                 }
                 
                 // Verificar si coincide con primer apellido
                 if (firstLastName != null && !firstLastName.trim().isEmpty()) {
-                    matches &= fullLastName.contains(firstLastName.toUpperCase());
+                    matches &= fullLastName.contains(firstLastName.toUpperCase(Locale.ROOT));
                 }
                 
                 // Verificar si coincide con segundo apellido
                 if (secondLastName != null && !secondLastName.trim().isEmpty()) {
-                    matches &= fullLastName.contains(secondLastName.toUpperCase());
+                    matches &= fullLastName.contains(secondLastName.toUpperCase(Locale.ROOT));
                 }
             }
             
             // Filtrar por email
             if (email != null && !email.trim().isEmpty()) {
-                matches &= attendee.getEmail() != null && 
-                          attendee.getEmail().toUpperCase().contains(email.toUpperCase());
+                matches &= attendee.getEmail() != null &&
+                          attendee.getEmail().toUpperCase(Locale.ROOT).contains(email.toUpperCase(Locale.ROOT));
             }
             
             // Filtrar por teléfono

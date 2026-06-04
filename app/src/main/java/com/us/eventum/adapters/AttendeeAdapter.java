@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Attendee;
+import com.us.eventum.utils.ProfileImageManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,23 +38,26 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     public void setAttendees(List<Attendee> attendees) {
         android.util.Log.d("AttendeeAdapter", "setAttendees llamado con: " + (attendees != null ? attendees.size() : 0) + " asistentes");
-        
+
+        int oldSize = this.attendees.size();
         if (attendees == null) {
             this.attendees = new ArrayList<>();
-            notifyDataSetChanged();
+            if (oldSize > 0) {
+                notifyItemRangeRemoved(0, oldSize);
+            }
             return;
         }
-        
+
         // Ordenar por apellido
         attendees.sort((a1, a2) -> {
             String lastName1 = a1.getLastName() != null ? a1.getLastName() : "";
             String lastName2 = a2.getLastName() != null ? a2.getLastName() : "";
             return lastName1.compareToIgnoreCase(lastName2);
         });
-        
+
         this.attendees = attendees;
         android.util.Log.d("AttendeeAdapter", "Adapter actualizado con " + this.attendees.size() + " asistentes");
-        notifyDataSetChanged();
+        notifyListSizeChanged(oldSize, this.attendees.size());
     }
 
     @Override
@@ -61,15 +65,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         Attendee attendee = attendees.get(position);
         android.util.Log.d("AttendeeAdapter", "onBindViewHolder posición: " + position + ", asistente: " + attendee.getUsername());
         
-        // Formato "Apellidos, Nombre"
-        String lastName = attendee.getPrimerApellido() != null ? attendee.getPrimerApellido() : "";
-        String name = attendee.getUsername() != null ? attendee.getUsername() : "";
-        
-        if (!lastName.isEmpty()) {
-            holder.nameTextView.setText(lastName + ", " + name);
-        } else {
-            holder.nameTextView.setText(name);
-        }
+        holder.nameTextView.setText(attendee.getSortedNameLabel());
         
             // Mostrar DNI como primer campo
             String dni = attendee.getDni();
@@ -89,6 +85,11 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         } else {
             holder.phoneTextView.setVisibility(View.GONE);
         }
+
+        ProfileImageManager.loadProfileImageForUserId(
+                holder.itemView.getContext(),
+                holder.profileImageView,
+                attendee.getUid());
 
         // Verificar si el asistente ha sido escaneado (QR verificado)
         boolean isScanned = scannedAttendeesMap.getOrDefault(attendee.getUid(), false);
@@ -134,6 +135,26 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     public void setScannedAttendeesMap(Map<String, Boolean> scannedAttendeesMap) {
         this.scannedAttendeesMap = scannedAttendeesMap != null ? scannedAttendeesMap : new HashMap<>();
-        notifyDataSetChanged();
+        if (!this.attendees.isEmpty()) {
+            notifyItemRangeChanged(0, this.attendees.size());
+        }
+    }
+
+    private void notifyListSizeChanged(int oldSize, int newSize) {
+        if (newSize == oldSize) {
+            if (newSize > 0) {
+                notifyItemRangeChanged(0, newSize);
+            }
+        } else if (newSize > oldSize) {
+            if (oldSize > 0) {
+                notifyItemRangeChanged(0, oldSize);
+            }
+            notifyItemRangeInserted(oldSize, newSize - oldSize);
+        } else {
+            notifyItemRangeRemoved(newSize, oldSize - newSize);
+            if (newSize > 0) {
+                notifyItemRangeChanged(0, newSize);
+            }
+        }
     }
 } 

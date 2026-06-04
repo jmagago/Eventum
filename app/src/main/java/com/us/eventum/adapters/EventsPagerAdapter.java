@@ -126,16 +126,8 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
             }
         } catch (Exception ignore) {}
 
-        // Forzar que se muestren los iconos
-        try {
-            java.lang.reflect.Field field = popup.getClass().getDeclaredField("mPopup");
-            field.setAccessible(true);
-            Object menuPopupHelper = field.get(popup);
-            Class<?> classPopupHelper = Class.forName(menuPopupHelper.getClass().getName());
-            java.lang.reflect.Method setForceShowIcon = classPopupHelper.getMethod("setForceShowIcon", boolean.class);
-            setForceShowIcon.invoke(menuPopupHelper, true);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            popup.setForceShowIcon(true);
         }
 
         popup.setOnMenuItemClickListener(item -> {

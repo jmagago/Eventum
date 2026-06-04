@@ -4,6 +4,11 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        id("com.android.application") version "9.2.1"
+        id("org.jetbrains.kotlin.android") version "2.2.10"
+        id("com.google.gms.google-services") version "4.4.3"
+    }
 }
 
 dependencyResolutionManagement {

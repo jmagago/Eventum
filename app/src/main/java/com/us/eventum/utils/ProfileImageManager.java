@@ -3,6 +3,7 @@ package com.us.eventum.utils;
 import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.storage.FirebaseStorage;
@@ -17,6 +18,30 @@ public class ProfileImageManager {
     private static String currentImageUri;
     private static CircleImageView currentImageView;
     
+    /**
+     * Carga la foto de perfil de un usuario concreto (misma convención que en Storage: {@code profile_images/{uid}.jpg}).
+     * Pensado para listas (p. ej. asistentes a un evento); no usa la caché estática del propio perfil.
+     */
+    public static void loadProfileImageForUserId(Context context, ImageView target, String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            target.setImageResource(R.drawable.default_profile);
+            return;
+        }
+        StorageReference profileRef = FirebaseStorage.getInstance().getReference()
+                .child("profile_images/" + userId.trim() + ".jpg");
+        profileRef.getDownloadUrl()
+                .addOnSuccessListener(uri -> {
+                    Glide.with(context).clear(target);
+                    Glide.with(context)
+                            .load(uri.toString())
+                            .placeholder(R.drawable.default_profile)
+                            .error(R.drawable.default_profile)
+                            .circleCrop()
+                            .into(target);
+                })
+                .addOnFailureListener(e -> target.setImageResource(R.drawable.default_profile));
+    }
+
     /**
      * Carga la imagen de perfil desde Firebase Storage (online-only)
      */

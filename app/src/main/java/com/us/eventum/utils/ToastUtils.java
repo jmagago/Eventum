@@ -1,18 +1,22 @@
 package com.us.eventum.utils;
 
 import android.app.Activity;
-import android.content.Context;
-import android.view.Gravity;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.us.eventum.R;
 
 /**
- * Utilidad para mostrar toasts personalizados en la aplicación.
+ * Utilidad para mostrar mensajes temporales con diseño personalizado (Snackbar).
  */
 public class ToastUtils {
 
@@ -20,36 +24,50 @@ public class ToastUtils {
         SUCCESS, ERROR, WARNING, INFO
     }
 
-    /**
-     * Muestra un toast de bienvenida personalizado.
-     * Este toast tiene un diseño especial diferente a los demás toasts de la aplicación.
-     *
-     * @param activity La actividad actual
-     * @param message  El mensaje a mostrar
-     */
-    public static void showWelcomeToast(Activity activity, String message) {
-        View layout = LayoutInflater.from(activity).inflate(R.layout.custom_toast, null);
-        
-        TextView text = layout.findViewById(R.id.toast_text);
-        text.setText(message);
-        
-        ImageView icon = layout.findViewById(R.id.toast_icon);
-        icon.setImageResource(android.R.drawable.ic_menu_myplaces);
-        
-        Toast toast = new Toast(activity.getApplicationContext());
-        toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 100);
-        toast.setDuration(Toast.LENGTH_LONG);
-        toast.setView(layout);
-        toast.show();
+    private static View inflateWithoutAttach(LayoutInflater inflater, int layoutRes) {
+        return inflater.inflate(layoutRes, new FrameLayout(inflater.getContext()), false);
     }
 
-    /**
-     * Muestra un toast personalizado con diferentes estilos según el tipo.
-     *
-     * @param activity La actividad actual
-     * @param message El mensaje a mostrar
-     * @param type El tipo de toast (SUCCESS, ERROR, WARNING, INFO)
-     */
+    public static void showWelcomeToast(Activity activity, String message) {
+        View layout = inflateWithoutAttach(LayoutInflater.from(activity), R.layout.custom_toast);
+        TextView text = layout.findViewById(R.id.toast_text);
+        text.setText(message);
+        ImageView icon = layout.findViewById(R.id.toast_icon);
+        icon.setImageResource(android.R.drawable.ic_menu_myplaces);
+        showSnackbar(activity, layout, Snackbar.LENGTH_LONG, dpToPx(activity, 100));
+    }
+
+    public static void showCustomToastOnAnchor(@NonNull View anchor, String message, ToastType type) {
+        showCustomToastOnAnchor(anchor, message, type, dpToPx(anchor.getContext(), 16));
+    }
+
+    public static void showCustomToastOnAnchor(@NonNull View anchor, String message, ToastType type,
+                                               int bottomMarginPx) {
+        int layoutRes;
+        switch (type) {
+            case SUCCESS:
+                layoutRes = R.layout.toast_success;
+                break;
+            case ERROR:
+                layoutRes = R.layout.toast_error;
+                break;
+            case WARNING:
+                layoutRes = R.layout.toast_warning;
+                break;
+            case INFO:
+            default:
+                layoutRes = R.layout.toast_info;
+                break;
+        }
+
+        View toastView = inflateWithoutAttach(LayoutInflater.from(anchor.getContext()), layoutRes);
+        TextView toastText = toastView.findViewById(R.id.toast_text);
+        toastText.setText(message);
+
+        int duration = type == ToastType.ERROR ? Snackbar.LENGTH_LONG : Snackbar.LENGTH_SHORT;
+        showSnackbar(anchor, toastView, duration, bottomMarginPx);
+    }
+
     public static void showCustomToast(Activity activity, String message, ToastType type) {
         int layoutRes;
         switch (type) {
@@ -63,24 +81,69 @@ public class ToastUtils {
                 layoutRes = R.layout.toast_warning;
                 break;
             case INFO:
-                layoutRes = R.layout.toast_info;
-                break;
             default:
                 layoutRes = R.layout.toast_info;
+                break;
         }
 
-        View toastView = activity.getLayoutInflater().inflate(layoutRes, null);
+        View toastView = inflateWithoutAttach(activity.getLayoutInflater(), layoutRes);
         TextView toastText = toastView.findViewById(R.id.toast_text);
         toastText.setText(message);
-        
-        Toast toast = new Toast(activity);
-        // Usar duración más corta para mensajes de información
-        if (type == ToastType.INFO) {
-            toast.setDuration(Toast.LENGTH_SHORT);
-        } else {
-            toast.setDuration(Toast.LENGTH_LONG);
-        }
-        toast.setView(toastView);
-        toast.show();
+
+        int duration = type == ToastType.ERROR ? Snackbar.LENGTH_LONG : Snackbar.LENGTH_SHORT;
+        showSnackbar(activity, toastView, duration, dpToPx(activity, 80));
     }
-} 
+
+    private static void showSnackbar(@NonNull View anchor, View customView, int duration, int bottomMarginPx) {
+        Snackbar snackbar = Snackbar.make(anchor, "", duration);
+        View snackbarView = snackbar.getView();
+        snackbarView.setBackgroundColor(Color.TRANSPARENT);
+
+        ViewGroup.LayoutParams layoutParams = snackbarView.getLayoutParams();
+        if (layoutParams instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) layoutParams;
+            marginParams.bottomMargin = bottomMarginPx;
+            snackbarView.setLayoutParams(marginParams);
+        }
+
+        if (snackbarView instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) snackbarView;
+            group.removeAllViews();
+            group.setPadding(0, 0, 0, 0);
+            group.addView(customView);
+        }
+
+        snackbar.show();
+    }
+
+    private static void showSnackbar(Activity activity, View customView, int duration, int bottomMarginPx) {
+        View anchor = findSnackbarAnchor(activity);
+        if (anchor == null) {
+            return;
+        }
+        showSnackbar(anchor, customView, duration, bottomMarginPx);
+    }
+
+    private static int dpToPx(android.content.Context context, int dp) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
+    private static View findSnackbarAnchor(Activity activity) {
+        View content = activity.findViewById(android.R.id.content);
+        if (content instanceof ViewGroup) {
+            ViewGroup contentGroup = (ViewGroup) content;
+            if (contentGroup.getChildCount() > 0) {
+                View rootChild = contentGroup.getChildAt(0);
+                if (rootChild instanceof CoordinatorLayout || rootChild instanceof FrameLayout) {
+                    return rootChild;
+                }
+            }
+        }
+        return content;
+    }
+
+    private static int dpToPx(Activity activity, int dp) {
+        return dpToPx((android.content.Context) activity, dp);
+    }
+}

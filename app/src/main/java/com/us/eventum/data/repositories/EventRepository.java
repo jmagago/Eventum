@@ -50,6 +50,11 @@ public interface EventRepository {
      * @param callback Callback para manejar el resultado
      */
     void deleteEvent(String eventId, RepositoryCallback<Void> callback);
+
+    /**
+     * Obtiene un evento por su identificador.
+     */
+    void getEventById(String eventId, RepositoryCallback<Event> callback);
     
     /**
      * Callback genérico para operaciones del repositorio

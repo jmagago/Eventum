@@ -25,7 +25,7 @@
                 android:id="@+id/dialogTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Completar perfil"
+                android:text="@string/complete_profile_title"
                 android:textStyle="bold"
                 android:textSize="20sp"
                 android:textColor="@color/colorPrimaryText"
@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Completa tus datos personales para poder inscribirte en eventos. Estos datos no se podrán modificar."
+                android:text="@string/complete_profile_message_long"
                 android:textSize="14sp"
                 android:textColor="@color/colorSecondaryText"
                 android:paddingBottom="16dp"/>
@@ -45,7 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Nombre de usuario"
+                android:hint="@string/hint_username"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
@@ -67,7 +67,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Nombre *"
+                android:hint="@string/hint_first_name_required"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
@@ -87,7 +87,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Primer apellido *"
+                android:hint="@string/hint_first_surname_required"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
@@ -107,7 +107,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Segundo apellido *"
+                android:hint="@string/hint_second_surname_required"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
@@ -127,7 +127,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="DNI/NIE *"
+                android:hint="@string/hint_dni_required"
                 app:startIconDrawable="@drawable/ic_id_card"
                 app:startIconTint="@color/colorPrimary">
 
@@ -148,7 +148,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="Teléfono *"
+                android:hint="@string/hint_phone_required"
                 app:startIconDrawable="@drawable/ic_phone"
                 app:startIconTint="@color/colorPrimary">
 
@@ -168,7 +168,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="Fecha de nacimiento (dd/MM/yyyy) *"
+                android:hint="@string/hint_birth_date_required"
                 app:startIconDrawable="@drawable/ic_calendar"
                 app:startIconTint="@color/colorPrimary">
 
@@ -196,7 +196,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cancelar"
+                    android:text="@string/cancel"
                     android:layout_marginEnd="8dp"/>
 
                 <com.google.android.material.button.MaterialButton
@@ -204,7 +204,8 @@
                     style="@style/Widget.Material3.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Guardar"/>
+                    android:text="@string/save"
+                    app:backgroundTint="@color/colorPrimary"/>
             </LinearLayout>
 
         </LinearLayout>

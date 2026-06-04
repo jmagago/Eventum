@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="event_participants_count">
+        <item quantity="one">%1$d/%2$d asistente</item>
+        <item quantity="other">%1$d/%2$d asistentes</item>
+    </plurals>
+
+    <plurals name="event_capacity_detail">
+        <item quantity="one">👥  %1$d de %2$d plaza ocupada</item>
+        <item quantity="other">👥  %1$d de %2$d plazas ocupadas</item>
+    </plurals>
+
+    <plurals name="event_verified_attendees">
+        <item quantity="one">%d asistente verificado</item>
+        <item quantity="other">%d asistentes verificados</item>
+    </plurals>
+
+    <plurals name="search_results_events">
+        <item quantity="one">Se encontró %d evento que coincide con los criterios de búsqueda</item>
+        <item quantity="other">Se encontraron %d eventos que coinciden con los criterios de búsqueda</item>
+    </plurals>
+
+    <plurals name="search_results_attendees">
+        <item quantity="one">Se encontró %d asistente que coincide con los criterios de búsqueda</item>
+        <item quantity="other">Se encontraron %d asistentes que coinciden con los criterios de búsqueda</item>
+    </plurals>
+</resources>

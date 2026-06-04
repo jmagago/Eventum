@@ -2,8 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <!-- Contenido principal con scroll -->
     <androidx.core.widget.NestedScrollView
@@ -42,7 +41,8 @@
                         android:layout_height="90dp"
                         android:src="@drawable/ic_qr_logo"
                         android:layout_gravity="center"
-                        android:layout_marginBottom="20dp"/>
+                        android:layout_marginBottom="20dp"
+                        android:contentDescription="@string/cd_app_logo"/>
 
                     <!-- Campo Usuario -->
                     <com.google.android.material.textfield.TextInputLayout
@@ -51,7 +51,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Nombre de usuario"
+                        android:hint="@string/hint_username"
                         app:startIconDrawable="@drawable/ic_person"
                         app:startIconTint="@color/colorPrimary">
 
@@ -72,7 +72,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Correo electrónico"
+                        android:hint="@string/hint_email"
                         app:startIconDrawable="@drawable/ic_email"
                         app:startIconTint="@color/colorPrimary">
 
@@ -93,7 +93,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Confirmar correo electrónico"
+                        android:hint="@string/hint_confirm_email"
                         app:startIconDrawable="@drawable/ic_email"
                         app:startIconTint="@color/colorPrimary">
 
@@ -114,7 +114,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="Contraseña"
+                        android:hint="@string/hint_password"
                         app:startIconDrawable="@drawable/ic_lock"
                         app:startIconTint="@color/colorPrimary"
                         app:endIconMode="password_toggle"
@@ -137,7 +137,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="24dp"
-                        android:hint="Confirmar contraseña"
+                        android:hint="@string/hint_confirm_password"
                         app:startIconDrawable="@drawable/ic_lock"
                         app:startIconTint="@color/colorPrimary"
                         app:endIconMode="password_toggle"
@@ -189,14 +189,15 @@
                                     android:layout_width="20dp"
                                     android:layout_height="20dp"
                                     android:src="@drawable/ic_calendar"
-                                    android:tint="@color/colorPrimary"
-                                    android:layout_marginBottom="4dp"/>
+                                    app:tint="@color/colorPrimary"
+                                    android:layout_marginBottom="4dp"
+                                    android:contentDescription="@string/cd_register_organizer_icon"/>
 
                                 <TextView
                                     android:id="@+id/organizerTitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Organizador"
+                                    android:text="@string/register_role_organizer"
                                     android:textSize="14sp"
                                     android:textStyle="bold"
                                     android:textColor="@color/colorPrimaryText"
@@ -206,7 +207,7 @@
                                     android:id="@+id/organizerSubtitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Crear eventos"
+                                    android:text="@string/register_role_organizer_subtitle"
                                     android:textSize="11sp"
                                     android:textColor="@color/colorSecondaryText"
                                     android:gravity="center"
@@ -245,14 +246,15 @@
                                     android:layout_width="20dp"
                                     android:layout_height="20dp"
                                     android:src="@drawable/ic_people"
-                                    android:tint="@color/colorPrimary"
-                                    android:layout_marginBottom="4dp"/>
+                                    app:tint="@color/colorPrimary"
+                                    android:layout_marginBottom="4dp"
+                                    android:contentDescription="@string/cd_register_attendee_icon"/>
 
                                 <TextView
                                     android:id="@+id/attendeeTitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Asistente"
+                                    android:text="@string/register_role_attendee"
                                     android:textSize="14sp"
                                     android:textStyle="bold"
                                     android:textColor="@color/colorPrimaryText"
@@ -262,7 +264,7 @@
                                     android:id="@+id/attendeeSubtitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Unirse a eventos"
+                                    android:text="@string/register_role_attendee_subtitle"
                                     android:textSize="11sp"
                                     android:textColor="@color/colorSecondaryText"
                                     android:gravity="center"
@@ -279,7 +281,7 @@
                         android:id="@+id/registerButton"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
-                        android:text="Crear Cuenta"
+                        android:text="@string/register_button"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:layout_marginTop="8dp"
@@ -304,7 +306,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="¿Ya tienes cuenta? "
+                    android:text="@string/register_has_account_prompt"
                     android:textSize="14sp"
                     android:textColor="@color/colorSecondaryText"/>
 
@@ -312,7 +314,7 @@
                     android:id="@+id/loginLink"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Inicia sesión"
+                    android:text="@string/register_login_link"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="@color/colorPrimary"

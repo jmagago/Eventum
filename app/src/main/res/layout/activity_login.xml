@@ -7,7 +7,6 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorBackground"
         android:fillViewport="true"
         android:scrollbars="none">
 
@@ -33,6 +32,7 @@
                 android:layout_marginTop="40dp"
                 android:src="@drawable/ic_qr_logo"
                 android:elevation="4dp"
+                android:contentDescription="@string/cd_app_logo"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -63,7 +63,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:layout_marginHorizontal="32dp"
-                android:text="Simplifica lo complejo, potencia lo simple"
+                android:text="@string/login_slogan"
                 android:textSize="16sp"
                 android:textColor="#FFFFFF"
                 android:textStyle="italic"
@@ -96,7 +96,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Inicia sesión en tu cuenta"
+                        android:text="@string/login_subtitle"
                         android:textSize="22sp"
                         android:textColor="@color/colorPrimary"
                         android:textStyle="bold"
@@ -109,7 +109,7 @@
                         style="@style/Widget.Eventum.TextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Email"
+                        android:hint="@string/hint_email"
                         android:layout_marginBottom="0dp"
                         app:startIconDrawable="@drawable/ic_email"
                         app:startIconTint="@color/colorPrimary"
@@ -145,7 +145,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="0dp"
                         android:layout_marginBottom="4dp"
-                        android:hint="Contraseña"
+                        android:hint="@string/hint_password"
                         app:startIconDrawable="@drawable/ic_lock"
                         app:startIconTint="@color/colorPrimary"
                         app:passwordToggleEnabled="true"
@@ -186,10 +186,11 @@
                             android:id="@+id/rememberMeCheckBox"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Recordarme"
-                            android:buttonTint="@color/colorPrimary"
+                            android:text="@string/login_remember_me"
+                            app:buttonTint="@color/checkbox_remember_me_tint"
                             android:textSize="14sp"
-                            android:textColor="@color/colorSecondaryText"
+                            android:textColor="@color/colorPrimary"
+                            android:textStyle="bold"
                             android:layout_gravity="center_vertical"/>
 
                         <View
@@ -201,7 +202,7 @@
                             android:id="@+id/forgotPasswordTextView"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="¿Olvidaste tu contraseña?"
+                            android:text="@string/login_forgot_password"
                             android:textColor="@color/colorPrimary"
                             android:textSize="14sp"
                             android:textStyle="bold"
@@ -214,7 +215,7 @@
                         android:id="@+id/loginButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Iniciar Sesión"
+                        android:text="@string/login_button"
                         android:textAllCaps="false"
                         android:layout_marginBottom="16dp"
                         android:paddingVertical="12dp"
@@ -232,7 +233,7 @@
                 android:layout_marginHorizontal="24dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="24dp"
-                android:text="¿No tienes cuenta? Regístrate"
+                android:text="@string/login_register_prompt"
                 android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
                 app:layout_constraintTop_toBottomOf="@id/loginCard"

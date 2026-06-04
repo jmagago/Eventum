@@ -1,6 +1,7 @@
 package com.us.eventum.presentation.viewmodels;
 
 import android.content.Context;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -40,6 +41,10 @@ public class EventViewModel extends ViewModel {
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<Boolean> getIsLoading() { return isLoading; }
     public LiveData<List<Event>> getAllEvents() { return allEvents; }
+
+    public EventRepository getEventRepository() {
+        return eventRepository;
+    }
 
     /**
      * Inicializar el repositorio
@@ -90,7 +95,7 @@ public class EventViewModel extends ViewModel {
     }
 
     /**
-     * Cargar eventos disponibles (públicos y futuros) para asistentes
+     * Cargar catálogo completo para la home del asistente y clasificar por pestañas en UI.
      */
     public void loadAllEvents() {
         if (eventRepository == null) {
@@ -119,26 +124,31 @@ public class EventViewModel extends ViewModel {
      * Cargar el número de asistentes para cada evento desde Firebase
      */
     private void loadAttendeeCounts(List<Event> eventsList) {
-        loadAttendeeCountsFromFirebase(eventsList, events);
+        loadAttendeeCountsFromFirebase(eventsList, events, null);
     }
 
     /**
      * Cargar el número de asistentes para todos los eventos (usado en AttendeeHomeActivity)
      */
     private void loadAttendeeCountsForAllEvents(List<Event> eventsList) {
-        loadAttendeeCountsFromFirebase(eventsList, allEvents);
+        String uid = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
+        loadAttendeeCountsFromFirebase(eventsList, allEvents, uid);
     }
     
     /**
      * Cargar el número de asistentes para cada evento desde Firebase
      * @param eventsList Lista de eventos a procesar
      * @param targetLiveData LiveData a actualizar (events o allEvents)
+     * @param currentUserIdForJoinHighlight Si no es null, marca en cada evento si ese usuario está inscrito (lista asistente)
      */
-    private void loadAttendeeCountsFromFirebase(List<Event> eventsList, MutableLiveData<List<Event>> targetLiveData) {
+    private void loadAttendeeCountsFromFirebase(List<Event> eventsList, MutableLiveData<List<Event>> targetLiveData,
+                                                @Nullable String currentUserIdForJoinHighlight) {
         if (attendeesToEventRepository == null) {
             // Si no hay repositorio, establecer en 0 y continuar
             for (Event event : eventsList) {
                 event.setCurrentParticipants(0);
+                event.setCurrentUserJoined(false);
+                event.setCurrentUserScannedQR(false);
             }
             targetLiveData.postValue(eventsList);
             isLoading.postValue(false);
@@ -146,13 +156,14 @@ public class EventViewModel extends ViewModel {
         }
 
         // Cargar asistentes para cada evento
-        loadAttendeeCountsForEvents(eventsList, 0, targetLiveData);
+        loadAttendeeCountsForEvents(eventsList, 0, targetLiveData, currentUserIdForJoinHighlight);
     }
 
     /**
      * Cargar asistentes para eventos de forma recursiva
      */
-    private void loadAttendeeCountsForEvents(List<Event> eventsList, int currentIndex, MutableLiveData<List<Event>> targetLiveData) {
+    private void loadAttendeeCountsForEvents(List<Event> eventsList, int currentIndex, MutableLiveData<List<Event>> targetLiveData,
+                                             @Nullable String currentUserIdForJoinHighlight) {
         if (currentIndex >= eventsList.size()) {
             // Todos los eventos procesados
             targetLiveData.postValue(eventsList);
@@ -165,17 +176,40 @@ public class EventViewModel extends ViewModel {
             @Override
             public void onSuccess(List<AttendeesToEvent> attendees) {
                 event.setCurrentParticipants(attendees != null ? attendees.size() : 0);
-                // Procesar siguiente evento
-                loadAttendeeCountsForEvents(eventsList, currentIndex + 1, targetLiveData);
+                applyJoinHighlight(event, attendees, currentUserIdForJoinHighlight);
+                loadAttendeeCountsForEvents(eventsList, currentIndex + 1, targetLiveData, currentUserIdForJoinHighlight);
             }
 
             @Override
             public void onError(String error) {
-                // En caso de error, establecer en 0 y continuar
                 event.setCurrentParticipants(0);
-                loadAttendeeCountsForEvents(eventsList, currentIndex + 1, targetLiveData);
+                event.setCurrentUserJoined(false);
+                event.setCurrentUserScannedQR(false);
+                loadAttendeeCountsForEvents(eventsList, currentIndex + 1, targetLiveData, currentUserIdForJoinHighlight);
             }
         });
+    }
+
+    private static void applyJoinHighlight(Event event, List<AttendeesToEvent> attendees,
+                                           @Nullable String currentUserIdForJoinHighlight) {
+        if (currentUserIdForJoinHighlight == null || currentUserIdForJoinHighlight.isEmpty()) {
+            event.setCurrentUserJoined(false);
+            event.setCurrentUserScannedQR(false);
+            return;
+        }
+        boolean joined = false;
+        boolean scanned = false;
+        if (attendees != null) {
+            for (AttendeesToEvent row : attendees) {
+                if (row != null && currentUserIdForJoinHighlight.equals(row.getUserId())) {
+                    joined = true;
+                    scanned = row.isScannedQR();
+                    break;
+                }
+            }
+        }
+        event.setCurrentUserJoined(joined);
+        event.setCurrentUserScannedQR(scanned);
     }
 
     /**
@@ -304,9 +338,8 @@ public class EventViewModel extends ViewModel {
         eventRepository.updateEvent(eventId, event, new EventRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                // Genero el mensaje del toast antes de notificar la actualización
-                String estado = event.getPrivateEvent() ? "privado" : "público";
-                eventUpdateMessage.postValue("Evento actualizado a '" + estado + "'");
+                // Mensaje genérico de actualización
+                eventUpdateMessage.postValue("Evento actualizado correctamente");
                 eventUpdated.postValue(true);
                 isLoading.postValue(false);
                 

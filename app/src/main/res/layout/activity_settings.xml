@@ -3,22 +3,27 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorPrimary"
         android:elevation="0dp">
 
+        <View
+            android:id="@+id/statusBarStripe"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/login_header_bg" />
+
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
+            style="@style/ScreenToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="Ajustes"
-            app:titleTextColor="@color/white"
+            app:title="@string/settings_title"
             android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar" />
 
         <!-- Contenedor de perfil -->
@@ -68,7 +73,7 @@
                     app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.Eventum.FloatingActionButton.Circle"
                     android:layout_marginEnd="4dp"
                     android:layout_marginBottom="4dp"
-                    android:contentDescription="Editar foto de perfil"/>
+                    android:contentDescription="@string/cd_edit_profile_photo"/>
 
             </FrameLayout>
 
@@ -101,7 +106,7 @@
                 android:paddingRight="12dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
-                android:text="ROL"
+                android:text="@string/settings_role_badge"
                 android:textSize="12sp"
                 android:textColor="@color/white"
                 android:background="@drawable/bg_card_normal"/>
@@ -116,9 +121,9 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="bottom|center"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="56dp"
         android:background="@drawable/button_info_background"
-        android:text="i"
+        android:text="@string/info_button_symbol"
         android:textColor="@color/white"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -127,7 +132,7 @@
         android:elevation="6dp"
         android:clickable="true"
         android:focusable="true"
-        android:contentDescription="Información de la app" />
+        android:contentDescription="@string/app_info_title" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -144,7 +149,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cuenta"
+                android:text="@string/settings_section_account"
                 android:textStyle="bold"
                 android:textSize="18sp"
                 android:textColor="@color/colorPrimary"
@@ -179,8 +184,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_edit"
-                            android:tint="@color/colorPrimary"
-                            android:contentDescription="Editar perfil"/>
+                            app:tint="@color/colorPrimary"
+                            android:contentDescription="@string/cd_edit_profile"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -192,14 +197,14 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Editar perfil"
+                                android:text="@string/settings_edit_profile_title"
                                 android:textSize="16sp"
                                 android:textColor="@color/colorPrimaryText"/>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Actualiza tu información personal"
+                                android:text="@string/settings_edit_profile_subtitle"
                                 android:textSize="14sp"
                                 android:textColor="@color/colorSecondaryText"
                                 android:layout_marginTop="2dp"/>
@@ -209,9 +214,9 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_arrow_right"
-                            android:tint="@color/colorPrimary"
+                            app:tint="@color/colorPrimary"
                             android:layout_marginStart="8dp"
-                            android:contentDescription="Ir a editar perfil"/>
+                            android:contentDescription="@string/cd_nav_edit_profile"/>
                     </LinearLayout>
 
                     <View
@@ -233,8 +238,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_change_password"
-                            android:tint="@color/colorPrimary"
-                            android:contentDescription="Cambiar contraseña"/>
+                            app:tint="@color/colorPrimary"
+                            android:contentDescription="@string/cd_change_password"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -246,14 +251,14 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Cambiar contraseña"
+                                android:text="@string/change_password_title"
                                 android:textSize="16sp"
                                 android:textColor="@color/colorPrimaryText"/>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Actualiza tu contraseña por seguridad"
+                                android:text="@string/settings_change_password_subtitle"
                                 android:textSize="14sp"
                                 android:textColor="@color/colorSecondaryText"
                                 android:layout_marginTop="2dp"/>
@@ -263,9 +268,9 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_arrow_right"
-                            android:tint="@color/colorPrimary"
+                            app:tint="@color/colorPrimary"
                             android:layout_marginStart="8dp"
-                            android:contentDescription="Ir a cambiar contraseña"/>
+                            android:contentDescription="@string/cd_nav_change_password"/>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -274,7 +279,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Seguridad"
+                android:text="@string/settings_section_security"
                 android:textStyle="bold"
                 android:textSize="18sp"
                 android:textColor="@color/colorPrimary"
@@ -309,8 +314,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_delete"
-                            android:tint="@android:color/holo_red_dark"
-                            android:contentDescription="Eliminar cuenta"/>
+                            app:tint="@android:color/holo_red_dark"
+                            android:contentDescription="@string/cd_delete_account"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -322,14 +327,14 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Eliminar cuenta"
+                                android:text="@string/settings_delete_account_title"
                                 android:textSize="16sp"
                                 android:textColor="@android:color/holo_red_dark"/>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Elimina permanentemente tus datos"
+                                android:text="@string/settings_delete_account_subtitle"
                                 android:textSize="14sp"
                                 android:textColor="@color/colorSecondaryText"
                                 android:layout_marginTop="2dp"/>
@@ -339,9 +344,9 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_arrow_right"
-                            android:tint="@color/colorPrimary"
+                            app:tint="@color/colorPrimary"
                             android:layout_marginStart="8dp"
-                            android:contentDescription="Ir a eliminar cuenta"/>
+                            android:contentDescription="@string/cd_nav_delete_account"/>
                     </LinearLayout>
 
                     <View
@@ -363,8 +368,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_logout"
-                            android:tint="@color/colorPrimary"
-                            android:contentDescription="Cerrar sesión"/>
+                            app:tint="@color/colorPrimary"
+                            android:contentDescription="@string/cd_logout"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -376,14 +381,14 @@
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Cerrar sesión"
+                                android:text="@string/settings_logout_title"
                                 android:textSize="16sp"
                                 android:textColor="@color/colorPrimaryText"/>
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Finalizar sesión actual en este dispositivo"
+                                android:text="@string/settings_logout_subtitle"
                                 android:textSize="14sp"
                                 android:textColor="@color/colorSecondaryText"
                                 android:layout_marginTop="2dp"/>
@@ -393,9 +398,9 @@
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_arrow_right"
-                            android:tint="@color/colorPrimary"
+                            app:tint="@color/colorPrimary"
                             android:layout_marginStart="8dp"
-                            android:contentDescription="Ir a cerrar sesión"/>
+                            android:contentDescription="@string/cd_nav_logout"/>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

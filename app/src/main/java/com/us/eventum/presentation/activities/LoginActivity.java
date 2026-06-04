@@ -16,6 +16,7 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.us.eventum.data.repositories.FirebaseManager;
+import com.us.eventum.utils.FirebaseAuthErrorHandler;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.presentation.viewmodels.AuthViewModel;
 import androidx.annotation.NonNull;
@@ -139,15 +140,21 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        // Observar errores
+        // Observar errores de Firebase Auth (mensajes claros en español)
         authViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
-                if (error.contains("email")) {
-                    showErrorStable(emailErrorText, error);
-                } else if (error.contains("contraseña") || error.contains("password")) {
-                    showErrorStable(passwordErrorText, error);
-                } else {
-                    showErrorStable(emailErrorText, error);
+                clearLoginErrors();
+                loginAttempts++;
+                switch (FirebaseAuthErrorHandler.getDisplayFieldForMessage(error)) {
+                    case PASSWORD:
+                        showErrorStable(passwordErrorText, error);
+                        break;
+                    case EMAIL:
+                        showErrorStable(emailErrorText, error);
+                        break;
+                    default:
+                        ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+                        break;
                 }
             }
         });
@@ -246,6 +253,10 @@ public class LoginActivity extends AppCompatActivity {
         errorTextView.setVisibility(View.INVISIBLE);
     }
 
+    private void clearLoginErrors() {
+        hideErrorStable(emailErrorText);
+        hideErrorStable(passwordErrorText);
+    }
 
     private void navigateToRegister() {
         Intent intent = new Intent(this, RegisterActivity.class);

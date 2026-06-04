@@ -22,6 +22,7 @@ public class OrganizerViewModel extends ViewModel {
     
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
     private OrganizerRepository organizerRepository;
+    private Context appContext;
 
     // Getters para LiveData
     public LiveData<Organizer> getCurrentOrganizer() { return currentOrganizer; }
@@ -36,9 +37,14 @@ public class OrganizerViewModel extends ViewModel {
      * Inicializar el repositorio
      */
     public void initializeRepository(Context context) {
+        appContext = context.getApplicationContext();
         if (organizerRepository == null) {
             organizerRepository = new FirebaseOrganizerRepository();
         }
+    }
+
+    private void postAuthError(Exception exception) {
+        errorMessage.postValue(FirebaseAuthErrorHandler.getErrorMessage(appContext, exception));
     }
 
     /**
@@ -144,18 +150,19 @@ public class OrganizerViewModel extends ViewModel {
                             });
                                     } else {
                                         // Error enviando email de verificación
-                                        errorMessage.postValue("Error enviando email de verificación: " + verificationTask.getException().getMessage());
+                                        errorMessage.postValue(FirebaseAuthErrorHandler.getVerificationEmailError(
+                                                appContext, verificationTask.getException()));
                                         isLoading.postValue(false);
                                     }
                                 });
                         } else {
-                            errorMessage.postValue("Error de autenticación: Usuario de Firebase nulo.");
+                            errorMessage.postValue(
+                                    FirebaseAuthErrorHandler.getNullFirebaseUserMessage(appContext));
                             isLoading.postValue(false);
                         }
                     } else {
                         // Manejo profesional de errores de Firebase Auth usando utilidad centralizada
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                        this.errorMessage.postValue(errorMessage);
+                        postAuthError(task.getException());
                         isLoading.postValue(false);
                     }
                 });
@@ -252,8 +259,7 @@ public class OrganizerViewModel extends ViewModel {
                                 currentOrganizer.postValue(null);
                                 isLoading.postValue(false);
                             } else {
-                                String errorMsg = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                                errorMessage.postValue("Error al eliminar cuenta de autenticación: " + errorMsg);
+                                postAuthError(task.getException());
                                 isLoading.postValue(false);
                             }
                         });

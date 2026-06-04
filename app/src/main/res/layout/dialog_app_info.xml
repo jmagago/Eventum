@@ -115,7 +115,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_email"
                                 android:layout_marginEnd="16dp"
-                                android:tint="#2196F3"
+                                app:tint="#2196F3"
                                 android:contentDescription="@string/email_icon_desc" />
 
                             <LinearLayout
@@ -126,7 +126,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Email"
+                                    android:text="@string/label_email"
                                     android:textStyle="bold"
                                     android:textSize="14sp" />
 
@@ -150,7 +150,7 @@
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_person"
                                 android:layout_marginEnd="16dp"
-                                android:tint="#2196F3"
+                                app:tint="#2196F3"
                                 android:contentDescription="@string/tutor_icon_desc" />
 
                             <LinearLayout
@@ -161,7 +161,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Tutor"
+                                    android:text="@string/label_tutor"
                                     android:textStyle="bold"
                                     android:textSize="14sp" />
 
@@ -219,9 +219,9 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@android:drawable/ic_menu_info_details"
-                                android:tint="#2196F3"
+                                app:tint="#2196F3"
                                 android:layout_marginEnd="16dp"
-                                android:contentDescription="Icono de versión" />
+                                android:contentDescription="@string/cd_version_icon" />
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -231,7 +231,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Versión"
+                                    android:text="@string/label_version"
                                     android:textStyle="bold"
                                     android:textSize="14sp" />
 
@@ -255,9 +255,9 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@android:drawable/ic_menu_manage"
-                                android:tint="#2196F3"
+                                app:tint="#2196F3"
                                 android:layout_marginEnd="16dp"
-                                android:contentDescription="Icono de compilación" />
+                                android:contentDescription="@string/cd_build_icon" />
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -267,7 +267,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Compilación"
+                                    android:text="@string/label_build"
                                     android:textStyle="bold"
                                     android:textSize="14sp" />
 
@@ -307,8 +307,8 @@
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="#2196F3"
-                    android:contentDescription="Cerrar" />
+                    app:tint="#2196F3"
+                    android:contentDescription="@string/cd_close" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

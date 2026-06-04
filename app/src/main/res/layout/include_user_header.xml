@@ -11,7 +11,7 @@
     android:layout_marginEnd="8dp"
     app:cardCornerRadius="20dp"
     app:cardElevation="6dp"
-    app:cardBackgroundColor="@color/white">
+    app:cardBackgroundColor="@color/colorPrimaryLight">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -80,6 +80,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="8dp"
+            android:contentDescription="@string/cd_fab_settings"
             android:src="@drawable/ic_settings"
             app:backgroundTint="@color/colorPrimary"
             app:tint="@color/colorWhite"

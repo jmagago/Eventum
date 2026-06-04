@@ -23,15 +23,17 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.IntentCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.card.MaterialCardView;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.Timestamp;
@@ -59,12 +61,18 @@ import java.util.Map;
 
 import android.widget.PopupMenu;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import android.widget.ImageView;
-import com.us.eventum.utils.QRCodeGenerator;
+import com.us.eventum.utils.LocaleUtils;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.utils.NotificationPermissionHelper;
+import com.us.eventum.utils.OrganizerNotificationDispatcher;
+import com.us.eventum.utils.OrganizerNotificationHelper;
+import com.us.eventum.utils.OrganizerNotificationWatcher;
+import com.us.eventum.utils.FabBarController;
+import com.us.eventum.data.models.OrganizerNotification;
 import com.us.eventum.utils.AttendeeSearchFilter;
+import com.us.eventum.utils.QrCheckInResult;
+import com.us.eventum.utils.VibrationUtils;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
 
 public class EventDetailsActivity extends AppCompatActivity {
@@ -84,15 +92,17 @@ public class EventDetailsActivity extends AppCompatActivity {
     private FloatingActionButton searchAttendeeFab;
     private FloatingActionButton verifyQrFab;
     private MaterialCardView fabContainer;
-    private View gestureOverlay;
-    private GestureDetector gestureDetector;
-    private boolean isFabContainerVisible = true;
+    private FabBarController fabBarController;
     private RecyclerView attendeesRecyclerView;
+    private SwipeRefreshLayout attendeesSwipeRefresh;
     private ImageButton eventMenuButton;
     private SharedViewModel sharedViewModel;
     private AttendeeViewModel attendeeViewModel;
     private EventViewModel eventViewModel;
     private AlertDialog confirmDialog;
+    private AlertDialog attendeeDetailsDialog;
+    private String pendingManualCheckInAttendeeId;
+    private boolean manualCheckInAwaitingResult;
     
     // Variables para búsqueda de asistentes
     private AttendeeSearchFilter currentSearchFilter = new AttendeeSearchFilter();
@@ -105,11 +115,13 @@ public class EventDetailsActivity extends AppCompatActivity {
     private LinearLayout filterIndicatorLayout;
     private TextView filterIndicatorText;
     private ImageView clearFiltersButton;
+    private OrganizerNotificationWatcher notificationWatcher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_event_details);
+        setupStatusBarStripe();
 
         // Inicializar ViewModels
         sharedViewModel = SharedViewModel.getInstance();
@@ -119,6 +131,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             // Inicializar repositorios en ViewModels
             attendeeViewModel.initializeRepository(this);
             eventViewModel.initializeRepository(this);
+
+        notificationWatcher = new OrganizerNotificationWatcher(this);
+        NotificationPermissionHelper.requestIfNeeded(this);
         
         // Inicializar ActivityResultLauncher
         qrScannerLauncher = registerForActivityResult(
@@ -139,34 +154,67 @@ public class EventDetailsActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // Configurar botón de retroceso
-        ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> finish());
-
-        // Obtener el evento y configurar el título
-        event = getIntent().getParcelableExtra("event", Event.class);
         TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
-        
-        if (event != null) {
-            toolbarTitleTextView.setText(event.getTitle());
-            // Inicializar el resto de la UI
-            initializeViews();
-            setupGesture();
-            setupRecyclerView();
-            displayEventDetails();
-            observeViewModels();
-            loadAttendees();
-            updateAddAttendeeButtonState();
+        event = IntentCompat.getParcelableExtra(getIntent(), "event", Event.class);
+        String eventIdExtra = getIntent().getStringExtra("eventId");
 
-            // Manejar extras para mostrar diálogos
-            if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
-                showClearAttendeeListConfirmation();
-            } else if (getIntent().getBooleanExtra("show_delete_dialog", false)) {
-                showDeleteEventDialog();
-            }
+        if (event != null) {
+            setupEventUi(toolbarTitleTextView);
+        } else if (eventIdExtra != null && !eventIdExtra.isEmpty()) {
+            eventViewModel.getEventRepository().getEventById(eventIdExtra,
+                    new com.us.eventum.data.repositories.EventRepository.RepositoryCallback<Event>() {
+                        @Override
+                        public void onSuccess(Event loaded) {
+                            event = loaded;
+                            setupEventUi(toolbarTitleTextView);
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            ToastUtils.showCustomToast(EventDetailsActivity.this,
+                                    "Error al cargar el evento", ToastUtils.ToastType.ERROR);
+                            finish();
+                        }
+                    });
         } else {
             ToastUtils.showCustomToast(this, "Error al cargar el evento", ToastUtils.ToastType.ERROR);
             finish();
+        }
+    }
+
+    private void setupStatusBarStripe() {
+        View stripe = findViewById(R.id.statusBarStripe);
+        if (stripe == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
+            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+            lp.height = topInset;
+            v.setLayoutParams(lp);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(stripe);
+    }
+
+    private void setupEventUi(TextView toolbarTitleTextView) {
+        if (event == null) {
+            finish();
+            return;
+        }
+        toolbarTitleTextView.setText(event.getTitle());
+        initializeViews();
+        setupRecyclerView();
+        setupAttendeesSwipeRefresh();
+        displayEventDetails();
+        observeViewModels();
+        loadAttendees();
+        updateAddAttendeeButtonState();
+
+        if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
+            showClearAttendeeListConfirmation();
+        } else if (getIntent().getBooleanExtra("show_delete_dialog", false)) {
+            showDeleteEventDialog();
         }
     }
 
@@ -181,9 +229,14 @@ public class EventDetailsActivity extends AppCompatActivity {
         addAttendeeButton = findViewById(R.id.addAttendeeButton);
         searchAttendeeFab = findViewById(R.id.searchAttendeeFab);
         verifyQrFab = findViewById(R.id.verifyQrFab);
+        View fabDock = findViewById(R.id.fabDock);
         fabContainer = findViewById(R.id.fabContainer);
-        gestureOverlay = findViewById(R.id.gestureOverlay);
+        View fabBarHandle = findViewById(R.id.fabBarHandle);
+        View fabBarCollapse = findViewById(R.id.fabBarCollapse);
+        fabBarController = new FabBarController(this, fabDock, fabContainer, fabBarHandle, fabBarCollapse);
+        fabBarController.attachToActivity(this);
         attendeesRecyclerView = findViewById(R.id.attendeesRecyclerView);
+        attendeesSwipeRefresh = findViewById(R.id.attendeesSwipeRefresh);
         eventMenuButton = findViewById(R.id.eventMenuButton);
         
         // Elementos del indicador de filtros
@@ -191,16 +244,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         filterIndicatorText = findViewById(R.id.filterIndicatorText);
         clearFiltersButton = findViewById(R.id.clearFiltersButton);
 
-        // Deshabilitar visualmente el botón "+" si el evento ya ha pasado, pero permitiendo click para informar
-        try {
-            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
-                addAttendeeButton.setAlpha(0.5f);
-            }
-        } catch (Exception ignore) {}
-
         addAttendeeButton.setOnClickListener(v -> {
-            // Si el evento ya finalizó, solo informar
-            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
+            // Validación defensiva: un evento pasado no admite altas manuales.
+            if (isEventPast()) {
                 ToastUtils.showCustomToast(this, "Este evento ya ha finalizado. No es posible añadir asistentes.", ToastUtils.ToastType.INFO);
                 return;
             }
@@ -291,11 +337,16 @@ public class EventDetailsActivity extends AppCompatActivity {
                     }
                 }
             }
+            if (attendeesSwipeRefresh != null) {
+                attendeesSwipeRefresh.setRefreshing(false);
+            }
         });
 
         // Observar estado de carga
         attendeeViewModel.getIsLoading().observe(this, loading -> {
-            // Manejar indicador de carga si es necesario
+            if (Boolean.FALSE.equals(loading) && attendeesSwipeRefresh != null) {
+                attendeesSwipeRefresh.setRefreshing(false);
+            }
         });
 
         // Observar cuando se elimina un asistente
@@ -318,9 +369,19 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Observar errores
         attendeeViewModel.getErrorMessage().observe(this, error -> {
-            if (error != null && !error.isEmpty()) {
-                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+            if (error == null || error.isEmpty()) {
+                return;
             }
+            if (manualCheckInAwaitingResult) {
+                String attendeeId = pendingManualCheckInAttendeeId;
+                cancelPendingManualCheckIn();
+                VibrationUtils.vibrateError(this);
+                showManualCheckInFeedback(error, ToastUtils.ToastType.ERROR);
+                refreshVerifyAttendanceButton(attendeeId);
+                attendeeViewModel.clearOperationStates();
+                return;
+            }
+            ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
         });
 
         // Observar operaciones exitosas
@@ -336,6 +397,46 @@ public class EventDetailsActivity extends AppCompatActivity {
                 ToastUtils.showCustomToast(this, "Asistente actualizado con éxito", ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
             }
+        });
+
+        attendeeViewModel.getQrCheckInResult().observe(this, result -> {
+            if (result == null || !manualCheckInAwaitingResult || pendingManualCheckInAttendeeId == null) {
+                return;
+            }
+            manualCheckInAwaitingResult = false;
+            String attendeeId = pendingManualCheckInAttendeeId;
+            pendingManualCheckInAttendeeId = null;
+
+            switch (result) {
+                case VALID:
+                    scannedAttendeesMap.put(attendeeId, true);
+                    attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
+                    loadScannedAttendeesInfo();
+                    updateAttendeesCount();
+                    VibrationUtils.vibrateSuccess(this);
+                    dismissAttendeeDetailsDialog();
+                    showManualCheckInFeedback(R.string.manual_checkin_success, ToastUtils.ToastType.SUCCESS);
+                    break;
+                case ALREADY_USED:
+                    scannedAttendeesMap.put(attendeeId, true);
+                    attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
+                    updateAttendeesCount();
+                    VibrationUtils.vibrateWarning(this);
+                    showManualCheckInFeedback(R.string.manual_checkin_already, ToastUtils.ToastType.WARNING);
+                    refreshVerifyAttendanceButton(attendeeId);
+                    break;
+                case NOT_REGISTERED:
+                    VibrationUtils.vibrateError(this);
+                    showManualCheckInFeedback(R.string.qr_checkin_not_registered, ToastUtils.ToastType.ERROR);
+                    refreshVerifyAttendanceButton(attendeeId);
+                    break;
+                default:
+                    VibrationUtils.vibrateError(this);
+                    showManualCheckInFeedback(R.string.qr_checkin_error_generic, ToastUtils.ToastType.ERROR);
+                    refreshVerifyAttendanceButton(attendeeId);
+                    break;
+            }
+            attendeeViewModel.clearOperationStates();
         });
 
         attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
@@ -393,42 +494,21 @@ public class EventDetailsActivity extends AppCompatActivity {
                 finish(); // Cerrar la actividad
             }
         });
-    }
 
-    private void setupGesture() {
-        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (e1 == null || e2 == null) return false;
-                float dy = e2.getY() - e1.getY();
-                float dx = e2.getX() - e1.getX();
-                if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30) {
-                    if (dy > 0) hideFabContainer(); else showFabContainer();
-                    return true;
-                }
-                return false;
+        OrganizerNotificationDispatcher.getLatestNotification().observe(this, notification -> {
+            if (notification == null) {
+                return;
+            }
+            String body = OrganizerNotificationHelper.buildBody(this, notification);
+            ToastUtils.ToastType type = OrganizerNotification.TYPE_ATTENDEE_LEFT.equals(notification.getType())
+                    ? ToastUtils.ToastType.WARNING
+                    : ToastUtils.ToastType.INFO;
+            ToastUtils.showCustomToast(this, body, type);
+            if (event != null && notification.getEventId() != null
+                    && notification.getEventId().equals(event.getId())) {
+                loadAttendees();
             }
         });
-        if (gestureOverlay != null) {
-            gestureOverlay.setOnTouchListener((v, event) -> {
-                gestureDetector.onTouchEvent(event);
-                return true;
-            });
-        }
-    }
-
-    private void hideFabContainer() {
-        if (isFabContainerVisible && fabContainer != null) {
-            isFabContainerVisible = false;
-            fabContainer.animate().translationY(fabContainer.getHeight() + 50).setDuration(300).start();
-        }
-    }
-
-    private void showFabContainer() {
-        if (!isFabContainerVisible && fabContainer != null) {
-            isFabContainerVisible = true;
-            fabContainer.animate().translationY(0).setDuration(300).start();
-        }
     }
 
     private void showSearchAttendeeDialog() {
@@ -511,6 +591,24 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeesRecyclerView.setAdapter(attendeeAdapter);
     }
 
+    private void setupAttendeesSwipeRefresh() {
+        if (attendeesSwipeRefresh == null) {
+            return;
+        }
+        attendeesSwipeRefresh.setOnRefreshListener(() -> {
+            if (event != null) {
+                loadAttendees();
+                loadScannedAttendeesInfo();
+            } else {
+                attendeesSwipeRefresh.setRefreshing(false);
+            }
+        });
+        attendeesSwipeRefresh.setColorSchemeResources(
+            R.color.colorPrimary,
+            R.color.colorAccent
+        );
+    }
+
     private void updateLockIcon(boolean isPrivate) {
         if (eventPrivateIconDetails != null) {
             if (isPrivate) {
@@ -543,23 +641,25 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (event == null) return;
         
         // Crear formato de fecha más completo
-        SimpleDateFormat fullDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "ES"));
+        SimpleDateFormat fullDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", com.us.eventum.utils.LocaleUtils.spanish());
         String formattedDate = fullDateFormat.format(event.getDate());
-        formattedDate = formattedDate.substring(0, 1).toUpperCase() + formattedDate.substring(1);
+        formattedDate = LocaleUtils.capitalizeFirst(formattedDate);
         
         // Formato más profesional para fecha, capacidad y ubicación
-        String dateText = String.format("📅  %s", formattedDate);
-        String capacityText = String.format("👥  %d de %d plazas ocupadas", 
-            attendees.size(),
-            event.getMaxParticipants());
-        String locationText = String.format("📍  %s", event.getLocation());
+        String dateText = LocaleUtils.format("📅  %s", formattedDate);
+        String capacityText = getResources().getQuantityString(
+                R.plurals.event_capacity_detail,
+                event.getMaxParticipants(),
+                attendees.size(),
+                event.getMaxParticipants());
+        String locationText = LocaleUtils.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
         // Hora en formato 24h HH:mm (solo texto, el icono ya está en la UI como parte del estilo de lista)
         try {
-            SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", LocaleUtils.spanish());
             if (eventTimeTextView != null) {
-                eventTimeTextView.setText(String.format("%s", hourFormat.format(event.getDate())));
+                eventTimeTextView.setText(hourFormat.format(event.getDate()));
             }
         } catch (Exception ignore) {}
         locationTextView.setText(locationText);
@@ -572,17 +672,17 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         // Mostrar el número de asistentes verificados
-        View verifiedLayout = findViewById(R.id.verifiedLayout);
         TextView verifiedTextView = findViewById(R.id.verifiedTextView);
         
-        if (verifiedLayout != null && verifiedTextView != null) {
+        if (verifiedTextView != null) {
             // No inicializar con 0 si ya hay un valor (evitar parpadeo)
             String currentText = verifiedTextView.getText().toString();
-            if (currentText.isEmpty() || currentText.equals("0 asistentes verificados")) {
+            String zeroVerified = getResources().getQuantityString(R.plurals.event_verified_attendees, 0, 0);
+            if (currentText.isEmpty() || currentText.equals(zeroVerified)) {
                 // Solo inicializar con 0 si no hay valor previo
-                verifiedTextView.setText("0 asistentes verificados");
+                verifiedTextView.setText(zeroVerified);
             }
-            verifiedLayout.setVisibility(View.VISIBLE);
+            verifiedTextView.setVisibility(View.VISIBLE);
         }
         
         // Obtener lista de UIDs de asistentes actuales para filtrar
@@ -602,7 +702,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     TextView verifiedTextView = findViewById(R.id.verifiedTextView);
                     if (verifiedTextView != null) {
-                        String verifiedText = String.format("%d asistentes verificados", scannedCount != null ? scannedCount : 0);
+                        int count = scannedCount != null ? scannedCount : 0;
+                        String verifiedText = getResources().getQuantityString(
+                                R.plurals.event_verified_attendees, count, count);
                         verifiedTextView.setText(verifiedText);
                     }
                 });
@@ -615,8 +717,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                     TextView verifiedTextView = findViewById(R.id.verifiedTextView);
                     if (verifiedTextView != null) {
                         String currentText = verifiedTextView.getText().toString();
-                        if (currentText.isEmpty() || currentText.equals("0 asistentes verificados")) {
-                            verifiedTextView.setText("0 asistentes verificados");
+                        String zeroVerified = getResources().getQuantityString(R.plurals.event_verified_attendees, 0, 0);
+                        if (currentText.isEmpty() || currentText.equals(zeroVerified)) {
+                            verifiedTextView.setText(zeroVerified);
                         }
                         // Si ya hay un valor, mantenerlo en lugar de poner 0
                     }
@@ -628,22 +731,17 @@ public class EventDetailsActivity extends AppCompatActivity {
         updateLockIcon(event.getPrivateEvent());
         
         // Mostrar descripción si existe
-        View descriptionLayout = findViewById(R.id.descriptionLayout);
         View descriptionSpacer = findViewById(R.id.descriptionSpacer);
         if (event.getDescription() != null && !event.getDescription().isEmpty()) {
             descriptionTextView.setText(event.getDescription());
-            if (descriptionLayout != null) {
-                descriptionLayout.setVisibility(View.VISIBLE);
-                if (descriptionSpacer != null) {
-                    descriptionSpacer.setVisibility(View.VISIBLE);
-                }
+            descriptionTextView.setVisibility(View.VISIBLE);
+            if (descriptionSpacer != null) {
+                descriptionSpacer.setVisibility(View.VISIBLE);
             }
         } else {
-            if (descriptionLayout != null) {
-                descriptionLayout.setVisibility(View.GONE);
-                if (descriptionSpacer != null) {
-                    descriptionSpacer.setVisibility(View.GONE);
-                }
+            descriptionTextView.setVisibility(View.GONE);
+            if (descriptionSpacer != null) {
+                descriptionSpacer.setVisibility(View.GONE);
             }
         }
     }
@@ -809,7 +907,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             String name = nameEditText.getText().toString().trim();
             String firstLastName = firstLastNameEditText.getText().toString().trim();
             String secondLastName = secondLastNameEditText.getText().toString().trim();
-            String dni = dniEditText.getText().toString().trim().toUpperCase();
+            String dni = dniEditText.getText().toString().trim().toUpperCase(java.util.Locale.ROOT);
             String email = emailEditText.getText().toString().trim();
             String phone = phoneEditText.getText().toString().trim();
             String birthDate = birthDateEditText.getText().toString().trim();
@@ -895,15 +993,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         TextView phoneTextView = dialogView.findViewById(R.id.detailPhoneTextView);
         TextView birthDateTextView = dialogView.findViewById(R.id.detailBirthDateTextView);
         TextView parentalAuthTextView = dialogView.findViewById(R.id.detailParentalAuthTextView);
-        ImageView qrCodeImageView = dialogView.findViewById(R.id.detailQRCodeImageView);
+        MaterialButton verifyAttendanceButton = dialogView.findViewById(R.id.dialog_verify_attendance_button);
         
         // Referencia a los botones personalizados
         MaterialButton cancelButton = dialogView.findViewById(R.id.dialog_cancel_button);
         MaterialButton deleteButton = dialogView.findViewById(R.id.dialog_delete_button);
 
-        // Mostrar nombre completo
-        String fullName = attendee.getUsername() + " " + (attendee.getPrimerApellido() != null ? attendee.getPrimerApellido() : "");
-        nameTextView.setText(fullName.trim());
+        nameTextView.setText(attendee.getFullNameLabel());
         
         // Mostrar DNI
         String dni = attendee.getDni();
@@ -930,25 +1026,34 @@ public class EventDetailsActivity extends AppCompatActivity {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             birthDateTextView.setText(dateFormat.format(attendee.getFechaNacimiento().toDate()));
         } else {
-            birthDateTextView.setText("No especificada");
+            birthDateTextView.setText(R.string.birth_date_not_specified);
         }
 
         // Mostrar estado de autorización parental basado en el evento
         String authStatus = event.getRequiresParentalAuth() ? 
             "Requiere autorización parental" : "No requiere autorización parental";
         parentalAuthTextView.setText(authStatus);
-        
-        // Generar y mostrar el código QR con los datos del asistente y evento
-        int qrSize = 800; // Tamaño del código QR en píxeles
-        qrCodeImageView.setImageBitmap(QRCodeGenerator.generateQRCode(attendee.getUid(), event.getId(), qrSize));
+
+        boolean attendanceVerified = Boolean.TRUE.equals(scannedAttendeesMap.get(attendee.getUid()));
+        boolean allowManualVerify = !isEventPast();
+        updateVerifyAttendanceButton(verifyAttendanceButton, attendanceVerified, allowManualVerify);
+
+        if (allowManualVerify && !attendanceVerified) {
+            verifyAttendanceButton.setOnClickListener(v -> confirmManualCheckIn(attendee, dialogView));
+        }
 
         // Configurar diálogo sin botones estándar
         builder.setView(dialogView);
         
         AlertDialog dialog = builder.create();
+        attendeeDetailsDialog = dialog;
         
         // Configurar acciones para los botones personalizados
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        cancelButton.setOnClickListener(v -> {
+            cancelPendingManualCheckIn();
+            attendeeDetailsDialog = null;
+            dialog.dismiss();
+        });
         
         deleteButton.setOnClickListener(v -> {
             // Mostrar diálogo de confirmación
@@ -957,7 +1062,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
             MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
             
-            confirmMessageTextView.setText("¿Estás seguro de que deseas eliminar a este asistente?");
+            confirmMessageTextView.setText(R.string.delete_attendee_message);
             
             AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
             confirmBuilder.setView(confirmDialogView);
@@ -974,7 +1079,102 @@ public class EventDetailsActivity extends AppCompatActivity {
             confirmDialog.show();
         });
         
+        dialog.setOnDismissListener(d -> {
+            if (attendeeDetailsDialog == dialog) {
+                attendeeDetailsDialog = null;
+            }
+        });
+
         dialog.show();
+    }
+
+    private void confirmManualCheckIn(Attendee attendee, View dialogView) {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+
+        View confirmView = getLayoutInflater().inflate(R.layout.dialog_confirm_manual_checkin, null);
+        TextView messageTextView = confirmView.findViewById(R.id.manual_checkin_confirm_message);
+        TextView eventHintTextView = confirmView.findViewById(R.id.manual_checkin_event_hint);
+        MaterialButton cancelButton = confirmView.findViewById(R.id.manual_checkin_cancel_button);
+        MaterialButton confirmButton = confirmView.findViewById(R.id.manual_checkin_confirm_button);
+
+        messageTextView.setText(
+                getString(R.string.manual_checkin_confirm_message, attendee.getFullNameLabel()));
+        if (event.getTitle() != null && !event.getTitle().trim().isEmpty()) {
+            eventHintTextView.setVisibility(View.VISIBLE);
+            eventHintTextView.setText(getString(R.string.manual_checkin_event_hint, event.getTitle()));
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        builder.setView(confirmView);
+        AlertDialog confirmDialog = builder.create();
+        if (confirmDialog.getWindow() != null) {
+            confirmDialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        cancelButton.setOnClickListener(v -> confirmDialog.dismiss());
+        confirmButton.setOnClickListener(v -> {
+            MaterialButton verifyButton = dialogView.findViewById(R.id.dialog_verify_attendance_button);
+            if (verifyButton != null) {
+                verifyButton.setEnabled(false);
+            }
+            manualCheckInAwaitingResult = true;
+            pendingManualCheckInAttendeeId = attendee.getUid();
+            attendeeViewModel.verifyAttendeeCheckIn(attendee.getUid(), event.getId());
+            confirmDialog.dismiss();
+        });
+
+        confirmDialog.show();
+    }
+
+    private void cancelPendingManualCheckIn() {
+        manualCheckInAwaitingResult = false;
+        pendingManualCheckInAttendeeId = null;
+    }
+
+    private void dismissAttendeeDetailsDialog() {
+        if (attendeeDetailsDialog != null && attendeeDetailsDialog.isShowing()) {
+            attendeeDetailsDialog.dismiss();
+        }
+        attendeeDetailsDialog = null;
+    }
+
+    private void showManualCheckInFeedback(int messageResId, ToastUtils.ToastType type) {
+        showManualCheckInFeedback(getString(messageResId), type);
+    }
+
+    private void showManualCheckInFeedback(String message, ToastUtils.ToastType type) {
+        if (message == null || message.isEmpty()) {
+            message = getString(R.string.qr_checkin_error_generic);
+        }
+        View anchor = attendeesRecyclerView != null ? attendeesRecyclerView : findViewById(android.R.id.content);
+        String finalMessage = message;
+        if (anchor != null) {
+            anchor.post(() -> ToastUtils.showCustomToastOnAnchor(anchor, finalMessage, type));
+        } else {
+            ToastUtils.showCustomToast(this, finalMessage, type);
+        }
+    }
+
+    private void updateVerifyAttendanceButton(MaterialButton verifyButton,
+                                              boolean verified, boolean allowManualVerify) {
+        if (verifyButton == null) {
+            return;
+        }
+        boolean showButton = allowManualVerify && !verified;
+        verifyButton.setVisibility(showButton ? View.VISIBLE : View.GONE);
+        verifyButton.setEnabled(showButton);
+    }
+
+    private void refreshVerifyAttendanceButton(String attendeeId) {
+        if (attendeeDetailsDialog == null || !attendeeDetailsDialog.isShowing()) {
+            return;
+        }
+        MaterialButton verifyButton = attendeeDetailsDialog.findViewById(R.id.dialog_verify_attendance_button);
+        boolean verified = Boolean.TRUE.equals(scannedAttendeesMap.get(attendeeId));
+        updateVerifyAttendanceButton(verifyButton, verified, !isEventPast());
     }
 
     private void deleteAttendee(Attendee attendee, AlertDialog detailsDialog) {
@@ -1006,10 +1206,10 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Cambiar el título en la cabecera manualmente (está hardcodeado en el XML)
         TextView titleTextView = confirmDialogView.findViewById(R.id.confirm_title);
         if (titleTextView != null) {
-            titleTextView.setText("Eliminar evento");
+            titleTextView.setText(R.string.delete_event_title);
         }
         
-        confirmMessageTextView.setText("¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.");
+        confirmMessageTextView.setText(R.string.delete_event_message);
         
         AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
         confirmBuilder.setView(confirmDialogView);
@@ -1032,6 +1232,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_event, null);
         
         TextInputEditText titleInput = dialogView.findViewById(R.id.titleInput);
+        TextInputEditText descriptionInput = dialogView.findViewById(R.id.descriptionInput);
         TextInputEditText locationInput = dialogView.findViewById(R.id.locationInput);
         TextInputEditText dateInput = dialogView.findViewById(R.id.dateInput);
         TextInputEditText timeInput = dialogView.findViewById(R.id.timeInput);
@@ -1048,14 +1249,138 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Formato para hora
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         
+        // Guardar valores iniciales para comparar cambios
+        String initialTitle = event.getTitle();
+        String initialDescription = event.getDescription() != null ? event.getDescription() : "";
+        String initialLocation = event.getLocation();
+        String initialDate = dateFormat.format(event.getDate());
+        String initialTime = timeFormat.format(event.getDate());
+        int initialMaxParticipants = event.getMaxParticipants();
+        boolean initialPrivateEvent = event.getPrivateEvent();
+        boolean initialRequiresParentalAuth = event.getRequiresParentalAuth();
+        
         // Rellenar los campos con los datos actuales del evento
-        titleInput.setText(event.getTitle());
-        locationInput.setText(event.getLocation());
-        dateInput.setText(dateFormat.format(event.getDate()));
-        timeInput.setText(timeFormat.format(event.getDate()));
-        maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
-        eventoPrivadoCheckBox.setChecked(event.getPrivateEvent());
-        requiresParentalAuthCheckBox.setChecked(event.getRequiresParentalAuth());
+        titleInput.setText(initialTitle);
+        descriptionInput.setText(initialDescription);
+        locationInput.setText(initialLocation);
+        dateInput.setText(initialDate);
+        timeInput.setText(initialTime);
+        maxParticipantsInput.setText(String.valueOf(initialMaxParticipants));
+        eventoPrivadoCheckBox.setChecked(initialPrivateEvent);
+        requiresParentalAuthCheckBox.setChecked(initialRequiresParentalAuth);
+        
+        // Función para verificar si hay cambios y habilitar/deshabilitar el botón
+        Runnable checkChanges = () -> {
+            String currentTitle = titleInput.getText() != null ? titleInput.getText().toString().trim() : "";
+            String currentDescription = descriptionInput.getText() != null ? descriptionInput.getText().toString().trim() : "";
+            String currentLocation = locationInput.getText() != null ? locationInput.getText().toString().trim() : "";
+            String currentDate = dateInput.getText() != null ? dateInput.getText().toString().trim() : "";
+            String currentTime = timeInput.getText() != null ? timeInput.getText().toString().trim() : "";
+            String currentMaxParticipantsStr = maxParticipantsInput.getText() != null ? maxParticipantsInput.getText().toString().trim() : "";
+            boolean currentPrivateEvent = eventoPrivadoCheckBox.isChecked();
+            boolean currentRequiresParentalAuth = requiresParentalAuthCheckBox.isChecked();
+            
+            boolean hasChanges = false;
+            
+            // Comparar cada campo
+            if (!currentTitle.equals(initialTitle) || 
+                !currentDescription.equals(initialDescription) ||
+                !currentLocation.equals(initialLocation) ||
+                !currentDate.equals(initialDate) ||
+                !currentTime.equals(initialTime) ||
+                currentPrivateEvent != initialPrivateEvent ||
+                currentRequiresParentalAuth != initialRequiresParentalAuth) {
+                hasChanges = true;
+            } else {
+                // Comparar maxParticipants (puede ser un número)
+                try {
+                    int currentMaxParticipants = Integer.parseInt(currentMaxParticipantsStr);
+                    if (currentMaxParticipants != initialMaxParticipants) {
+                        hasChanges = true;
+                    }
+                } catch (NumberFormatException e) {
+                    // Si no es un número válido, no hay cambios reales
+                }
+            }
+            
+            // Habilitar/deshabilitar botón según haya cambios
+            saveButton.setEnabled(hasChanges);
+            saveButton.setAlpha(hasChanges ? 1.0f : 0.5f);
+        };
+        
+        // Inicialmente deshabilitar el botón (no hay cambios al inicio)
+        saveButton.setEnabled(false);
+        saveButton.setAlpha(0.5f);
+        
+        // Agregar listeners para detectar cambios
+        titleInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        descriptionInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        locationInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        dateInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        timeInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        maxParticipantsInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkChanges.run();
+            }
+        });
+        
+        eventoPrivadoCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> checkChanges.run());
+        requiresParentalAuthCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> checkChanges.run());
         
         // Configurar el DatePicker para la fecha (solo se abre al hacer clic en el icono del calendario)
         // El campo es editable para poder escribir directamente
@@ -1063,7 +1388,20 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (dateLayout != null) {
             // Configurar el icono de inicio (calendario) para abrir el DatePicker
             dateLayout.setStartIconOnClickListener(v -> {
-                showDatePicker(dateInput, calendar);
+                DatePickerDialog datePicker = new DatePickerDialog(
+                    this,
+                    (view, year, month, dayOfMonth) -> {
+                        calendar.set(Calendar.YEAR, year);
+                        calendar.set(Calendar.MONTH, month);
+                        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                        dateInput.setText(dateFormat.format(calendar.getTime()));
+                        checkChanges.run(); // Verificar cambios después de actualizar la fecha
+                    },
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH),
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                );
+                datePicker.show();
             });
         }
         
@@ -1075,6 +1413,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                     calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                     calendar.set(Calendar.MINUTE, minute);
                     timeInput.setText(timeFormat.format(calendar.getTime()));
+                    checkChanges.run(); // Verificar cambios después de actualizar la hora
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
@@ -1092,6 +1431,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         
         saveButton.setOnClickListener(v -> {
             String title = titleInput.getText().toString().trim();
+            String description = descriptionInput.getText() != null ? descriptionInput.getText().toString().trim() : "";
             String location = locationInput.getText().toString().trim();
             String dateStr = dateInput.getText().toString().trim();
             String timeStr = timeInput.getText().toString().trim();
@@ -1137,17 +1477,27 @@ public class EventDetailsActivity extends AppCompatActivity {
                 // Actualizar el objeto evento local inmediatamente para feedback visual
                 boolean newPrivateState = eventoPrivadoCheckBox.isChecked();
                 event.setTitle(title);
+                event.setDescription(description);
                 event.setLocation(location);
                 event.setDate(newDate);
                 event.setMaxParticipants(maxParticipants);
                 event.setPrivateEvent(newPrivateState);
                 event.setRequiresParentalAuth(requiresParentalAuthCheckBox.isChecked());
                 
+                // Actualizar el título en la toolbar inmediatamente
+                TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
+                if (toolbarTitleTextView != null) {
+                    toolbarTitleTextView.setText(title);
+                }
+                
                 // Actualizar el icono del candado inmediatamente
                 updateLockIcon(newPrivateState);
                 
+                // Actualizar la UI inmediatamente con los nuevos valores
+                displayEventDetails();
+                
                 // Usar EventViewModel para actualizar el evento en el servidor
-                eventViewModel.updateEvent(event.getId(), title, event.getDescription(), newDate, 
+                eventViewModel.updateEvent(event.getId(), title, description, newDate, 
                     location, maxParticipants, event.getEventType(), newPrivateState, requiresParentalAuthCheckBox.isChecked());
                 
                 dialog.dismiss();
@@ -1180,19 +1530,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
         } catch (Exception ignore) {}
         
-        // Forzar que se muestren los iconos
-        try {
-            Field field = popup.getClass().getDeclaredField("mPopup");
-            field.setAccessible(true);
-            Object menuPopupHelper = field.get(popup);
-            Class<?> classPopupHelper = Class.forName(menuPopupHelper.getClass().getName());
-            Method setForceShowIcon = classPopupHelper.getMethod("setForceShowIcon", boolean.class);
-            setForceShowIcon.invoke(menuPopupHelper, true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Aplicar el tema del popup
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             popup.setForceShowIcon(true);
         }
@@ -1229,9 +1566,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
         MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
         
-        confirmTitleTextView.setText("Vaciar lista de asistentes");
-        confirmMessageTextView.setText("¿Estás seguro de que deseas eliminar todos los asistentes? Esta acción no se puede deshacer.");
-        confirmDeleteButton.setText("Vaciar lista");
+        confirmTitleTextView.setText(R.string.clear_attendees_title);
+        confirmMessageTextView.setText(R.string.clear_attendees_message);
+        confirmDeleteButton.setText(R.string.menu_clear_list);
         
         AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
         confirmBuilder.setView(confirmDialogView);
@@ -1251,6 +1588,10 @@ public class EventDetailsActivity extends AppCompatActivity {
     
 
     private void startQRScanner() {
+        if (isEventPast()) {
+            ToastUtils.showCustomToast(this, "Este evento ya ha finalizado. No es posible verificar asistentes por QR.", ToastUtils.ToastType.INFO);
+            return;
+        }
         if (event == null || event.getId() == null) {
             ToastUtils.showCustomToast(this, "Error: No se puede escanear QR sin un evento válido", ToastUtils.ToastType.ERROR);
             return;
@@ -1307,7 +1648,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (filterIndicatorLayout != null) {
                 filterIndicatorLayout.setVisibility(View.VISIBLE);
                 if (filterIndicatorText != null) {
-                    filterIndicatorText.setText("Filtros: " + currentSearchFilter.getActiveFiltersSummary());
+                    filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary()));
                 }
             }
             
@@ -1315,8 +1656,8 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (filteredAttendees.isEmpty()) {
                 ToastUtils.showCustomToast(this, "No se encontraron asistentes con esos criterios", ToastUtils.ToastType.WARNING);
             } else {
-                String message = String.format("Se encontraron %d asistente%s que coinciden con los criterios de búsqueda", 
-                    filteredAttendees.size(), filteredAttendees.size() == 1 ? "" : "s");
+                String message = getResources().getQuantityString(
+                        R.plurals.search_results_attendees, filteredAttendees.size(), filteredAttendees.size());
                 ToastUtils.showCustomToast(this, message, ToastUtils.ToastType.SUCCESS);
             }
         } else {
@@ -1361,6 +1702,11 @@ public class EventDetailsActivity extends AppCompatActivity {
      */
     private void updateQRButtonState() {
         if (verifyQrFab != null) {
+            if (isEventPast()) {
+                verifyQrFab.setEnabled(false);
+                verifyQrFab.setAlpha(0.5f);
+                return;
+            }
             // Deshabilitar si no hay asistentes
             boolean hasAttendees = !allAttendees.isEmpty();
             verifyQrFab.setEnabled(hasAttendees);
@@ -1373,6 +1719,11 @@ public class EventDetailsActivity extends AppCompatActivity {
      */
     private void updateAddAttendeeButtonState() {
         if (addAttendeeButton != null && event != null) {
+            if (isEventPast()) {
+                addAttendeeButton.setEnabled(false);
+                addAttendeeButton.setAlpha(0.5f);
+                return;
+            }
             // Verificar si el evento está completo
             boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
             
@@ -1380,5 +1731,27 @@ public class EventDetailsActivity extends AppCompatActivity {
             addAttendeeButton.setEnabled(!isEventFull);
             addAttendeeButton.setAlpha(isEventFull ? 0.5f : 1.0f);
         }
+    }
+
+    private boolean isEventPast() {
+        return event != null && event.getDate() != null && event.getDate().before(new Date());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (notificationWatcher != null
+                && com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null) {
+            notificationWatcher.start(
+                    com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid());
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (notificationWatcher != null) {
+            notificationWatcher.stop();
+        }
+        super.onStop();
     }
 } 

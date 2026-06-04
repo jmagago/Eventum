@@ -36,7 +36,8 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/ic_lock_closed"
-                android:tint="@color/colorPrimary"
+                app:tint="@color/colorPrimary"
+                android:contentDescription="@string/cd_event_private"
                 android:layout_gravity="center_vertical"
                 android:layout_marginEnd="8dp"
                 android:visibility="gone"/>
@@ -45,7 +46,8 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_chevron_right"
-                android:tint="@color/colorPrimary"
+                app:tint="@color/colorPrimary"
+                android:contentDescription="@null"
                 android:layout_gravity="center_vertical"/>
 
         </LinearLayout>
@@ -55,109 +57,73 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="16dp">
+
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventDateTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:drawablePadding="8dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/colorSecondaryText"
+                    app:drawableStartCompat="@drawable/ic_calendar"
+                    app:drawableTint="@color/colorPrimary" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_calendar"
-                        android:tint="@color/colorPrimary"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventDateTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventTimeTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:drawablePadding="8dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/colorSecondaryText"
+                    app:drawableStartCompat="@drawable/ic_time"
+                    app:drawableTint="@color/colorPrimary" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_time"
-                        android:tint="@color/colorPrimary"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventTimeTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventLocationTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:drawablePadding="8dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/colorSecondaryText"
+                    app:drawableStartCompat="@drawable/ic_location"
+                    app:drawableTint="@color/colorPrimary" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_location"
-                        android:tint="@color/colorPrimary"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventLocationTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/eventParticipantsTextView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_people"
-                        android:tint="@color/colorPrimary"
-                        android:layout_gravity="center_vertical"/>
-
-                    <TextView
-                        android:id="@+id/eventParticipantsTextView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:textSize="14sp"
-                        android:textColor="@color/colorSecondaryText"/>
-                </LinearLayout>
+                    android:drawablePadding="8dp"
+                    android:textSize="14sp"
+                    android:textColor="@color/colorSecondaryText"
+                    app:drawableStartCompat="@drawable/ic_people"
+                    app:drawableTint="@color/colorPrimary" />
 
             </LinearLayout>
 
-            <!-- Chevron movido al encabezado -->
+            <ImageButton
+                android:id="@+id/eventQrButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="bottom"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/attendee_qr_content_desc"
+                android:padding="10dp"
+                android:src="@drawable/ic_qr_code"
+                android:visibility="gone"
+                app:tint="@color/colorAccent" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView> 
+</com.google.android.material.card.MaterialCardView>

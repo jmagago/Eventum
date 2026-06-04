@@ -28,15 +28,10 @@ public class PermissionUtils {
                     != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
             }
-        } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+        } else {
             if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE) 
                     != PackageManager.PERMISSION_GRANTED) {
                 permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            }
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P && 
-                    ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) 
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         }
 

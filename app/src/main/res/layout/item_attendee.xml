@@ -25,7 +25,7 @@
             android:scaleType="centerCrop"
             android:background="@drawable/circle_background"
             android:padding="2dp"
-            android:contentDescription="Foto de perfil del asistente"/>
+            android:contentDescription="@string/cd_attendee_profile_photo"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -74,9 +74,9 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_chevron_right"
-            android:tint="@color/colorPrimary"
+            app:tint="@color/colorPrimary"
             android:layout_marginStart="8dp"
-            android:contentDescription="Ver detalles"/>
+            android:contentDescription="@string/cd_view_details"/>
 
     </LinearLayout>
 

@@ -3,6 +3,7 @@ package com.us.eventum.data.models;
 import com.google.firebase.Timestamp;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Locale;
 
 public class Attendee implements Serializable {
     private String uid;
@@ -30,13 +31,14 @@ public class Attendee implements Serializable {
         this.phone = phone;
         this.primerApellido = primerApellido;
         this.segundoApellido = segundoApellido;
-        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
+        this.usernameLower = username != null ? username.trim().toLowerCase(Locale.ROOT) : null;
         
         // Convertir String a Timestamp si se proporciona
         if (fechaNacimiento != null && !fechaNacimiento.isEmpty()) {
             try {
                 // Asumir formato dd/MM/yyyy
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                        "dd/MM/yyyy", com.us.eventum.utils.LocaleUtils.spanish());
                 Date date = sdf.parse(fechaNacimiento);
                 
                 // Crear fecha a medianoche (00:00:00) para evitar incluir hora
@@ -69,7 +71,7 @@ public class Attendee implements Serializable {
 
     public void setUsername(String username) {
         this.username = username;
-        this.usernameLower = username != null ? username.trim().toLowerCase() : null;
+        this.usernameLower = username != null ? username.trim().toLowerCase(Locale.ROOT) : null;
     }
 
     public String getEmail() {
@@ -136,7 +138,8 @@ public class Attendee implements Serializable {
         if (fechaNacimiento != null && !fechaNacimiento.isEmpty()) {
             try {
                 // Asumir formato dd/MM/yyyy
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                        "dd/MM/yyyy", com.us.eventum.utils.LocaleUtils.spanish());
                 Date date = sdf.parse(fechaNacimiento);
                 
                 // Crear fecha a medianoche (00:00:00) para evitar incluir hora
@@ -181,6 +184,63 @@ public class Attendee implements Serializable {
     // Métodos de compatibilidad para SettingsActivity
     public String getLastName() {
         return primerApellido; // Primer apellido como apellido principal
+    }
+
+    /** Nombre de pila para mostrar (nombre real, no el username de la cuenta). */
+    public String getFirstNameForDisplay() {
+        if (nombre != null && !nombre.trim().isEmpty()) {
+            return nombre.trim();
+        }
+        if (username != null && !username.trim().isEmpty()) {
+            return username.trim();
+        }
+        return "";
+    }
+
+    /** Apellidos completos para mostrar. */
+    public String getApellidosForDisplay() {
+        String p1 = primerApellido != null ? primerApellido.trim() : "";
+        String p2 = segundoApellido != null ? segundoApellido.trim() : "";
+        if (!p1.isEmpty() && !p2.isEmpty()) {
+            return p1 + " " + p2;
+        }
+        return !p1.isEmpty() ? p1 : p2;
+    }
+
+    /** Formato lista: "Apellidos, Nombre". */
+    public String getSortedNameLabel() {
+        String apellidos = getApellidosForDisplay();
+        String nombrePila = getFirstNameForDisplay();
+        if (!apellidos.isEmpty() && !nombrePila.isEmpty()) {
+            return apellidos + ", " + nombrePila;
+        }
+        if (!nombrePila.isEmpty()) {
+            return nombrePila;
+        }
+        if (!apellidos.isEmpty()) {
+            return apellidos;
+        }
+        return username != null ? username.trim() : "";
+    }
+
+    /** Formato ficha: "Nombre Apellido1 Apellido2". */
+    public String getFullNameLabel() {
+        StringBuilder sb = new StringBuilder();
+        String nombrePila = getFirstNameForDisplay();
+        if (!nombrePila.isEmpty()) {
+            sb.append(nombrePila);
+        }
+        String apellidos = getApellidosForDisplay();
+        if (!apellidos.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(apellidos);
+        }
+        if (sb.length() == 0 && username != null) {
+            sb.append(username.trim());
+        }
+        return sb.toString().trim();
     }
 
     // Métodos de compatibilidad para mantener la interfaz existente

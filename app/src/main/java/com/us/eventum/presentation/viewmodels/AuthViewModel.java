@@ -30,6 +30,7 @@ public class AuthViewModel extends ViewModel {
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
     private OrganizerRepository organizerRepository;
     private AttendeeRepository attendeeRepository;
+    private Context appContext;
 
     // Getters para LiveData
     public LiveData<Boolean> getUserLoggedIn() { return userLoggedIn; }
@@ -47,6 +48,7 @@ public class AuthViewModel extends ViewModel {
      * Inicializar los repositorios
      */
     public void initializeRepositories(Context context) {
+        appContext = context.getApplicationContext();
         if (organizerRepository == null) {
             organizerRepository = new FirebaseOrganizerRepository();
         }
@@ -55,20 +57,22 @@ public class AuthViewModel extends ViewModel {
         }
     }
 
+    private void postAuthError(Exception exception) {
+        errorMessage.postValue(FirebaseAuthErrorHandler.getErrorMessage(appContext, exception));
+    }
+
     /**
-     * Iniciar sesión
+     * Iniciar sesión con email y contraseña.
+     * No se llama a signOut() antes: Firebase sustituye la sesión al autenticar correctamente
+     * y un cierre previo provocaba condiciones de carrera con signIn (errores intermitentes).
      */
     public void login(String email, String password) {
-        // Resetear estados para este intento de login
         errorMessage.postValue(null);
         emailNotVerified.postValue(false);
         userLoggedIn.postValue(false);
-
-        // Asegurar que el login use SIEMPRE las credenciales introducidas
-        if (mAuth.getCurrentUser() != null) {
-            mAuth.signOut();
-        }
-
+        userType.postValue(null);
+        currentOrganizer.postValue(null);
+        currentAttendee.postValue(null);
         isLoading.postValue(true);
 
         mAuth.signInWithEmailAndPassword(email, password)
@@ -76,16 +80,13 @@ public class AuthViewModel extends ViewModel {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null && !firebaseUser.isEmailVerified()) {
-                            // Bloquear acceso si el email no está verificado
                             emailNotVerified.postValue(true);
                             isLoading.postValue(false);
                             return;
                         }
                         determineUserType();
                     } else {
-                        // Manejo profesional de errores de Firebase Auth usando utilidad centralizada
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                        this.errorMessage.postValue(errorMessage);
+                        postAuthError(task.getException());
                         isLoading.postValue(false);
                     }
                 });
@@ -97,7 +98,7 @@ public class AuthViewModel extends ViewModel {
     public void determineUserType() {
         FirebaseUser firebaseUser = mAuth.getCurrentUser();
         if (firebaseUser == null) {
-            errorMessage.postValue("Usuario no autenticado");
+            errorMessage.postValue(FirebaseAuthErrorHandler.getNotAuthenticatedMessage(appContext));
             isLoading.postValue(false);
             return;
         }
@@ -128,9 +129,8 @@ public class AuthViewModel extends ViewModel {
 
                     @Override
                     public void onError(String attendeeError) {
-                        // No es ni organizador ni asistente
-                        errorMessage.postValue("Usuario no encontrado en la base de datos");
-                        userLoggedIn.postValue(false);
+                        errorMessage.postValue(
+                                FirebaseAuthErrorHandler.getUserNotInDatabaseMessage(appContext));
                         isLoading.postValue(false);
                     }
                 });
@@ -156,15 +156,15 @@ public class AuthViewModel extends ViewModel {
         verificationEmailSent.postValue(false);
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) {
-            errorMessage.postValue("No hay usuario autenticado para reenviar el correo de verificación");
+            errorMessage.postValue(FirebaseAuthErrorHandler.getNoUserForVerificationMessage(appContext));
             return;
         }
         user.sendEmailVerification().addOnCompleteListener(t -> {
             if (t.isSuccessful()) {
                 verificationEmailSent.postValue(true);
             } else {
-                String errorMsg = t.getException() != null ? t.getException().getMessage() : "Error desconocido";
-                errorMessage.postValue("No se pudo enviar el correo de verificación: " + errorMsg);
+                errorMessage.postValue(FirebaseAuthErrorHandler.getVerificationEmailError(
+                        appContext, t.getException()));
             }
         });
     }
@@ -179,7 +179,7 @@ public class AuthViewModel extends ViewModel {
 
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) {
-            errorMessage.postValue("Usuario no autenticado");
+            errorMessage.postValue(FirebaseAuthErrorHandler.getNotAuthenticatedMessage(appContext));
             isLoading.postValue(false);
             return;
         }
@@ -195,14 +195,12 @@ public class AuthViewModel extends ViewModel {
                                         passwordChanged.postValue(true);
                                         isLoading.postValue(false);
                                     } else {
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(updateTask.getException());
-                        this.errorMessage.postValue("Error al cambiar contraseña: " + errorMessage);
+                                        postAuthError(updateTask.getException());
                                         isLoading.postValue(false);
                                     }
                                 });
                     } else {
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(authTask.getException());
-                        this.errorMessage.postValue("Error de autenticación: " + errorMessage);
+                        postAuthError(authTask.getException());
                         isLoading.postValue(false);
                     }
                 });
@@ -222,8 +220,7 @@ public class AuthViewModel extends ViewModel {
                         passwordResetSent.postValue(true);
                         isLoading.postValue(false);
                     } else {
-                        String errorMessage = FirebaseAuthErrorHandler.getErrorMessage(task.getException());
-                        this.errorMessage.postValue("Error al enviar correo: " + errorMessage);
+                        postAuthError(task.getException());
                         isLoading.postValue(false);
                     }
                 });

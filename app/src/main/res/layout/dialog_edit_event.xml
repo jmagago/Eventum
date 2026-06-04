@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Modifica los datos del evento"
+        android:text="@string/edit_event_subtitle"
         android:textColor="@color/colorPrimary"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -21,7 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:hint="Título del evento"
+        android:hint="@string/hint_event_title"
         app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
         app:startIconDrawable="@drawable/ic_title"
         app:startIconTint="@color/colorPrimary">
@@ -37,12 +37,34 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/descriptionLayout"
+        style="@style/Widget.Eventum.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:hint="@string/hint_event_description_optional"
+        app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
+        app:startIconDrawable="@drawable/ic_description"
+        app:startIconTint="@color/colorPrimary">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/descriptionInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/TextAppearance.Eventum.Input"
+            android:inputType="textMultiLine"
+            android:minLines="3"
+            android:gravity="top|start"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/locationLayout"
         style="@style/Widget.Eventum.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:hint="Lugar del evento"
+        android:hint="@string/hint_event_location"
         app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
         app:startIconDrawable="@drawable/ic_location"
         app:startIconTint="@color/colorPrimary">
@@ -61,6 +83,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:baselineAligned="false"
         android:layout_marginBottom="20dp">
 
         <com.google.android.material.textfield.TextInputLayout
@@ -69,7 +92,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Fecha del evento"
+            android:hint="@string/hint_event_date"
             app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
             app:startIconDrawable="@drawable/ic_calendar"
             app:startIconTint="@color/colorPrimary">
@@ -92,7 +115,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:hint="Hora del evento"
+            android:hint="@string/hint_event_time"
             app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
             app:startIconDrawable="@drawable/ic_time"
             app:startIconTint="@color/colorPrimary">
@@ -116,7 +139,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:hint="Número de plazas"
+        android:hint="@string/hint_event_places"
         app:hintTextAppearance="@style/TextAppearance.Material3.BodyLarge"
         app:startIconDrawable="@drawable/ic_people"
         app:startIconTint="@color/colorPrimary">
@@ -170,7 +193,7 @@
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cancelar"
+            android:text="@string/cancel"
             android:textSize="16sp"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
@@ -182,7 +205,7 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Guardar"
+            android:text="@string/save"
             android:textSize="16sp"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"

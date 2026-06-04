@@ -18,13 +18,14 @@
         android:layout_height="24dp"
         android:layout_marginEnd="16dp"
         android:src="@android:drawable/ic_dialog_info"
+        android:contentDescription="@null"
         app:tint="@android:color/white" />
 
     <TextView
         android:id="@+id/toast_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Mensaje de notificación"
+        android:text="@string/toast_message_placeholder"
         android:textColor="@android:color/white"
         android:textSize="16sp" />
 

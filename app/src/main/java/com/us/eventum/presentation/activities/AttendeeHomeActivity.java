@@ -5,8 +5,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -14,19 +17,30 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.us.eventum.R;
-import com.us.eventum.adapters.EventAdapter;
+import com.us.eventum.adapters.AttendeeEventsPagerAdapter;
 import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.Event;
+import com.us.eventum.presentation.fragments.AttendeeEventsFragment;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.utils.VibrationUtils;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.NetworkUtils;
+import com.us.eventum.utils.NotificationPermissionHelper;
+import com.us.eventum.utils.AttendeeNotificationWatcher;
+import com.us.eventum.utils.AttendeeNotificationDispatcher;
+import com.us.eventum.utils.AttendeeNotificationHelper;
+import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
 
 import android.app.DatePickerDialog;
@@ -41,72 +55,63 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Activity para asistentes: lista eventos disponibles (fecha >= hoy)
+ * Home del asistente: pestañas Mis eventos, Descubrir e Historial (check-in QR).
  */
-public class AttendeeHomeActivity extends AppCompatActivity {
+public class AttendeeHomeActivity extends AppCompatActivity
+        implements AttendeeEventsFragment.AttendeeEventListener {
+
+    private static final int TAB_MY_EVENTS = 0;
+    private static final int TAB_DISCOVER = 1;
+    private static final int TAB_HISTORY = 2;
 
     private EventViewModel eventViewModel;
-    private RecyclerView recyclerView;
-    private View progressBar;
-    private TextView emptyText;
-    private EventAdapter adapter;
     private AttendeeViewModel attendeeViewModel;
     private CircleImageView profileImageView;
     private SharedViewModel sharedViewModel = SharedViewModel.getInstance();
+    private EventDialogContext eventDialogContext;
+    private boolean pendingSubscribeAction;
+
+    private ViewPager2 viewPager;
+    private TabLayout tabLayout;
+    private AttendeeEventsPagerAdapter pagerAdapter;
+    private TabLayoutMediator tabLayoutMediator;
+    private final List<Event> myEventsList = new ArrayList<>();
+    private final List<Event> discoverEventsList = new ArrayList<>();
+    private final List<Event> historyEventsList = new ArrayList<>();
+    /** Tras inscripción o baja, cambiar a la pestaña correspondiente al recibir datos. */
+    private Integer pendingTabAfterRefresh;
+    private AttendeeNotificationWatcher attendeeNotificationWatcher;
+
+    private static final class EventDialogContext {
+        final Event event;
+        final String userEmail;
+        final Button joinButton;
+        final TextView participantsText;
+        final ImageButton showQrButton;
+        final AlertDialog dialog;
+
+        EventDialogContext(Event event, String userEmail, Button joinButton,
+                           TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
+            this.event = event;
+            this.userEmail = userEmail;
+            this.joinButton = joinButton;
+            this.participantsText = participantsText;
+            this.showQrButton = showQrButton;
+            this.dialog = dialog;
+        }
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_available_events);
 
+        setupStatusBarStripe();
+
         // Header similar a Home: rellenar nombre/email/rol e imagen de perfil
 
-        progressBar = findViewById(R.id.progressBar);
-        emptyText = findViewById(R.id.emptyText);
-        recyclerView = findViewById(R.id.eventsRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new EventAdapter();
-        adapter.setOnItemClickListener(new EventAdapter.OnEventClickListener() {
-            @Override
-            public void onEventClick(Event event) {
-                showEventDetailsDialog(event);
-            }
-
-            @Override
-            public void onEventLongClick(View view, Event event) {
-                // Si hay email autenticado, usarlo directamente; si no, pedirlo
-                String email = FirebaseAuth.getInstance().getCurrentUser() != null
-                        ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
-                        : null;
-                if (email != null && !email.trim().isEmpty()) {
-                    attendeeViewModel.unsubscribeFromEvent(event.getId(), email);
-                    attendeeViewModel.getErrorMessage().observe(AttendeeHomeActivity.this, err -> {
-                        if (err != null && !err.isEmpty()) {
-                            ToastUtils.showCustomToast(AttendeeHomeActivity.this, err, ToastUtils.ToastType.ERROR);
-                        }
-                    });
-                    attendeeViewModel.getAttendeeDeleted().observe(AttendeeHomeActivity.this, deleted -> {
-                        if (deleted != null && deleted) {
-                            ToastUtils.showCustomToast(AttendeeHomeActivity.this, "Baja realizada", ToastUtils.ToastType.SUCCESS);
-                            attendeeViewModel.clearOperationStates();
-                            // Recargar eventos para actualizar contadores
-                            loadAvailableEvents();
-                        }
-                    });
-                } else {
-                    showUnsubscribeDialog(event);
-                }
-            }
-
-            @Override
-            public void onLockIconLongClick(Event event) {
-                // Solo el organizador puede modificar la privacidad del evento
-                ToastUtils.showCustomToast(AttendeeHomeActivity.this, 
-                    "Solo el organizador puede cambiar la privacidad del evento", 
-                    ToastUtils.ToastType.INFO);
-            }
-        });
-        recyclerView.setAdapter(adapter);
+        tabLayout = findViewById(R.id.tabLayout);
+        viewPager = findViewById(R.id.viewPager);
 
         eventViewModel = new ViewModelProvider(this).get(EventViewModel.class);
         eventViewModel.initializeRepository(this);
@@ -143,67 +148,269 @@ public class AttendeeHomeActivity extends AppCompatActivity {
 
         // Configurar botón de settings
         setupSettingsButton();
-
+        setupViewPager();
         observeViewModel();
         loadAvailableEvents();
+
+        attendeeNotificationWatcher = new AttendeeNotificationWatcher(this);
+        NotificationPermissionHelper.requestIfNeeded(this);
+        AttendeeNotificationDispatcher.getLatestNotification().observe(this, notification -> {
+            if (notification == null) {
+                return;
+            }
+            String body = AttendeeNotificationHelper.buildBody(this, notification);
+            ToastUtils.showCustomToast(this, body, ToastUtils.ToastType.SUCCESS);
+        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (attendeeNotificationWatcher != null
+                && FirebaseAuth.getInstance().getCurrentUser() != null) {
+            attendeeNotificationWatcher.start(
+                    FirebaseAuth.getInstance().getCurrentUser().getUid());
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (attendeeNotificationWatcher != null) {
+            attendeeNotificationWatcher.stop();
+        }
+        super.onStop();
+    }
+
+    private void setupStatusBarStripe() {
+        View stripe = findViewById(R.id.statusBarStripe);
+        if (stripe == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
+            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            lp.height = topInset;
+            v.setLayoutParams(lp);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(stripe);
+    }
+
+    private void setupViewPager() {
+        pagerAdapter = new AttendeeEventsPagerAdapter(this, myEventsList, discoverEventsList, historyEventsList);
+        viewPager.setAdapter(pagerAdapter);
+        viewPager.setUserInputEnabled(true);
+
+        tabLayoutMediator = new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
+            switch (position) {
+                case TAB_MY_EVENTS:
+                    tab.setText(getString(R.string.attendee_tab_my_events_count, myEventsList.size()));
+                    break;
+                case TAB_HISTORY:
+                    tab.setText(getString(R.string.attendee_tab_history_count, historyEventsList.size()));
+                    break;
+                case TAB_DISCOVER:
+                default:
+                    tab.setText(getString(R.string.attendee_tab_discover_count, discoverEventsList.size()));
+                    break;
+            }
+        });
+        tabLayoutMediator.attach();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Asegurar que la imagen de perfil se actualiza inmediatamente al volver de Settings
         if (profileImageView != null) {
             ProfileImageManager.loadProfileImage(this, profileImageView);
         }
+        loadAvailableEvents();
     }
 
     private void observeViewModel() {
         eventViewModel.getIsLoading().observe(this, loading -> {
-            if (loading != null) {
-                progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-            }
-        });
-
-        // Observar estado de carga del AttendeeViewModel para inscripciones/desinscripciones
-        attendeeViewModel.getIsLoading().observe(this, loading -> {
-            if (loading != null) {
-                progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+            if (loading != null && pagerAdapter != null) {
+                pagerAdapter.setRefreshing(loading);
             }
         });
 
         eventViewModel.getAllEvents().observe(this, events -> {
-            if (events == null) {
-                showEvents(new ArrayList<>());
+            partitionAndUpdateTabs(events != null ? events : new ArrayList<>());
+            if (pagerAdapter != null) {
+                pagerAdapter.setRefreshing(false);
+            }
+        });
+
+        setupRegistrationResultObservers();
+    }
+
+    /** Un solo observer para alta/baja; evita toasts duplicados al abrir diálogos varias veces. */
+    private void setupRegistrationResultObservers() {
+        attendeeViewModel.getAttendeeAdded().observe(this, added -> {
+            if (!Boolean.TRUE.equals(added)) {
                 return;
             }
-            // Filtro local por fecha >= hoy y ordenar ascendente
-            List<Event> future = new ArrayList<>();
-            Date now = new Date();
-            for (Event e : events) {
-                if (e != null && e.getDate() != null && !e.getDate().before(now)) {
-                    future.add(e);
-                }
+            VibrationUtils.vibrateSuccess(this);
+            ToastUtils.showCustomToast(this,
+                    "Te has apuntado al evento correctamente", ToastUtils.ToastType.SUCCESS);
+            dismissEventDialogIfOpen();
+            pendingTabAfterRefresh = TAB_MY_EVENTS;
+            refreshAfterRegistrationChange();
+            attendeeViewModel.clearOperationStates();
+        });
+
+        attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
+            if (!Boolean.TRUE.equals(deleted)) {
+                return;
             }
-            future.sort((a, b) -> a.getDate().compareTo(b.getDate()));
-            showEvents(future);
+            VibrationUtils.vibrateWarning(this);
+            ToastUtils.showCustomToast(this,
+                    "Te has dado de baja del evento", ToastUtils.ToastType.WARNING);
+            dismissEventDialogIfOpen();
+            pendingTabAfterRefresh = TAB_DISCOVER;
+            refreshAfterRegistrationChange();
+            attendeeViewModel.clearOperationStates();
+        });
+
+        attendeeViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+                pendingSubscribeAction = false;
+                attendeeViewModel.clearOperationStates();
+            }
         });
     }
 
+    private void dismissEventDialogIfOpen() {
+        if (eventDialogContext != null && eventDialogContext.dialog != null
+                && eventDialogContext.dialog.isShowing()) {
+            eventDialogContext.dialog.dismiss();
+        }
+        eventDialogContext = null;
+    }
+
+    private void refreshAfterRegistrationChange() {
+        loadAvailableEvents();
+    }
+
     private void loadAvailableEvents() {
-        // Verificar conexión a internet
         if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
             return;
         }
-        
-        // Cargar todos los eventos públicos desde repositorio
         eventViewModel.loadAllEvents();
     }
 
-    private void showEvents(List<Event> events) {
-        adapter.setEvents(events);
-        boolean empty = events.isEmpty();
-        emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
-        recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    /**
+     * Mis eventos: asistente inscrito (independiente de QR), excepto los que van a Historial.
+     * Descubrir: no inscrito y fecha de hoy o futura.
+     * Historial: fecha pasada (ayer o antes), inscrito y QR validado en entrada.
+     */
+    private void partitionAndUpdateTabs(List<Event> allEvents) {
+        myEventsList.clear();
+        discoverEventsList.clear();
+        historyEventsList.clear();
+
+        Date now = new Date();
+        for (Event event : allEvents) {
+            if (event == null || event.getDate() == null) {
+                continue;
+            }
+            if (event.isCurrentUserJoined()) {
+                if (isBeforeToday(event.getDate()) && event.isCurrentUserScannedQR()) {
+                    historyEventsList.add(event);
+                } else {
+                    myEventsList.add(event);
+                }
+            } else if (!event.getDate().before(now)) {
+                discoverEventsList.add(event);
+            }
+        }
+
+        myEventsList.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        discoverEventsList.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        historyEventsList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+
+        if (pagerAdapter != null) {
+            pagerAdapter.updateEvents(myEventsList, discoverEventsList, historyEventsList);
+        }
+        updateTabLabels();
+
+        if (pendingTabAfterRefresh != null && viewPager != null) {
+            int targetTab = pendingTabAfterRefresh;
+            pendingTabAfterRefresh = null;
+            viewPager.post(() -> viewPager.setCurrentItem(targetTab, true));
+        }
+    }
+
+    private boolean isBeforeToday(Date date) {
+        Calendar startOfToday = Calendar.getInstance();
+        startOfToday.set(Calendar.HOUR_OF_DAY, 0);
+        startOfToday.set(Calendar.MINUTE, 0);
+        startOfToday.set(Calendar.SECOND, 0);
+        startOfToday.set(Calendar.MILLISECOND, 0);
+        return date.before(startOfToday.getTime());
+    }
+
+    private void updateTabLabels() {
+        if (tabLayout == null) {
+            return;
+        }
+        TabLayout.Tab myTab = tabLayout.getTabAt(TAB_MY_EVENTS);
+        TabLayout.Tab discoverTab = tabLayout.getTabAt(TAB_DISCOVER);
+        TabLayout.Tab historyTab = tabLayout.getTabAt(TAB_HISTORY);
+        if (myTab != null) {
+            myTab.setText(getString(R.string.attendee_tab_my_events_count, myEventsList.size()));
+        }
+        if (discoverTab != null) {
+            discoverTab.setText(getString(R.string.attendee_tab_discover_count, discoverEventsList.size()));
+        }
+        if (historyTab != null) {
+            historyTab.setText(getString(R.string.attendee_tab_history_count, historyEventsList.size()));
+        }
+    }
+
+    @Override
+    public void onEventClick(Event event) {
+        showEventDetailsDialog(event);
+    }
+
+    @Override
+    public void onEventLongClick(Event event) {
+        if (event.isCurrentUserScannedQR()) {
+            ToastUtils.showCustomToast(this,
+                    getString(R.string.attendee_history_no_unsubscribe),
+                    ToastUtils.ToastType.INFO);
+            return;
+        }
+        if (!event.isCurrentUserJoined()) {
+            return;
+        }
+        String email = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
+                : null;
+        if (email != null && !email.trim().isEmpty()) {
+            eventDialogContext = null;
+            attendeeViewModel.unsubscribeFromEvent(
+                    event.getId(),
+                    email,
+                    event.getUserId(),
+                    event.getTitle(),
+                    resolveAttendeeDisplayName());
+        } else {
+            showUnsubscribeDialog(event);
+        }
+    }
+
+    @Override
+    public void onLockIconLongClick(Event event) {
+        ToastUtils.showCustomToast(this,
+                "Solo el organizador puede cambiar la privacidad del evento",
+                ToastUtils.ToastType.INFO);
+    }
+
+    @Override
+    public void onRefreshRequested() {
+        loadAvailableEvents();
     }
 
     private void showJoinDialog(Event event) {
@@ -242,7 +449,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
             new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
                 String dd = dayOfMonth < 10 ? "0" + dayOfMonth : String.valueOf(dayOfMonth);
                 String mm = (month + 1) < 10 ? "0" + (month + 1) : String.valueOf(month + 1);
-                birthDateInput.setText(dd + "/" + mm + "/" + year);
+                birthDateInput.setText(getString(R.string.date_format_dmy, dd, mm, year));
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
         });
         layout.addView(birthDateInput);
@@ -271,6 +478,9 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                     String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
                             ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
                             : null;
+                    String displayName = formatDisplayName(
+                            nameInput.getText().toString().trim(),
+                            lastNameInput.getText().toString().trim());
                     attendeeViewModel.addAttendee(
                             event.getId(),
                             uid,
@@ -280,23 +490,14 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                             emailInput.getText().toString().trim(),
                             phoneInput.getText().toString().trim(),
                             birthDateInput.getText().toString().trim(),
-                            false
+                            false,
+                            event.getUserId(),
+                            event.getTitle(),
+                            displayName
                     );
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
-
-        attendeeViewModel.getErrorMessage().observe(this, error -> {
-            if (error != null && !error.isEmpty()) {
-                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
-            }
-        });
-        attendeeViewModel.getAttendeeAdded().observe(this, added -> {
-            if (added != null && added) {
-                ToastUtils.showCustomToast(this, "Inscripción realizada", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
-            }
-        });
     }
 
     private void showUnsubscribeDialog(Event event) {
@@ -310,24 +511,15 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                 .setTitle("Desapuntarse del evento")
                 .setView(emailInput)
                 .setPositiveButton("Desapuntarme", (dialog, which) -> {
-                    attendeeViewModel.unsubscribeFromEvent(event.getId(), emailInput.getText().toString().trim());
+                    attendeeViewModel.unsubscribeFromEvent(
+                            event.getId(),
+                            emailInput.getText().toString().trim(),
+                            event.getUserId(),
+                            event.getTitle(),
+                            resolveAttendeeDisplayName());
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
-
-        attendeeViewModel.getErrorMessage().observe(this, error -> {
-            if (error != null && !error.isEmpty()) {
-                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
-            }
-        });
-        attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
-            if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Baja realizada", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
-                // Recargar eventos para actualizar contadores
-                loadAvailableEvents();
-            }
-        });
     }
 
     @Override
@@ -347,6 +539,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         if (settingsButton != null) {
             settingsButton.setOnClickListener(v -> {
                 Intent intent = new Intent(this, SettingsActivity.class);
+                intent.putExtra(SettingsActivity.EXTRA_USER_TYPE, SettingsActivity.USER_TYPE_ATTENDEE);
                 startActivity(intent);
             });
         }
@@ -370,8 +563,12 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         TextView eventTypeText = dialogView.findViewById(R.id.eventType);
         TextView privateText = dialogView.findViewById(R.id.eventPrivate);
         
+        ImageButton showQrButton = dialogView.findViewById(R.id.showQrButton);
         Button joinButton = dialogView.findViewById(R.id.joinEventButton);
         Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+        showQrButton.setEnabled(false);
+        showQrButton.setAlpha(0.5f);
+        showQrButton.setOnClickListener(v -> showEventQrDialog(event));
 
         // Rellenar datos del evento
         titleText.setText(event.getTitle());
@@ -384,7 +581,10 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         timeText.setText(timeFormat.format(event.getDate()));
         
         locationText.setText(event.getLocation());
-        participantsText.setText(String.format("%d/%d asistentes", event.getCurrentParticipants(), event.getMaxParticipants()));
+        participantsText.setText(getResources().getQuantityString(
+                R.plurals.event_participants_count,
+                event.getMaxParticipants(),
+                event.getCurrentParticipants(), event.getMaxParticipants()));
         eventTypeText.setText(event.getEventType());
         
         // Verificar si el evento está lleno
@@ -397,14 +597,14 @@ public class AttendeeHomeActivity extends AppCompatActivity {
         
         // Mostrar si es privado
         if (event.getPrivateEvent()) {
-            privateText.setText("Evento Privado");
+            privateText.setText(R.string.label_event_private_title);
             privateText.setVisibility(View.VISIBLE);
         } else {
             privateText.setVisibility(View.GONE);
         }
 
         // Cambiar texto del botón cancelar a "Cerrar"
-        cancelButton.setText("Cerrar");
+        cancelButton.setText(R.string.close);
 
         // Crear el diálogo
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
@@ -419,7 +619,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
 
         if (userEmail != null) {
             // Cargar asistentes una sola vez y configurar el botón
-            loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog);
+            loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, showQrButton, dialog);
         }
 
         cancelButton.setOnClickListener(v -> dialog.dismiss());
@@ -430,30 +630,33 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     /**
      * Cargar asistentes del evento y configurar el botón según el estado
      */
-    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
-        loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, true);
-    }
+    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
+        attendeeViewModel.getAttendees().removeObservers(this);
+        attendeeViewModel.clearAttendeesList();
 
-    /**
-     * Cargar asistentes del evento y configurar el botón según el estado
-     * @param showAlreadyJoinedMessage Si debe mostrar el mensaje "Ya estás apuntado" (solo al abrir diálogo)
-     */
-    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog, boolean showAlreadyJoinedMessage) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+
         attendeeViewModel.loadEventAttendees(event.getId());
-        
-        // Observar asistentes UNA SOLA VEZ para este evento específico
+
+        // Observar asistentes para este evento (un solo observer activo por ciclo de diálogo)
         attendeeViewModel.getAttendees().observe(this, attendees -> {
-            if (attendees != null) {
-                // Los asistentes ya están filtrados por evento específico
-                List<Attendee> eventAttendees = attendees;
-                
-                // Verificar si el usuario ya está inscrito en este evento
-                boolean isAlreadyJoined = eventAttendees.stream()
-                        .anyMatch(attendee -> attendee.getEmail().equalsIgnoreCase(userEmail));
+            if (attendees == null) {
+                return;
+            }
+            // Los asistentes ya están filtrados por evento específico
+            List<Attendee> eventAttendees = attendees;
+
+            // Verificar inscripción por UID (datos recién cargados desde Firestore)
+            boolean isAlreadyJoined = userId != null && eventAttendees.stream()
+                    .anyMatch(attendee -> userId.equals(attendee.getUid()));
                 
                 // Actualizar contador con el número real de asistentes de este evento
                 event.setCurrentParticipants(eventAttendees.size());
-                participantsText.setText(String.format("%d/%d asistentes", 
+                participantsText.setText(getResources().getQuantityString(
+                        R.plurals.event_participants_count,
+                        event.getMaxParticipants(),
                         event.getCurrentParticipants(), event.getMaxParticipants()));
                 
                 // Verificar si está lleno
@@ -467,20 +670,19 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                 // Configurar botón según el estado
                 if (isAlreadyJoined) {
                     // Usuario ya inscrito - puede darse de baja
-                    joinButton.setText("Darme de baja");
+                    joinButton.setText(R.string.attendee_unsubscribe_short);
                     joinButton.setEnabled(true);
                     joinButton.setAlpha(1.0f);
+                    showQrButton.setEnabled(true);
+                    showQrButton.setAlpha(1.0f);
                     joinButton.setOnClickListener(v -> {
-                        unsubscribeFromEvent(event, userEmail, joinButton, participantsText, dialog);
+                        unsubscribeFromEvent(event, userEmail, joinButton, participantsText, showQrButton, dialog);
                     });
-                    
-                    // Mostrar mensaje solo cuando se abre el diálogo inicialmente y ya está inscrito
-                    if (showAlreadyJoinedMessage) {
-                        ToastUtils.showCustomToast(AttendeeHomeActivity.this, "Ya estás apuntado a este evento", ToastUtils.ToastType.INFO);
-                    }
                 } else {
                     // Usuario no inscrito - puede inscribirse si hay espacio
-                    joinButton.setText("Apuntarse");
+                    joinButton.setText(R.string.attendee_join_event_short);
+                    showQrButton.setEnabled(false);
+                    showQrButton.setAlpha(0.5f);
                     if (isEventFull) {
                         joinButton.setEnabled(false);
                         joinButton.setAlpha(0.5f);
@@ -488,11 +690,10 @@ public class AttendeeHomeActivity extends AppCompatActivity {
                         joinButton.setEnabled(true);
                         joinButton.setAlpha(1.0f);
                         joinButton.setOnClickListener(v -> {
-                            subscribeToEvent(event, userEmail, joinButton, participantsText, dialog);
+                            subscribeToEvent(event, userEmail, joinButton, participantsText, showQrButton, dialog);
                         });
                     }
                 }
-            }
         });
     }
 
@@ -500,93 +701,123 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     /**
      * Desinscribirse del evento
      */
-    private void unsubscribeFromEvent(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
-        // Verificar conexión a internet
+    private void unsubscribeFromEvent(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
         if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
             return;
         }
-        
-        attendeeViewModel.unsubscribeFromEvent(event.getId(), userEmail);
-        
-        // Observar resultado UNA SOLA VEZ
-        attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
-            if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Te has dado de baja del evento", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
-                
-                // Recargar asistentes para este evento específico (sin mostrar mensaje azul)
-                loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, false);
-                
-                // Recargar lista de eventos para actualizar contadores en background
-                loadAvailableEvents();
-            }
-        });
+
+        eventDialogContext = new EventDialogContext(
+                event, userEmail, joinButton, participantsText, showQrButton, dialog);
+        attendeeViewModel.unsubscribeFromEvent(
+                event.getId(),
+                userEmail,
+                event.getUserId(),
+                event.getTitle(),
+                resolveAttendeeDisplayName());
     }
 
 
     /**
      * Suscribirse al evento directamente usando los datos del usuario autenticado
      */
-    private void subscribeToEvent(Event event, String userEmail, Button joinButton, TextView participantsText, AlertDialog dialog) {
-        // Verificar conexión a internet
+    private void subscribeToEvent(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
         if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
             return;
         }
-        
+
         if (userEmail == null || userEmail.trim().isEmpty()) {
             ToastUtils.showCustomToast(this, "Error: No se pudo obtener el email del usuario", ToastUtils.ToastType.ERROR);
             return;
         }
 
-        // Cargar perfil y validar campos obligatorios
-        attendeeViewModel.getCurrentAttendee().observe(this, attendee -> {
-            if (attendee == null) return;
+        eventDialogContext = new EventDialogContext(
+                event, userEmail, joinButton, participantsText, showQrButton, dialog);
+        pendingSubscribeAction = true;
 
-            String userId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
-                    ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
-                    : null;
+        Attendee cachedProfile = attendeeViewModel.getCurrentAttendee().getValue();
+        if (cachedProfile != null) {
+            executeSubscribeWithProfile(event, userEmail, cachedProfile);
+            return;
+        }
 
-            // Verificar si el perfil está completo
-            if (!attendee.isProfileComplete()) {
-                showCompleteProfileDialog(event, attendee);
-                return;
+        Observer<Attendee> profileObserver = new Observer<Attendee>() {
+            @Override
+            public void onChanged(Attendee attendee) {
+                if (!pendingSubscribeAction || attendee == null) {
+                    return;
+                }
+                attendeeViewModel.getCurrentAttendee().removeObserver(this);
+                executeSubscribeWithProfile(event, userEmail, attendee);
             }
+        };
+        attendeeViewModel.getCurrentAttendee().observe(this, profileObserver);
+        attendeeViewModel.loadCurrentAttendee();
+    }
 
-            // Apuntarse al evento usando los datos del perfil
-            attendeeViewModel.addAttendee(
-                    event.getId(),
-                    userId,
-                    attendee.getUsername(),
-                    attendee.getPrimerApellido(),
-                    attendee.getDni(),
-                    userEmail,
-                    attendee.getPhone() != null ? attendee.getPhone() : "",
-                    attendee.getFechaNacimiento() != null ? attendee.getFechaNacimiento().toDate().toString() : "",
-                    false
-            );
-        });
-        
-        // Observar el resultado de la operación de añadir asistente UNA SOLA VEZ
-        attendeeViewModel.getAttendeeAdded().observe(this, added -> {
-            if (added != null && added) {
-                ToastUtils.showCustomToast(this, "Te has apuntado al evento correctamente", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
-                
-                // Recargar asistentes para este evento específico (sin mostrar mensaje azul)
-                loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, dialog, false);
-                
-                // Recargar eventos para actualizar contadores en la lista principal
-                loadAvailableEvents();
+    private void executeSubscribeWithProfile(Event event, String userEmail, Attendee attendee) {
+        if (!pendingSubscribeAction) {
+            return;
+        }
+        pendingSubscribeAction = false;
+
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+
+        if (!attendee.isProfileComplete()) {
+            showCompleteProfileDialog(event, attendee);
+            return;
+        }
+
+        attendeeViewModel.addAttendee(
+                event.getId(),
+                userId,
+                attendee.getUsername(),
+                attendee.getPrimerApellido(),
+                attendee.getDni(),
+                userEmail,
+                attendee.getPhone() != null ? attendee.getPhone() : "",
+                attendee.getFechaNacimiento() != null ? attendee.getFechaNacimiento().toDate().toString() : "",
+                false,
+                event.getUserId(),
+                event.getTitle(),
+                attendee.getSortedNameLabel()
+        );
+    }
+
+    private String resolveAttendeeDisplayName() {
+        Attendee attendee = attendeeViewModel.getCurrentAttendee().getValue();
+        if (attendee != null) {
+            String label = attendee.getSortedNameLabel();
+            if (label != null && !label.trim().isEmpty()) {
+                return label.trim();
             }
-        });
-        
-        // Observar errores UNA SOLA VEZ
-        attendeeViewModel.getErrorMessage().observe(this, error -> {
-            if (error != null && !error.isEmpty()) {
-                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
-                attendeeViewModel.clearOperationStates();
-            }
-        });
+        }
+        return getString(R.string.notification_organizer_unknown_attendee);
+    }
+
+    private static String formatDisplayName(String firstName, String lastName) {
+        String first = firstName != null ? firstName.trim() : "";
+        String last = lastName != null ? lastName.trim() : "";
+        if (!last.isEmpty() && !first.isEmpty()) {
+            return last + ", " + first;
+        }
+        if (!first.isEmpty()) {
+            return first;
+        }
+        return last;
+    }
+
+    private void showEventQrDialog(Event event) {
+        if (event == null || event.getId() == null) {
+            ToastUtils.showCustomToast(this, getString(R.string.attendee_qr_error), ToastUtils.ToastType.ERROR);
+            return;
+        }
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            ToastUtils.showCustomToast(this, getString(R.string.attendee_qr_error), ToastUtils.ToastType.ERROR);
+            return;
+        }
+        AttendeeQrDisplayActivity.start(this, event.getId(), event.getTitle());
     }
 
     /**
@@ -595,7 +826,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
     private void showCompleteProfileDialog(Event event, com.us.eventum.data.models.Attendee attendee) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_attendee_profile, null);
         TextView title = dialogView.findViewById(R.id.dialogTitle);
-        title.setText("Completar perfil para inscribirte");
+        title.setText(R.string.complete_profile_join_title);
         
         com.google.android.material.textfield.TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
         com.google.android.material.textfield.TextInputEditText firstSurnameInput = dialogView.findViewById(R.id.firstSurnameInput);
@@ -620,7 +851,7 @@ public class AttendeeHomeActivity extends AppCompatActivity {
             new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
                 String dd = dayOfMonth < 10 ? "0" + dayOfMonth : String.valueOf(dayOfMonth);
                 String mm = (month + 1) < 10 ? "0" + (month + 1) : String.valueOf(month + 1);
-                birthDateInput.setText(dd + "/" + mm + "/" + year);
+                birthDateInput.setText(getString(R.string.date_format_dmy, dd, mm, year));
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
         });
 

@@ -1,6 +1,7 @@
 package com.us.eventum.utils;
 
 import com.us.eventum.data.models.Event;
+import com.us.eventum.utils.LocaleUtils;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,7 +15,8 @@ public class EventSearchFilter {
     private Date dateFrom;
     private Date dateTo;
     
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+    private static final SimpleDateFormat dateFormat =
+            new SimpleDateFormat("dd/MM/yyyy", LocaleUtils.spanish());
     
     public EventSearchFilter() {
         // Constructor vacío
@@ -67,8 +69,8 @@ public class EventSearchFilter {
     private boolean matchesCriteria(Event event) {
         // Verificar palabras clave (título)
         if (keywords != null && !keywords.trim().isEmpty()) {
-            String searchKeywords = keywords.toLowerCase().trim();
-            String eventTitle = event.getTitle() != null ? event.getTitle().toLowerCase() : "";
+            String searchKeywords = keywords.toLowerCase(Locale.ROOT).trim();
+            String eventTitle = event.getTitle() != null ? event.getTitle().toLowerCase(Locale.ROOT) : "";
             
             if (!eventTitle.contains(searchKeywords)) {
                 return false;
@@ -77,8 +79,8 @@ public class EventSearchFilter {
         
         // Verificar tipo de evento
         if (eventType != null && !eventType.trim().isEmpty()) {
-            String searchEventType = eventType.toLowerCase().trim();
-            String eventEventType = event.getEventType() != null ? event.getEventType().toLowerCase() : "";
+            String searchEventType = eventType.toLowerCase(Locale.ROOT).trim();
+            String eventEventType = event.getEventType() != null ? event.getEventType().toLowerCase(Locale.ROOT) : "";
             
             if (!eventEventType.contains(searchEventType)) {
                 return false;
@@ -87,8 +89,8 @@ public class EventSearchFilter {
         
         // Verificar ubicación
         if (location != null && !location.trim().isEmpty()) {
-            String searchLocation = location.toLowerCase().trim();
-            String eventLocation = event.getLocation() != null ? event.getLocation().toLowerCase() : "";
+            String searchLocation = location.toLowerCase(Locale.ROOT).trim();
+            String eventLocation = event.getLocation() != null ? event.getLocation().toLowerCase(Locale.ROOT) : "";
             
             if (!eventLocation.contains(searchLocation)) {
                 return false;

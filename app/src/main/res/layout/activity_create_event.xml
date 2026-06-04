@@ -3,24 +3,29 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorBackground">
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorPrimary"
         app:elevation="4dp">
 
-        <androidx.appcompat.widget.Toolbar
+        <View
+            android:id="@+id/statusBarStripe"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/login_header_bg" />
+
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
+            style="@style/ScreenToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/colorPrimary"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="Crear un nuevo Evento"
-            app:titleTextAppearance="@style/ToolbarTitleStyle"
-            app:titleTextColor="@color/colorWhite" />
+            app:title="@string/create_event_title"
+            android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -45,7 +50,7 @@
                 <!-- Sección: Información Básica -->
                 <TextView
                     style="@style/FormSectionTitle"
-                    android:text="Información Básica"
+                    android:text="@string/section_basic_info"
                     android:layout_marginBottom="12dp"/>
 
                 <!-- Nombre del evento -->
@@ -55,7 +60,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Nombre del Evento"
+                    android:hint="@string/hint_event_name"
                     app:startIconDrawable="@drawable/ic_title"
                     app:startIconTint="@color/colorPrimary">
 
@@ -75,7 +80,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Tipo de Evento"
+                    android:hint="@string/hint_event_type"
                     app:boxStrokeColor="@color/colorPrimary"
                     app:hintTextColor="@color/colorPrimary"
                     app:errorTextColor="@android:color/holo_red_light"
@@ -86,6 +91,7 @@
                         android:id="@+id/tipoEventoAutoComplete"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:hint="@string/hint_event_type"
                         android:inputType="none" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -95,6 +101,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:baselineAligned="false"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -110,8 +117,8 @@
                             style="@style/Widget.Eventum.TextInputLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Fecha"
-                            app:helperText="Formato: dd/MM/yyyy"
+                            android:hint="@string/hint_event_date"
+                            app:helperText="@string/helper_date_format"
                             app:startIconDrawable="@drawable/ic_calendar"
                             app:startIconTint="@color/colorPrimary">
 
@@ -139,8 +146,8 @@
                             style="@style/Widget.Eventum.TextInputLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Hora de inicio"
-                            app:helperText="Formato 24h: HH:mm"
+                            android:hint="@string/hint_event_start_time"
+                            app:helperText="@string/helper_time_format_24h"
                             app:startIconDrawable="@drawable/ic_time"
                             app:startIconTint="@color/colorPrimary">
 
@@ -166,7 +173,7 @@
                 <!-- Sección: Detalles del Evento -->
                 <TextView
                     style="@style/FormSectionTitle"
-                    android:text="Detalles del Evento"
+                    android:text="@string/section_event_details"
                     android:layout_marginBottom="12dp"/>
 
                 <!-- Lugar del evento -->
@@ -176,8 +183,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Lugar del Evento"
-                    app:helperText="Dirección o referencia breve"
+                    android:hint="@string/hint_event_location"
+                    app:helperText="@string/helper_location_brief"
                     app:startIconDrawable="@drawable/ic_location"
                     app:startIconTint="@color/colorPrimary">
 
@@ -197,8 +204,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="N.º máximo de asistentes"
-                    app:helperText="Define el aforo permitido"
+                    android:hint="@string/hint_event_max_attendees"
+                    app:helperText="@string/helper_max_attendees"
                     app:startIconDrawable="@drawable/ic_person"
                     app:startIconTint="@color/colorPrimary">
 
@@ -247,8 +254,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
-                    android:hint="Descripción del Evento (opcional)"
-                    app:helperText="Comparte detalles relevantes para los asistentes"
+                    android:hint="@string/hint_event_description_optional"
+                    app:helperText="@string/helper_event_description"
                     app:startIconDrawable="@drawable/ic_description"
                     app:startIconTint="@color/colorPrimary">
 
@@ -269,7 +276,7 @@
                     style="@style/Widget.Eventum.Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Crear Evento"
+                    android:text="@string/create_event_button"
                     app:icon="@drawable/ic_check_circle"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp"/>

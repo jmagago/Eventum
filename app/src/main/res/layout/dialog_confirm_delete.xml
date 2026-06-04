@@ -19,14 +19,15 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="16dp"
             android:src="@drawable/ic_delete"
-            android:tint="@android:color/holo_red_light" />
+            android:contentDescription="@string/cd_delete_icon"
+            app:tint="@android:color/holo_red_light" />
 
         <TextView
             android:id="@+id/confirm_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Eliminar asistente"
+            android:text="@string/delete_attendee_title"
             android:textColor="@android:color/holo_red_dark"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -37,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="¿Estás seguro de que deseas eliminar a este asistente?"
+            android:text="@string/delete_attendee_message"
             android:textColor="@color/colorSecondaryText"
             android:textSize="16sp"
             android:layout_marginBottom="24dp" />
@@ -53,7 +54,7 @@
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cancelar"
+                android:text="@string/cancel"
                 android:textAllCaps="false"
                 android:textSize="14sp"
                 android:layout_marginEnd="16dp" />
@@ -62,11 +63,11 @@
                 android:id="@+id/confirm_delete_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Eliminar"
+                android:text="@string/delete"
                 android:textAllCaps="false"
                 android:textSize="14sp"
                 android:backgroundTint="@android:color/holo_red_light"
                 app:cornerRadius="12dp" />
         </LinearLayout>
     </LinearLayout>
-</androidx.cardview.widget.CardView> 
+</androidx.cardview.widget.CardView>

@@ -16,7 +16,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Registrar asistente"
+                    android:text="@string/add_attendee_title"
                     android:textColor="@color/colorPrimary"
                     android:textSize="24sp"
                     android:textStyle="bold"
@@ -26,7 +26,7 @@
                 <!-- Sección: Información Personal -->
                 <TextView
                     style="@style/FormSectionTitle"
-                    android:text="Información Personal"
+                    android:text="@string/section_personal_info"
                     android:layout_marginBottom="16dp"/>
 
             <!-- Nombre -->
@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Nombre"
+                android:hint="@string/hint_name"
                 app:startIconDrawable="@drawable/ic_person"
                 app:startIconTint="@color/colorPrimary">
 
@@ -52,6 +52,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginBottom="12dp">
 
                 <FrameLayout
@@ -64,7 +65,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         style="@style/Widget.Eventum.TextInputLayout"
-                        android:hint="Primer apellido"
+                        android:hint="@string/hint_first_surname"
                         app:startIconDrawable="@drawable/ic_person"
                         app:startIconTint="@color/colorPrimary">
 
@@ -84,9 +85,9 @@
                         android:layout_marginStart="24dp"
                         android:layout_marginTop="12dp"
                         android:gravity="center"
-                        android:text="1"
+                        android:text="@string/label_badge_1"
                         android:textColor="@android:color/white"
-                        android:textSize="10sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:background="@color/colorPrimary"
                         android:elevation="2dp"/>
@@ -102,7 +103,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         style="@style/Widget.Eventum.TextInputLayout"
-                        android:hint="Segundo apellido"
+                        android:hint="@string/hint_second_surname"
                         app:startIconDrawable="@drawable/ic_person"
                         app:startIconTint="@color/colorPrimary">
 
@@ -122,9 +123,9 @@
                         android:layout_marginStart="24dp"
                         android:layout_marginTop="12dp"
                         android:gravity="center"
-                        android:text="2"
+                        android:text="@string/label_badge_2"
                         android:textColor="@android:color/white"
-                        android:textSize="10sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:background="@color/colorPrimary"
                         android:elevation="2dp"/>
@@ -138,7 +139,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="DNI"
+                android:hint="@string/hint_dni"
                 app:startIconDrawable="@drawable/ic_id_card"
                 app:startIconTint="@color/colorPrimary"
                 app:errorEnabled="true"
@@ -160,7 +161,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Fecha de nacimiento"
+                android:hint="@string/hint_birth_date"
                 app:startIconDrawable="@drawable/ic_calendar"
                 app:startIconTint="@color/colorPrimary"
                 app:errorEnabled="true"
@@ -184,7 +185,7 @@
             <!-- Sección: Datos de Contacto -->
             <TextView
                 style="@style/FormSectionTitle"
-                android:text="Datos de Contacto"
+                android:text="@string/section_contact_info"
                 android:layout_marginBottom="16dp"/>
 
             <!-- Email -->
@@ -193,7 +194,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Correo electrónico"
+                android:hint="@string/hint_email"
                 app:startIconDrawable="@drawable/ic_email"
                 app:startIconTint="@color/colorPrimary">
 
@@ -212,7 +213,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 style="@style/Widget.Eventum.TextInputLayout"
-                android:hint="Teléfono"
+                android:hint="@string/hint_phone"
                 app:startIconDrawable="@drawable/ic_phone"
                 app:startIconTint="@color/colorPrimary"
                 app:errorEnabled="true"
@@ -241,7 +242,7 @@
                     style="@style/Widget.Eventum.Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Registrar Asistente"
+                    android:text="@string/add_attendee_button"
                     android:layout_marginTop="24dp"
                     app:icon="@drawable/ic_person"
                     app:iconGravity="textStart"
@@ -253,7 +254,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Cancelar"
+                    android:text="@string/cancel"
                     android:textAllCaps="false"
                     android:textColor="@color/colorPrimary"
                     android:layout_marginTop="8dp" />
