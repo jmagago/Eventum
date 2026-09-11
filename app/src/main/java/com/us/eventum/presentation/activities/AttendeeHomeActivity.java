@@ -5,22 +5,22 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Button;
-import android.widget.ImageButton;
+import com.google.android.material.button.MaterialButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
@@ -32,8 +32,15 @@ import com.us.eventum.data.models.Event;
 import com.us.eventum.presentation.fragments.AttendeeEventsFragment;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
+import com.us.eventum.utils.AgeUtils;
+import com.us.eventum.utils.AttendeeEventPanelController;
+import com.us.eventum.utils.EventUiMerger;
+import com.us.eventum.utils.AttendeeQrPanelController;
+import com.us.eventum.utils.EventPrivateAccessCode;
+import com.us.eventum.utils.ParentalAuthDialogHelper;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.VibrationUtils;
+import com.us.eventum.utils.WindowInsetsHelper;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.NetworkUtils;
 import com.us.eventum.utils.NotificationPermissionHelper;
@@ -43,7 +50,11 @@ import com.us.eventum.utils.AttendeeNotificationHelper;
 import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
 
+import android.app.Dialog;
 import android.app.DatePickerDialog;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -55,7 +66,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Home del asistente: pestañas Mis eventos, Descubrir e Historial (check-in QR).
+ * Home del asistente: pestañas Mis eventos, Descubrir e Historial (eventos pasados inscritos).
  */
 public class AttendeeHomeActivity extends AppCompatActivity
         implements AttendeeEventsFragment.AttendeeEventListener {
@@ -69,7 +80,20 @@ public class AttendeeHomeActivity extends AppCompatActivity
     private CircleImageView profileImageView;
     private SharedViewModel sharedViewModel = SharedViewModel.getInstance();
     private EventDialogContext eventDialogContext;
+    private AttendeeEventPanelController eventPanelController;
+    private AttendeeQrPanelController qrPanelController;
     private boolean pendingSubscribeAction;
+    private boolean pendingWaitlistAction;
+    private boolean pendingConfirmWaitlistAction;
+    private boolean waitingProfileForSubscribe;
+    private boolean profileSaveSubmitted;
+    private Event pendingSubscribeEvent;
+    private String pendingSubscribeUserEmail;
+    private Dialog activeCompleteProfileDialog;
+    private ParentalAuthDialogHelper.Handle parentalAuthDialogHandle;
+
+    private final ActivityResultLauncher<String[]> parentalAuthPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), this::onParentalAuthFilePicked);
 
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
@@ -78,26 +102,15 @@ public class AttendeeHomeActivity extends AppCompatActivity
     private final List<Event> myEventsList = new ArrayList<>();
     private final List<Event> discoverEventsList = new ArrayList<>();
     private final List<Event> historyEventsList = new ArrayList<>();
-    /** Tras inscripción o baja, cambiar a la pestaña correspondiente al recibir datos. */
-    private Integer pendingTabAfterRefresh;
     private AttendeeNotificationWatcher attendeeNotificationWatcher;
 
     private static final class EventDialogContext {
         final Event event;
         final String userEmail;
-        final Button joinButton;
-        final TextView participantsText;
-        final ImageButton showQrButton;
-        final AlertDialog dialog;
 
-        EventDialogContext(Event event, String userEmail, Button joinButton,
-                           TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
+        EventDialogContext(Event event, String userEmail) {
             this.event = event;
             this.userEmail = userEmail;
-            this.joinButton = joinButton;
-            this.participantsText = participantsText;
-            this.showQrButton = showQrButton;
-            this.dialog = dialog;
         }
     }
 
@@ -106,7 +119,10 @@ public class AttendeeHomeActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_available_events);
 
-        setupStatusBarStripe();
+        View statusBarStripe = findViewById(R.id.statusBarStripe);
+        if (statusBarStripe != null) {
+            WindowInsetsHelper.enableEdgeToEdgeWithStatusBarStripe(this, statusBarStripe);
+        }
 
         // Header similar a Home: rellenar nombre/email/rol e imagen de perfil
 
@@ -149,6 +165,15 @@ public class AttendeeHomeActivity extends AppCompatActivity
         // Configurar botón de settings
         setupSettingsButton();
         setupViewPager();
+        eventPanelController = new AttendeeEventPanelController(this);
+        eventPanelController.setOnHideListener(() -> {
+            if (attendeeViewModel != null) {
+                attendeeViewModel.stopListeningEventAttendees();
+                attendeeViewModel.stopListeningEventWaitlist();
+            }
+        });
+        qrPanelController = new AttendeeQrPanelController(this);
+        setupPanelBackHandler();
         observeViewModel();
         loadAvailableEvents();
 
@@ -181,21 +206,6 @@ public class AttendeeHomeActivity extends AppCompatActivity
         super.onStop();
     }
 
-    private void setupStatusBarStripe() {
-        View stripe = findViewById(R.id.statusBarStripe);
-        if (stripe == null) {
-            return;
-        }
-        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
-            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            ViewGroup.LayoutParams lp = v.getLayoutParams();
-            lp.height = topInset;
-            v.setLayoutParams(lp);
-            return windowInsets;
-        });
-        ViewCompat.requestApplyInsets(stripe);
-    }
-
     private void setupViewPager() {
         pagerAdapter = new AttendeeEventsPagerAdapter(this, myEventsList, discoverEventsList, historyEventsList);
         viewPager.setAdapter(pagerAdapter);
@@ -224,18 +234,60 @@ public class AttendeeHomeActivity extends AppCompatActivity
         if (profileImageView != null) {
             ProfileImageManager.loadProfileImage(this, profileImageView);
         }
+        if (qrPanelController != null) {
+            qrPanelController.onHostResume();
+        }
         loadAvailableEvents();
+    }
+
+    @Override
+    protected void onPause() {
+        if (qrPanelController != null) {
+            qrPanelController.onHostPause();
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (eventViewModel != null) {
+            eventViewModel.stopListeningAllEvents();
+        }
+        if (attendeeViewModel != null) {
+            attendeeViewModel.stopListeningEventAttendees();
+            attendeeViewModel.stopListeningEventWaitlist();
+        }
+        super.onDestroy();
+    }
+
+    private void setupPanelBackHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (qrPanelController != null && qrPanelController.isVisible()) {
+                    qrPanelController.hide();
+                } else if (eventPanelController != null && eventPanelController.isVisible()) {
+                    eventPanelController.hide();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
     }
 
     private void observeViewModel() {
         eventViewModel.getIsLoading().observe(this, loading -> {
-            if (loading != null && pagerAdapter != null) {
-                pagerAdapter.setRefreshing(loading);
+            if (loading == null || pagerAdapter == null) {
+                return;
             }
+            pagerAdapter.setRefreshing(loading);
         });
 
         eventViewModel.getAllEvents().observe(this, events -> {
-            partitionAndUpdateTabs(events != null ? events : new ArrayList<>());
+            List<Event> list = events != null ? events : new ArrayList<>();
+            partitionAndUpdateTabs(list);
+            syncOpenEventPanel(list);
             if (pagerAdapter != null) {
                 pagerAdapter.setRefreshing(false);
             }
@@ -254,8 +306,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             ToastUtils.showCustomToast(this,
                     "Te has apuntado al evento correctamente", ToastUtils.ToastType.SUCCESS);
             dismissEventDialogIfOpen();
-            pendingTabAfterRefresh = TAB_MY_EVENTS;
-            refreshAfterRegistrationChange();
+            switchAttendeeTab(TAB_MY_EVENTS);
             attendeeViewModel.clearOperationStates();
         });
 
@@ -267,30 +318,80 @@ public class AttendeeHomeActivity extends AppCompatActivity
             ToastUtils.showCustomToast(this,
                     "Te has dado de baja del evento", ToastUtils.ToastType.WARNING);
             dismissEventDialogIfOpen();
-            pendingTabAfterRefresh = TAB_DISCOVER;
-            refreshAfterRegistrationChange();
+            switchAttendeeTab(TAB_DISCOVER);
+            attendeeViewModel.clearOperationStates();
+        });
+
+        attendeeViewModel.getWaitlistJoined().observe(this, joined -> {
+            if (!Boolean.TRUE.equals(joined)) {
+                return;
+            }
+            VibrationUtils.vibrateSuccess(this);
+            showEventPanelToast(getString(R.string.waitlist_joined_success), ToastUtils.ToastType.SUCCESS);
+            switchAttendeeTab(TAB_MY_EVENTS);
+            attendeeViewModel.clearOperationStates();
+        });
+
+        attendeeViewModel.getWaitlistLeft().observe(this, left -> {
+            if (!Boolean.TRUE.equals(left)) {
+                return;
+            }
+            VibrationUtils.vibrateWarning(this);
+            showEventPanelToast(getString(R.string.waitlist_left_success), ToastUtils.ToastType.WARNING);
+            dismissEventDialogIfOpen();
+            switchAttendeeTab(TAB_DISCOVER);
             attendeeViewModel.clearOperationStates();
         });
 
         attendeeViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
-                ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
+                showEventPanelToast(error, ToastUtils.ToastType.ERROR);
                 pendingSubscribeAction = false;
+                pendingWaitlistAction = false;
+                pendingConfirmWaitlistAction = false;
+                waitingProfileForSubscribe = false;
+                profileSaveSubmitted = false;
+                pendingSubscribeEvent = null;
+                pendingSubscribeUserEmail = null;
                 attendeeViewModel.clearOperationStates();
             }
+        });
+
+        attendeeViewModel.getAttendeeUpdated().observe(this, updated -> {
+            if (!Boolean.TRUE.equals(updated) || !waitingProfileForSubscribe) {
+                return;
+            }
+            Attendee refreshed = attendeeViewModel.getCurrentAttendee().getValue();
+            Event event = pendingSubscribeEvent;
+            String userEmail = pendingSubscribeUserEmail;
+            if (refreshed == null || event == null || userEmail == null || !refreshed.isProfileComplete()) {
+                return;
+            }
+            waitingProfileForSubscribe = false;
+            profileSaveSubmitted = false;
+            pendingSubscribeEvent = null;
+            pendingSubscribeUserEmail = null;
+            attendeeViewModel.clearOperationStates();
+            pendingSubscribeAction = true;
+            executeSubscribeWithProfile(event, userEmail, refreshed);
         });
     }
 
     private void dismissEventDialogIfOpen() {
-        if (eventDialogContext != null && eventDialogContext.dialog != null
-                && eventDialogContext.dialog.isShowing()) {
-            eventDialogContext.dialog.dismiss();
+        if (qrPanelController != null && qrPanelController.isVisible()) {
+            qrPanelController.hide();
+        }
+        if (eventPanelController != null && eventPanelController.isVisible()) {
+            eventPanelController.hide();
         }
         eventDialogContext = null;
     }
 
-    private void refreshAfterRegistrationChange() {
-        loadAvailableEvents();
+    private void switchAttendeeTab(int tabIndex) {
+        if (viewPager == null) {
+            return;
+        }
+        viewPager.post(() -> viewPager.setCurrentItem(tabIndex, true));
     }
 
     private void loadAvailableEvents() {
@@ -303,7 +404,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
     /**
      * Mis eventos: asistente inscrito (independiente de QR), excepto los que van a Historial.
      * Descubrir: no inscrito y fecha de hoy o futura.
-     * Historial: fecha pasada (ayer o antes), inscrito y QR validado en entrada.
+     * Historial: fecha pasada (ayer o antes) e inscrito (asistió o no).
      */
     private void partitionAndUpdateTabs(List<Event> allEvents) {
         myEventsList.clear();
@@ -316,11 +417,13 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 continue;
             }
             if (event.isCurrentUserJoined()) {
-                if (isBeforeToday(event.getDate()) && event.isCurrentUserScannedQR()) {
+                if (isBeforeToday(event.getDate())) {
                     historyEventsList.add(event);
                 } else {
                     myEventsList.add(event);
                 }
+            } else if (event.isCurrentUserOnWaitlist()) {
+                myEventsList.add(event);
             } else if (!event.getDate().before(now)) {
                 discoverEventsList.add(event);
             }
@@ -334,12 +437,6 @@ public class AttendeeHomeActivity extends AppCompatActivity
             pagerAdapter.updateEvents(myEventsList, discoverEventsList, historyEventsList);
         }
         updateTabLabels();
-
-        if (pendingTabAfterRefresh != null && viewPager != null) {
-            int targetTab = pendingTabAfterRefresh;
-            pendingTabAfterRefresh = null;
-            viewPager.post(() -> viewPager.setCurrentItem(targetTab, true));
-        }
     }
 
     private boolean isBeforeToday(Date date) {
@@ -369,13 +466,35 @@ public class AttendeeHomeActivity extends AppCompatActivity
         }
     }
 
+    private boolean isHistoryEvent(Event event) {
+        return event != null && event.isCurrentUserJoined()
+                && event.getDate() != null && isBeforeToday(event.getDate());
+    }
+
+    private boolean isWaitlistEvent(Event event) {
+        return event != null && event.isCurrentUserOnWaitlist()
+                && event.getDate() != null && !isBeforeToday(event.getDate());
+    }
+
     @Override
     public void onEventClick(Event event) {
-        showEventDetailsDialog(event);
+        showEventDetailsDialog(event, isHistoryEvent(event));
     }
 
     @Override
     public void onEventLongClick(Event event) {
+        if (isHistoryEvent(event)) {
+            return;
+        }
+        if (isWaitlistEvent(event)) {
+            String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                    ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                    : null;
+            if (userId != null) {
+                attendeeViewModel.leaveWaitlist(event.getId(), userId, resolveAttendeeDisplayName());
+            }
+            return;
+        }
         if (event.isCurrentUserScannedQR()) {
             ToastUtils.showCustomToast(this,
                     getString(R.string.attendee_history_no_unsubscribe),
@@ -410,7 +529,9 @@ public class AttendeeHomeActivity extends AppCompatActivity
 
     @Override
     public void onRefreshRequested() {
-        loadAvailableEvents();
+        if (eventViewModel != null) {
+            eventViewModel.restartListeningAllEvents();
+        }
     }
 
     private void showJoinDialog(Event event) {
@@ -546,168 +667,385 @@ public class AttendeeHomeActivity extends AppCompatActivity
     }
 
     /**
-     * Mostrar diálogo con detalles del evento y opción de apuntarse
+     * Panel deslizante con detalles del evento y opción de apuntarse.
+     * Obtiene el evento desde Firestore para reflejar privacidad y código actualizados.
      */
-    private void showEventDetailsDialog(Event event) {
-        // Crear el layout del diálogo
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View dialogView = inflater.inflate(R.layout.dialog_event_details_attendee, null);
-
-        // Configurar los elementos del diálogo
-        TextView titleText = dialogView.findViewById(R.id.eventTitle);
-        TextView descriptionText = dialogView.findViewById(R.id.eventDescription);
-        TextView dateText = dialogView.findViewById(R.id.eventDate);
-        TextView timeText = dialogView.findViewById(R.id.eventTime);
-        TextView locationText = dialogView.findViewById(R.id.eventLocation);
-        TextView participantsText = dialogView.findViewById(R.id.eventParticipants);
-        TextView eventTypeText = dialogView.findViewById(R.id.eventType);
-        TextView privateText = dialogView.findViewById(R.id.eventPrivate);
-        
-        ImageButton showQrButton = dialogView.findViewById(R.id.showQrButton);
-        Button joinButton = dialogView.findViewById(R.id.joinEventButton);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
-        showQrButton.setEnabled(false);
-        showQrButton.setAlpha(0.5f);
-        showQrButton.setOnClickListener(v -> showEventQrDialog(event));
-
-        // Rellenar datos del evento
-        titleText.setText(event.getTitle());
-        descriptionText.setText(event.getDescription());
-        
-        // Formatear fecha y hora
-        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
-        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-        dateText.setText(dateFormat.format(event.getDate()));
-        timeText.setText(timeFormat.format(event.getDate()));
-        
-        locationText.setText(event.getLocation());
-        participantsText.setText(getResources().getQuantityString(
-                R.plurals.event_participants_count,
-                event.getMaxParticipants(),
-                event.getCurrentParticipants(), event.getMaxParticipants()));
-        eventTypeText.setText(event.getEventType());
-        
-        // Verificar si el evento está lleno
-        boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-        if (isEventFull) {
-            participantsText.setTextColor(getResources().getColor(android.R.color.holo_red_dark, getTheme()));
-        } else {
-            participantsText.setTextColor(getResources().getColor(R.color.colorSecondaryText, getTheme()));
+    private void showEventDetailsDialog(Event event, boolean historyMode) {
+        if (eventPanelController == null || event == null || event.getId() == null) {
+            return;
         }
-        
-        // Mostrar si es privado
-        if (event.getPrivateEvent()) {
-            privateText.setText(R.string.label_event_private_title);
-            privateText.setVisibility(View.VISIBLE);
-        } else {
-            privateText.setVisibility(View.GONE);
+        eventViewModel.fetchEventById(
+                event.getId(),
+                fresh -> openEventPanel(EventUiMerger.mergeRemoteWithListState(fresh, event), historyMode),
+                () -> openEventPanel(event, historyMode));
+    }
+
+    private void openEventPanel(Event event, boolean historyMode) {
+        eventPanelController.show(event, historyMode);
+
+        MaterialButton showQrButton = eventPanelController.getShowQrButton();
+        if (showQrButton != null) {
+            showQrButton.setOnClickListener(v -> showEventQrDialog(event));
         }
 
-        // Cambiar texto del botón cancelar a "Cerrar"
-        cancelButton.setText(R.string.close);
-
-        // Crear el diálogo
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setView(dialogView)
-                .setCancelable(true)
-                .create();
-
-        // Verificar si el usuario ya está inscrito al evento
         String userEmail = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
                 : null;
-
         if (userEmail != null) {
-            // Cargar asistentes una sola vez y configurar el botón
-            loadEventAttendeesAndSetupButton(event, userEmail, joinButton, participantsText, showQrButton, dialog);
+            loadEventAttendeesAndSetupButton(event, userEmail, historyMode);
         }
-
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
     }
 
-    /**
-     * Cargar asistentes del evento y configurar el botón según el estado
-     */
-    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
+    private void syncOpenEventPanel(List<Event> events) {
+        if (eventPanelController == null || !eventPanelController.isVisible()) {
+            return;
+        }
+        Event current = eventPanelController.getCurrentEvent();
+        if (current == null || current.getId() == null) {
+            return;
+        }
+        for (Event updated : events) {
+            if (current.getId().equals(updated.getId())) {
+                EventUiMerger.syncAllExceptImage(current, updated);
+                eventPanelController.syncEventContent(current);
+                String userEmail = FirebaseAuth.getInstance().getCurrentUser() != null
+                        ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
+                        : null;
+                if (userEmail != null) {
+                    updateEventPanelActions(current, userEmail, eventPanelController.isHistoryMode());
+                }
+                break;
+            }
+        }
+    }
+
+    private void loadEventAttendeesAndSetupButton(Event event, String userEmail, boolean historyMode) {
         attendeeViewModel.getAttendees().removeObservers(this);
+        attendeeViewModel.getCurrentUserWaitlistEntry().removeObservers(this);
         attendeeViewModel.clearAttendeesList();
 
         String userId = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
-        attendeeViewModel.loadEventAttendees(event.getId());
+        attendeeViewModel.startListeningEventAttendees(event.getId());
+        attendeeViewModel.startListeningEventWaitlist(event.getId());
 
-        // Observar asistentes para este evento (un solo observer activo por ciclo de diálogo)
-        attendeeViewModel.getAttendees().observe(this, attendees -> {
+        Observer<List<Attendee>> attendeesObserver = attendees -> {
             if (attendees == null) {
                 return;
             }
-            // Los asistentes ya están filtrados por evento específico
-            List<Attendee> eventAttendees = attendees;
-
-            // Verificar inscripción por UID (datos recién cargados desde Firestore)
-            boolean isAlreadyJoined = userId != null && eventAttendees.stream()
+            boolean isAlreadyJoined = userId != null && attendees.stream()
                     .anyMatch(attendee -> userId.equals(attendee.getUid()));
-                
-                // Actualizar contador con el número real de asistentes de este evento
-                event.setCurrentParticipants(eventAttendees.size());
-                participantsText.setText(getResources().getQuantityString(
-                        R.plurals.event_participants_count,
-                        event.getMaxParticipants(),
-                        event.getCurrentParticipants(), event.getMaxParticipants()));
-                
-                // Verificar si está lleno
-                boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-                if (isEventFull) {
-                    participantsText.setTextColor(getResources().getColor(android.R.color.holo_red_dark, getTheme()));
-                } else {
-                    participantsText.setTextColor(getResources().getColor(R.color.colorSecondaryText, getTheme()));
-                }
-                
-                // Configurar botón según el estado
-                if (isAlreadyJoined) {
-                    // Usuario ya inscrito - puede darse de baja
-                    joinButton.setText(R.string.attendee_unsubscribe_short);
-                    joinButton.setEnabled(true);
-                    joinButton.setAlpha(1.0f);
-                    showQrButton.setEnabled(true);
-                    showQrButton.setAlpha(1.0f);
-                    joinButton.setOnClickListener(v -> {
-                        unsubscribeFromEvent(event, userEmail, joinButton, participantsText, showQrButton, dialog);
-                    });
-                } else {
-                    // Usuario no inscrito - puede inscribirse si hay espacio
-                    joinButton.setText(R.string.attendee_join_event_short);
-                    showQrButton.setEnabled(false);
-                    showQrButton.setAlpha(0.5f);
-                    if (isEventFull) {
-                        joinButton.setEnabled(false);
-                        joinButton.setAlpha(0.5f);
-                    } else {
-                        joinButton.setEnabled(true);
-                        joinButton.setAlpha(1.0f);
-                        joinButton.setOnClickListener(v -> {
-                            subscribeToEvent(event, userEmail, joinButton, participantsText, showQrButton, dialog);
-                        });
-                    }
-                }
-        });
+            event.setCurrentParticipants(attendees.size());
+            event.setCurrentUserJoined(isAlreadyJoined);
+            updateEventPanelActions(event, userEmail, historyMode);
+        };
+        Observer<com.us.eventum.data.models.WaitlistToEvent> waitlistObserver = entry ->
+                updateEventPanelActions(event, userEmail, historyMode);
+        attendeeViewModel.getAttendees().observe(this, attendeesObserver);
+        attendeeViewModel.getCurrentUserWaitlistEntry().observe(this, waitlistObserver);
+        updateEventPanelActions(event, userEmail, historyMode);
     }
 
-
-    /**
-     * Desinscribirse del evento
-     */
-    private void unsubscribeFromEvent(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
-        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+    private void updateEventPanelActions(Event event, String userEmail, boolean historyMode) {
+        MaterialButton joinButton = eventPanelController.getJoinButton();
+        TextView participantsText = eventPanelController.getParticipantsText();
+        if (joinButton == null || participantsText == null || event == null) {
             return;
         }
 
-        eventDialogContext = new EventDialogContext(
-                event, userEmail, joinButton, participantsText, showQrButton, dialog);
+        boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
+        String participantsLabel = getResources().getQuantityString(
+                R.plurals.event_participants_count,
+                event.getMaxParticipants(),
+                event.getCurrentParticipants(),
+                event.getMaxParticipants());
+        if (isEventFull && event.getWaitlistCount() > 0) {
+            participantsLabel = participantsLabel + " · "
+                    + getString(R.string.waitlist_count_suffix, event.getWaitlistCount());
+        }
+        participantsText.setText(participantsLabel);
+        participantsText.setTextColor(getResources().getColor(
+                isEventFull ? android.R.color.holo_red_dark : R.color.colorSecondaryText,
+                getTheme()));
+
+        if (historyMode) {
+            joinButton.setEnabled(false);
+            joinButton.setAlpha(0.5f);
+            eventPanelController.setQrButtonVisible(false);
+            eventPanelController.updateWaitlistStatus(null, 0, null);
+            eventPanelController.updatePrivateCodeVisibility(false);
+            joinButton.setText(event.isCurrentUserJoined()
+                    ? R.string.attendee_unsubscribe_short
+                    : R.string.attendee_join_event_short);
+            return;
+        }
+
+        if (event.isCurrentUserJoined()) {
+            joinButton.setText(R.string.attendee_unsubscribe_short);
+            joinButton.setEnabled(true);
+            joinButton.setAlpha(1f);
+            eventPanelController.setQrButtonVisible(true);
+            eventPanelController.updatePrivateCodeVisibility(false);
+            eventPanelController.updateWaitlistStatus(null, 0, null);
+            joinButton.setOnClickListener(v -> unsubscribeFromEvent(event, userEmail));
+            return;
+        }
+
+        eventPanelController.setQrButtonVisible(false);
+        com.us.eventum.data.models.WaitlistToEvent entry =
+                attendeeViewModel.getCurrentUserWaitlistEntry().getValue();
+        boolean hasOffer = event.isCurrentUserWaitlistOffered()
+                || (entry != null && com.us.eventum.data.models.WaitlistToEvent.STATUS_OFFERED.equals(entry.getStatus()));
+        boolean isWaiting = event.isCurrentUserWaitlisted()
+                || (entry != null && com.us.eventum.data.models.WaitlistToEvent.STATUS_WAITING.equals(entry.getStatus()));
+
+        if (hasOffer) {
+            Date expiresAt = event.getWaitlistOfferExpiresAt();
+            if (entry != null && entry.getOfferExpiresAt() != null) {
+                expiresAt = entry.getOfferExpiresAt().toDate();
+            }
+            eventPanelController.updateWaitlistStatus(
+                    getString(R.string.waitlist_offer_status),
+                    0,
+                    expiresAt);
+            eventPanelController.updatePrivateCodeVisibility(false);
+            joinButton.setText(R.string.waitlist_confirm_spot);
+            joinButton.setEnabled(true);
+            joinButton.setAlpha(1f);
+            joinButton.setOnClickListener(v -> confirmWaitlistSpot(userEmail));
+            return;
+        }
+
+        if (isWaiting) {
+            int position = event.getCurrentUserWaitlistPosition();
+            eventPanelController.updateWaitlistStatus(
+                    getString(R.string.waitlist_waiting_status, Math.max(position, 1)),
+                    position,
+                    null);
+            eventPanelController.updatePrivateCodeVisibility(false);
+            joinButton.setText(R.string.waitlist_leave);
+            joinButton.setEnabled(true);
+            joinButton.setAlpha(1f);
+            joinButton.setOnClickListener(v -> leaveWaitlist(event));
+            return;
+        }
+
+        eventPanelController.updateWaitlistStatus(null, 0, null);
+        if (isEventFull) {
+            joinButton.setText(R.string.waitlist_join);
+            joinButton.setEnabled(true);
+            joinButton.setAlpha(1f);
+            eventPanelController.updatePrivateCodeVisibility(event.getPrivateEvent());
+            joinButton.setOnClickListener(v -> joinWaitlist(userEmail));
+            return;
+        }
+
+        joinButton.setText(R.string.attendee_join_event_short);
+        joinButton.setEnabled(true);
+        joinButton.setAlpha(1f);
+        eventPanelController.updatePrivateCodeVisibility(event.getPrivateEvent());
+        joinButton.setOnClickListener(v -> subscribeToEvent(userEmail));
+    }
+
+    private void leaveWaitlist(Event event) {
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+        if (userId == null || event == null) {
+            return;
+        }
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        attendeeViewModel.leaveWaitlist(event.getId(), userId, resolveAttendeeDisplayName());
+    }
+
+    private void joinWaitlist(String userEmail) {
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        Event currentEvent = eventPanelController != null ? eventPanelController.getCurrentEvent() : null;
+        if (currentEvent == null) {
+            return;
+        }
+        if (!validatePrivateAccessCodeForAction(currentEvent)) {
+            return;
+        }
+        pendingWaitlistAction = true;
+        Attendee cachedProfile = attendeeViewModel.getCurrentAttendee().getValue();
+        if (cachedProfile != null) {
+            executeWaitlistJoinWithProfile(currentEvent, cachedProfile);
+            return;
+        }
+        attendeeViewModel.getCurrentAttendee().observe(this, new Observer<Attendee>() {
+            @Override
+            public void onChanged(Attendee attendee) {
+                if (!pendingWaitlistAction || attendee == null) {
+                    return;
+                }
+                attendeeViewModel.getCurrentAttendee().removeObserver(this);
+                executeWaitlistJoinWithProfile(currentEvent, attendee);
+            }
+        });
+        attendeeViewModel.loadCurrentAttendee();
+    }
+
+    private void confirmWaitlistSpot(String userEmail) {
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        Event currentEvent = eventPanelController != null ? eventPanelController.getCurrentEvent() : null;
+        if (currentEvent == null) {
+            return;
+        }
+        pendingConfirmWaitlistAction = true;
+        Attendee cachedProfile = attendeeViewModel.getCurrentAttendee().getValue();
+        if (cachedProfile != null) {
+            executeConfirmWaitlistWithProfile(currentEvent, userEmail, cachedProfile);
+            return;
+        }
+        attendeeViewModel.getCurrentAttendee().observe(this, new Observer<Attendee>() {
+            @Override
+            public void onChanged(Attendee attendee) {
+                if (!pendingConfirmWaitlistAction || attendee == null) {
+                    return;
+                }
+                attendeeViewModel.getCurrentAttendee().removeObserver(this);
+                executeConfirmWaitlistWithProfile(currentEvent, userEmail, attendee);
+            }
+        });
+        attendeeViewModel.loadCurrentAttendee();
+    }
+
+    private void executeWaitlistJoinWithProfile(Event event, Attendee attendee) {
+        if (!pendingWaitlistAction) {
+            return;
+        }
+        pendingWaitlistAction = false;
+        if (!validateAttendeeForEvent(event, attendee)) {
+            return;
+        }
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+        if (userId == null) {
+            showEventPanelToast("Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+            return;
+        }
+        if (AgeUtils.requiresParentalAuthOnEventDay(
+                attendee.getFechaNacimiento().toDate(), event.getDate())) {
+            if (!event.getRequiresParentalAuth()) {
+                showEventPanelToast(getString(R.string.event_minor_not_allowed), ToastUtils.ToastType.WARNING);
+                return;
+            }
+            showParentalAuthDialogForWaitlist(event, attendee, userId);
+            return;
+        }
+        attendeeViewModel.joinWaitlist(event.getId(), userId, null, attendee.getSortedNameLabel());
+    }
+
+    private void showParentalAuthDialogForWaitlist(Event event, Attendee attendee, String userId) {
+        parentalAuthDialogHandle = ParentalAuthDialogHelper.show(
+                this, event, userId, new ParentalAuthDialogHelper.Callback() {
+                    @Override
+                    public void onUploadSuccess(@NonNull String parentalAuthUrl) {
+                        attendeeViewModel.joinWaitlist(
+                                event.getId(), userId, parentalAuthUrl, attendee.getSortedNameLabel());
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        // Sin acción
+                    }
+                });
+        parentalAuthDialogHandle.setOnSelectFileClickListener(
+                v -> parentalAuthPickerLauncher.launch(new String[]{"image/*", "application/pdf"}));
+    }
+
+    private void executeConfirmWaitlistWithProfile(Event event, String userEmail, Attendee attendee) {
+        if (!pendingConfirmWaitlistAction) {
+            return;
+        }
+        pendingConfirmWaitlistAction = false;
+        if (!validateAttendeeForEvent(event, attendee)) {
+            return;
+        }
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+        if (userId == null) {
+            showEventPanelToast("Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+            return;
+        }
+        attendeeViewModel.confirmWaitlistOffer(
+                event.getId(),
+                userId,
+                attendee.getUsername(),
+                attendee.getPrimerApellido(),
+                attendee.getDni(),
+                userEmail,
+                attendee.getPhone() != null ? attendee.getPhone() : "",
+                attendee.getFechaNacimiento() != null
+                        ? attendee.getFechaNacimiento().toDate().toString() : "",
+                event.getRequiresParentalAuth(),
+                event.getUserId(),
+                event.getTitle(),
+                attendee.getSortedNameLabel());
+    }
+
+    private boolean validatePrivateAccessCodeForAction(Event currentEvent) {
+        if (!currentEvent.getPrivateEvent()) {
+            return true;
+        }
+        if (!eventPanelController.isPrivateCodeFieldVisible()) {
+            eventPanelController.updatePrivateCodeVisibility(true);
+        }
+        String enteredCode = eventPanelController.getEnteredAccessCode();
+        if (!EventPrivateAccessCode.isValidFormat(enteredCode)) {
+            eventPanelController.showAccessCodeFormatError();
+            return false;
+        }
+        String expectedCode = currentEvent.getPrivateAccessCode();
+        if (expectedCode == null || expectedCode.trim().isEmpty()) {
+            showEventPanelToast(getString(R.string.private_access_code_not_set), ToastUtils.ToastType.ERROR);
+            return false;
+        }
+        if (!EventPrivateAccessCode.matches(enteredCode, expectedCode)) {
+            eventPanelController.showWrongAccessCodeError();
+            return false;
+        }
+        eventPanelController.clearAccessCodeError();
+        return true;
+    }
+
+    private boolean validateAttendeeForEvent(Event event, Attendee attendee) {
+        if (!attendee.isProfileComplete()) {
+            pendingSubscribeAction = true;
+            showCompleteProfileDialog(event, attendee,
+                    FirebaseAuth.getInstance().getCurrentUser() != null
+                            ? FirebaseAuth.getInstance().getCurrentUser().getEmail()
+                            : "");
+            return false;
+        }
+        if (attendee.getFechaNacimiento() == null || event.getDate() == null) {
+            showEventPanelToast(getString(R.string.age_birth_date_invalid), ToastUtils.ToastType.ERROR);
+            return false;
+        }
+        if (!AgeUtils.isAttendeeAgeValid(attendee.getFechaNacimiento().toDate(), event.getDate())) {
+            showEventPanelToast(getString(R.string.age_attendee_min_error), ToastUtils.ToastType.ERROR);
+            return false;
+        }
+        return true;
+    }
+
+    private void unsubscribeFromEvent(Event event, String userEmail) {
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+        
+        eventDialogContext = new EventDialogContext(event, userEmail);
         attendeeViewModel.unsubscribeFromEvent(
                 event.getId(),
                 userEmail,
@@ -716,30 +1054,65 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 resolveAttendeeDisplayName());
     }
 
+    private void showEventPanelToast(String message, ToastUtils.ToastType type) {
+        if (eventPanelController != null && eventPanelController.isVisible()) {
+            eventPanelController.showPanelToast(message, type);
+        } else {
+            ToastUtils.showCustomToast(this, message, type);
+        }
+    }
 
-    /**
-     * Suscribirse al evento directamente usando los datos del usuario autenticado
-     */
-    private void subscribeToEvent(Event event, String userEmail, Button joinButton, TextView participantsText, ImageButton showQrButton, AlertDialog dialog) {
+    private void subscribeToEvent(String userEmail) {
         if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
             return;
         }
-
+        
         if (userEmail == null || userEmail.trim().isEmpty()) {
-            ToastUtils.showCustomToast(this, "Error: No se pudo obtener el email del usuario", ToastUtils.ToastType.ERROR);
+            showEventPanelToast("Error: No se pudo obtener el email del usuario", ToastUtils.ToastType.ERROR);
             return;
         }
 
-        eventDialogContext = new EventDialogContext(
-                event, userEmail, joinButton, participantsText, showQrButton, dialog);
+        Event currentEvent = eventPanelController != null
+                ? eventPanelController.getCurrentEvent()
+                : null;
+        if (currentEvent == null) {
+            showEventPanelToast("Error: No se pudo cargar el evento", ToastUtils.ToastType.ERROR);
+            return;
+        }
+
+        if (currentEvent.getPrivateEvent()) {
+            if (!eventPanelController.isPrivateCodeFieldVisible()) {
+                eventPanelController.updatePrivateCodeVisibility(true);
+            }
+            String enteredCode = eventPanelController.getEnteredAccessCode();
+            if (!EventPrivateAccessCode.isValidFormat(enteredCode)) {
+                eventPanelController.showAccessCodeFormatError();
+                return;
+            }
+            String expectedCode = currentEvent.getPrivateAccessCode();
+            if (expectedCode == null || expectedCode.trim().isEmpty()) {
+                showEventPanelToast(
+                        getString(R.string.private_access_code_not_set),
+                        ToastUtils.ToastType.ERROR);
+                return;
+            }
+            if (!EventPrivateAccessCode.matches(enteredCode, expectedCode)) {
+                eventPanelController.showWrongAccessCodeError();
+                return;
+            }
+            eventPanelController.clearAccessCodeError();
+        }
+
+        eventDialogContext = new EventDialogContext(currentEvent, userEmail);
         pendingSubscribeAction = true;
 
         Attendee cachedProfile = attendeeViewModel.getCurrentAttendee().getValue();
         if (cachedProfile != null) {
-            executeSubscribeWithProfile(event, userEmail, cachedProfile);
+            executeSubscribeWithProfile(currentEvent, userEmail, cachedProfile);
             return;
         }
 
+        Event eventForProfile = currentEvent;
         Observer<Attendee> profileObserver = new Observer<Attendee>() {
             @Override
             public void onChanged(Attendee attendee) {
@@ -747,7 +1120,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     return;
                 }
                 attendeeViewModel.getCurrentAttendee().removeObserver(this);
-                executeSubscribeWithProfile(event, userEmail, attendee);
+                executeSubscribeWithProfile(eventForProfile, userEmail, attendee);
             }
         };
         attendeeViewModel.getCurrentAttendee().observe(this, profileObserver);
@@ -765,10 +1138,88 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 : null;
 
         if (!attendee.isProfileComplete()) {
-            showCompleteProfileDialog(event, attendee);
+            pendingSubscribeAction = true;
+            showCompleteProfileDialog(event, attendee, userEmail);
             return;
         }
 
+        if (attendee.getFechaNacimiento() == null || event.getDate() == null) {
+            showEventPanelToast(getString(R.string.age_birth_date_invalid), ToastUtils.ToastType.ERROR);
+            return;
+        }
+
+        Date birthDate = attendee.getFechaNacimiento().toDate();
+        Date eventDate = event.getDate();
+        if (!AgeUtils.isAttendeeAgeValid(birthDate, eventDate)) {
+            showEventPanelToast(getString(R.string.age_attendee_min_error), ToastUtils.ToastType.ERROR);
+            return;
+        }
+
+        if (AgeUtils.requiresParentalAuthOnEventDay(birthDate, eventDate)) {
+            if (!event.getRequiresParentalAuth()) {
+                showEventPanelToast(
+                        getString(R.string.event_minor_not_allowed), ToastUtils.ToastType.WARNING);
+                return;
+            }
+            if (userId == null) {
+                showEventPanelToast(
+                        "Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+                return;
+            }
+            showParentalAuthDialog(event, attendee, userEmail, userId);
+            return;
+        }
+
+        completeEventSubscription(event, userEmail, userId, attendee, null);
+    }
+
+    private void showParentalAuthDialog(Event event, Attendee attendee, String userEmail, String userId) {
+        parentalAuthDialogHandle = ParentalAuthDialogHelper.show(
+                this, event, userId, new ParentalAuthDialogHelper.Callback() {
+                    @Override
+                    public void onUploadSuccess(@NonNull String parentalAuthUrl) {
+                        completeEventSubscription(event, userEmail, userId, attendee, parentalAuthUrl);
+                    }
+
+                    @Override
+                    public void onCancelled() {
+                        // Sin acción
+                    }
+                });
+        parentalAuthDialogHandle.setOnSelectFileClickListener(
+                v -> parentalAuthPickerLauncher.launch(new String[]{"image/*", "application/pdf"}));
+    }
+
+    private void onParentalAuthFilePicked(@Nullable Uri uri) {
+        if (parentalAuthDialogHandle == null || uri == null) {
+            return;
+        }
+        try {
+            getContentResolver().takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) {
+            // Algunos proveedores no permiten permiso persistente
+        }
+        parentalAuthDialogHandle.onFileSelected(uri, resolveDisplayName(uri));
+    }
+
+    private String resolveDisplayName(@NonNull Uri uri) {
+        try (Cursor cursor = getContentResolver().query(
+                uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (index >= 0) {
+                    return cursor.getString(index);
+                }
+            }
+        } catch (Exception ignored) {
+            // Usar texto genérico
+        }
+        return getString(R.string.parental_auth_file_selected);
+    }
+
+    private void completeEventSubscription(Event event, String userEmail, String userId,
+                                           Attendee attendee, @Nullable String parentalAuthUrl) {
         attendeeViewModel.addAttendee(
                 event.getId(),
                 userId,
@@ -777,11 +1228,13 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 attendee.getDni(),
                 userEmail,
                 attendee.getPhone() != null ? attendee.getPhone() : "",
-                attendee.getFechaNacimiento() != null ? attendee.getFechaNacimiento().toDate().toString() : "",
-                false,
+                attendee.getFechaNacimiento() != null
+                        ? attendee.getFechaNacimiento().toDate().toString() : "",
+                event.getRequiresParentalAuth(),
                 event.getUserId(),
                 event.getTitle(),
-                attendee.getSortedNameLabel()
+                attendee.getSortedNameLabel(),
+                parentalAuthUrl
         );
     }
 
@@ -817,79 +1270,117 @@ public class AttendeeHomeActivity extends AppCompatActivity
             ToastUtils.showCustomToast(this, getString(R.string.attendee_qr_error), ToastUtils.ToastType.ERROR);
             return;
         }
-        AttendeeQrDisplayActivity.start(this, event.getId(), event.getTitle());
+        if (qrPanelController != null) {
+            qrPanelController.show(event.getId(), event.getTitle());
+        }
+    }
+
+    @Override
+    public void onEventQrClick(Event event) {
+        showEventQrDialog(event);
     }
 
     /**
      * Muestra dialog para completar perfil de asistente antes de inscribirse a evento
      */
-    private void showCompleteProfileDialog(Event event, com.us.eventum.data.models.Attendee attendee) {
+    private void showCompleteProfileDialog(Event event, Attendee attendee, String userEmail) {
+        if (activeCompleteProfileDialog != null && activeCompleteProfileDialog.isShowing()) {
+            return;
+        }
+
+        waitingProfileForSubscribe = true;
+        profileSaveSubmitted = false;
+        pendingSubscribeEvent = event;
+        pendingSubscribeUserEmail = userEmail;
+
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_attendee_profile, null);
         TextView title = dialogView.findViewById(R.id.dialogTitle);
         title.setText(R.string.complete_profile_join_title);
-        
+
         com.google.android.material.textfield.TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
         com.google.android.material.textfield.TextInputEditText firstSurnameInput = dialogView.findViewById(R.id.firstSurnameInput);
         com.google.android.material.textfield.TextInputEditText secondSurnameInput = dialogView.findViewById(R.id.secondSurnameInput);
         com.google.android.material.textfield.TextInputEditText dniInput = dialogView.findViewById(R.id.dniInput);
         com.google.android.material.textfield.TextInputEditText phoneInput = dialogView.findViewById(R.id.phoneInput);
         com.google.android.material.textfield.TextInputEditText birthDateInput = dialogView.findViewById(R.id.birthDateInput);
+        com.google.android.material.textfield.TextInputLayout dniLayout = dialogView.findViewById(R.id.dniLayout);
+        com.google.android.material.textfield.TextInputLayout birthDateLayout =
+                dialogView.findViewById(R.id.birthDateLayout);
 
-        // Pre-cargar datos actuales si existen
-        if (attendee.getUsername() != null) nameInput.setText(attendee.getUsername());
-        if (attendee.getPrimerApellido() != null) firstSurnameInput.setText(attendee.getPrimerApellido());
-        if (attendee.getSegundoApellido() != null) secondSurnameInput.setText(attendee.getSegundoApellido());
-        if (attendee.getDni() != null) dniInput.setText(attendee.getDni());
-        if (attendee.getPhone() != null) phoneInput.setText(attendee.getPhone());
-        if (attendee.getFechaNacimiento() != null) {
-            String fechaStr = attendee.getFechaNacimiento().toDate().toString();
-            birthDateInput.setText(fechaStr);
+        com.us.eventum.utils.AttendeeProfileDialogHelper.populateFields(dialogView, attendee);
+        com.us.eventum.utils.AttendeeProfileDialogHelper.bindDniValidation(dniInput, dniLayout);
+        com.us.eventum.utils.AttendeeProfileDialogHelper.setupBirthDatePicker(
+                this, birthDateInput, birthDateLayout);
+
+        MaterialButton joinButton = eventPanelController != null
+                ? eventPanelController.getJoinButton()
+                : null;
+        if (joinButton != null) {
+            joinButton.setEnabled(false);
         }
 
-        birthDateInput.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
-                String dd = dayOfMonth < 10 ? "0" + dayOfMonth : String.valueOf(dayOfMonth);
-                String mm = (month + 1) < 10 ? "0" + (month + 1) : String.valueOf(month + 1);
-                birthDateInput.setText(getString(R.string.date_format_dmy, dd, mm, year));
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
-        });
+        Dialog dialog = new Dialog(this);
+        View modalRoot = com.us.eventum.utils.AttendeeProfileDialogHelper.wrapWithModalScrim(this, dialogView);
+        dialog.setContentView(modalRoot);
+        dialog.setCancelable(true);
+        com.us.eventum.utils.AttendeeProfileDialogHelper.applyModalDialogWindow(dialog);
 
-        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setView(dialogView)
-                .setCancelable(true)
-                .create();
+        Runnable restoreJoinButton = () -> {
+            if (joinButton != null) {
+                joinButton.setEnabled(true);
+            }
+        };
+
+        dialog.setOnDismissListener(d -> {
+            activeCompleteProfileDialog = null;
+            restoreJoinButton.run();
+            if (!profileSaveSubmitted) {
+                waitingProfileForSubscribe = false;
+                pendingSubscribeAction = false;
+                pendingSubscribeEvent = null;
+                pendingSubscribeUserEmail = null;
+            }
+        });
 
         dialogView.findViewById(R.id.cancelButton).setOnClickListener(v -> dialog.dismiss());
         dialogView.findViewById(R.id.saveButton).setOnClickListener(v -> {
             String name = String.valueOf(nameInput.getText()).trim();
             String firstSurname = String.valueOf(firstSurnameInput.getText()).trim();
             String secondSurname = String.valueOf(secondSurnameInput.getText()).trim();
-            String dni = String.valueOf(dniInput.getText()).trim();
+            String dni = String.valueOf(dniInput.getText()).trim().toUpperCase(java.util.Locale.ROOT);
             String phone = String.valueOf(phoneInput.getText()).trim();
             String birth = String.valueOf(birthDateInput.getText()).trim();
 
-            // Validaciones: todos obligatorios
-            if (name.isEmpty() || firstSurname.isEmpty() || secondSurname.isEmpty() || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
-                ToastUtils.showCustomToast(this, "Por favor, completa todos los campos obligatorios", ToastUtils.ToastType.ERROR);
+            if (name.isEmpty() || firstSurname.isEmpty() || secondSurname.isEmpty()
+                    || dni.isEmpty() || phone.isEmpty() || birth.isEmpty()) {
+                com.us.eventum.utils.AttendeeProfileDialogHelper.showError(
+                        dialogView, getString(R.string.profile_complete_all_required));
                 return;
             }
 
-            // Mostrar advertencia antes de guardar
+            if (!com.us.eventum.utils.AttendeeProfileDialogHelper.validateDniForSave(this, dniLayout, dni)) {
+                return;
+            }
+
+            if (!com.us.eventum.utils.AttendeeProfileDialogHelper.validateAttendeeBirthDateForSave(
+                    this, birthDateLayout, birth)) {
+                return;
+            }
+
             new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle("Importante")
                     .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) no se podrán modificar posteriormente. ¿Deseas continuar?")
                     .setPositiveButton("Aceptar", (d, w) -> {
-                        // Actualizar perfil
-                        attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
-                        
+                        profileSaveSubmitted = true;
+                        attendeeViewModel.updateAttendee(
+                                attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                         dialog.dismiss();
-                        ToastUtils.showCustomToast(this, "Perfil completado. Ahora puedes inscribirte al evento.", ToastUtils.ToastType.SUCCESS);
                     })
                     .setNegativeButton("Cancelar", null)
                     .show();
         });
 
+        activeCompleteProfileDialog = dialog;
         dialog.show();
     }
 }

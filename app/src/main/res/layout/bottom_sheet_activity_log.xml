@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/activityLogSheetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:orientation="vertical">
+
+    <include layout="@layout/include_bottom_sheet_header" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorSurface"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp"
+            android:text="@string/event_activity_log_subtitle"
+            android:textColor="@color/colorSecondaryText"
+            android:textSize="13sp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="200dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/activityLogRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:maxHeight="@dimen/panel_bottom_sheet_scroll_max_large"
+                android:paddingTop="4dp"
+                android:paddingBottom="16dp"
+                android:scrollbars="vertical" />
+
+            <ProgressBar
+                android:id="@+id/activityLogProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center" />
+
+            <TextView
+                android:id="@+id/activityLogEmptyLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawablePadding="16dp"
+                android:gravity="center"
+                android:padding="32dp"
+                android:text="@string/event_activity_log_empty"
+                android:textColor="@color/colorSecondaryText"
+                android:textSize="15sp"
+                android:visibility="gone"
+                app:drawableTopCompat="@drawable/ic_history"
+                app:drawableTint="@color/colorSecondaryText" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

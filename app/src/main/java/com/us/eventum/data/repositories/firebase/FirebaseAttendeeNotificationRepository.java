@@ -1,8 +1,10 @@
 package com.us.eventum.data.repositories.firebase;
 
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.us.eventum.R;
 import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.data.repositories.AttendeeNotificationRepository;
+import com.us.eventum.utils.FirebaseBackendErrorHandler;
 
 public class FirebaseAttendeeNotificationRepository implements AttendeeNotificationRepository {
 
@@ -20,7 +22,7 @@ public class FirebaseAttendeeNotificationRepository implements AttendeeNotificat
         if (notification == null
                 || notification.getAttendeeId() == null
                 || notification.getEventId() == null) {
-            callback.onError("Datos de notificación incompletos");
+            callback.onError(FirebaseBackendErrorHandler.getIncompleteNotificationMessage(null));
             return;
         }
 
@@ -28,6 +30,7 @@ public class FirebaseAttendeeNotificationRepository implements AttendeeNotificat
                 .add(notification)
                 .addOnSuccessListener(ref -> callback.onSuccess(null))
                 .addOnFailureListener(e ->
-                        callback.onError("Error al crear notificación: " + e.getMessage()));
+                        callback.onError(FirebaseBackendErrorHandler.getErrorMessage(
+                                e, R.string.backend_op_create_notification)));
     }
 }

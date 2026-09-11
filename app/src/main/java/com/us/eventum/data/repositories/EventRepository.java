@@ -8,7 +8,27 @@ import java.util.List;
  * Implementa el patrón Repository para abstraer la fuente de datos
  */
 public interface EventRepository {
-    
+
+    /**
+     * Callback para actualizaciones en tiempo real del catálogo de eventos.
+     */
+    interface AvailableEventsListener {
+        void onEventsUpdated(List<Event> events);
+
+        void onError(String error);
+    }
+
+    /**
+     * Callback para un documento de evento concreto.
+     */
+    interface SingleEventListener {
+        void onEventUpdated(Event event);
+
+        void onEventRemoved();
+
+        void onError(String error);
+    }
+
     /**
      * Cargar eventos del usuario actual
      * @param userId ID del usuario
@@ -20,6 +40,27 @@ public interface EventRepository {
      * Cargar eventos disponibles para asistentes (públicos y con fecha futura)
      */
     void loadAvailableEvents(RepositoryCallback<List<Event>> callback);
+
+    /**
+     * Escucha cambios en el catálogo de eventos (p. ej. privacidad) sin recargar manualmente.
+     */
+    void startAvailableEventsListener(AvailableEventsListener listener);
+
+    void stopAvailableEventsListener();
+
+    /**
+     * Escucha los eventos del organizador en tiempo real.
+     */
+    void startUserEventsListener(String userId, AvailableEventsListener listener);
+
+    void stopUserEventsListener();
+
+    /**
+     * Escucha cambios en un evento concreto.
+     */
+    void startEventListener(String eventId, SingleEventListener listener);
+
+    void stopEventListener();
     
     /**
      * Crear un nuevo evento
@@ -42,7 +83,8 @@ public interface EventRepository {
      * @param isPrivate Nuevo estado de privacidad
      * @param callback Callback para manejar el resultado
      */
-    void updateEventPrivacy(String eventId, boolean isPrivate, RepositoryCallback<Void> callback);
+    void updateEventPrivacy(String eventId, boolean isPrivate, @androidx.annotation.Nullable String privateAccessCode,
+                           RepositoryCallback<Void> callback);
     
     /**
      * Eliminar un evento

@@ -3,7 +3,23 @@
     <!-- Barra de FABs (buscar / + / QR): margen base + inset de navegación en runtime -->
     <dimen name="fab_bar_margin_bottom">8dp</dimen>
     <dimen name="fab_bar_handle_width">44dp</dimen>
-    <dimen name="fab_bar_handle_height">80dp</dimen>
+    <!-- Misma altura que un FAB normal (56dp) -->
+    <dimen name="fab_bar_handle_height">56dp</dimen>
+    <dimen name="fab_bar_handle_elevation">12dp</dimen>
     <!-- Tarjeta de resultado del escáner QR: por encima de la barra de navegación del sistema -->
     <dimen name="qr_scanner_status_margin_bottom">140dp</dimen>
+    <!-- Espacio bajo la última tarjeta cuando la barra FAB superpone la lista (sin inset de nav: el FAB ya lo tiene) -->
+    <dimen name="list_fab_clearance">84dp</dimen>
+    <dimen name="list_bottom_extra_gap">8dp</dimen>
+    <!-- Altura fija: checkbox + campo código con texto de ayuda (evita saltos al mostrar/ocultar) -->
+    <dimen name="private_event_code_row_height">80dp</dimen>
+    <dimen name="private_event_code_field_start_margin">14dp</dimen>
+    <!-- Bottom sheet modal: espacio visible de la pantalla detrás (como overlay marginTop 72dp) -->
+    <dimen name="panel_bottom_sheet_top_offset">72dp</dimen>
+    <dimen name="panel_bottom_sheet_header_height">64dp</dimen>
+    <dimen name="panel_bottom_sheet_scroll_max">420dp</dimen>
+    <dimen name="panel_bottom_sheet_scroll_max_large">520dp</dimen>
+    <!-- Footer fijo de Crear evento: botón + márgenes (reserva al calcular altura del scroll) -->
+    <dimen name="panel_bottom_sheet_create_event_footer">76dp</dimen>
+    <dimen name="fullscreen_zoom_image_max_height">480dp</dimen>
 </resources>

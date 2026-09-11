@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
-    <!-- Falso positivo en español: "momento" ≠ "memento" -->
-    <issue id="Typos">
-        <ignore regexp="momento" />
-    </issue>
+    <!-- Falsos positivos en español ("momento" ≠ "memento") -->
+    <issue id="Typos" severity="ignore" />
+
+    <!-- Patrón habitual en AlertDialog/MaterialAlertDialog: inflate(layout, null) y setView(...) -->
+    <issue id="InflateParams" severity="ignore" />
+
+    <!-- Avisos informativos de dependencias; actualizar versiones es decisión explícita, no automática -->
+    <issue id="GradleDependency" severity="informational" />
+    <issue id="NewerVersionAvailable" severity="informational" />
 </lint>

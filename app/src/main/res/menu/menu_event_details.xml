@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    
+
     <item
-        android:id="@+id/action_edit_event"
-        android:icon="@drawable/ic_edit"
-        android:title="@string/menu_edit_event"
+        android:id="@+id/action_verify_attendees"
+        android:icon="@drawable/ic_check"
+        android:title="@string/menu_verify_attendees"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
         android:orderInCategory="1"/>
@@ -19,12 +19,45 @@
         android:orderInCategory="2"/>
 
     <item
-        android:id="@+id/action_verify_attendees"
-        android:icon="@drawable/ic_check"
-        android:title="@string/menu_verify_attendees"
+        android:id="@+id/action_view_waitlist"
+        android:icon="@drawable/ic_people"
+        android:title="@string/menu_view_waitlist"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
         android:orderInCategory="3"/>
+
+    <item
+        android:id="@+id/action_view_private_access_code"
+        android:icon="@drawable/ic_lock_closed"
+        android:title="@string/menu_view_private_access_code"
+        android:iconTint="@color/colorPrimary"
+        app:showAsAction="never"
+        android:orderInCategory="4"
+        android:visible="false"/>
+
+    <item
+        android:id="@+id/action_event_activity_log"
+        android:icon="@drawable/ic_history"
+        android:title="@string/menu_event_activity_log"
+        android:iconTint="@color/colorPrimary"
+        app:showAsAction="never"
+        android:orderInCategory="5"/>
+
+    <item
+        android:id="@+id/action_edit_event"
+        android:icon="@drawable/ic_edit"
+        android:title="@string/menu_edit_event"
+        android:iconTint="@color/colorPrimary"
+        app:showAsAction="never"
+        android:orderInCategory="6"/>
+
+    <item
+        android:id="@+id/action_export_attendees_csv"
+        android:icon="@drawable/ic_download"
+        android:title="@string/menu_export_attendees_csv"
+        android:iconTint="@color/colorPrimary"
+        app:showAsAction="never"
+        android:orderInCategory="7"/>
 
     <item
         android:id="@+id/action_clear_list"
@@ -32,13 +65,13 @@
         android:title="@string/menu_clear_list"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
-        android:orderInCategory="4"/>
+        android:orderInCategory="8"/>
 
     <item
         android:id="@+id/action_delete_event"
         android:icon="@drawable/ic_delete"
-        android:title="@string/delete"
+        android:title="@string/menu_delete_event"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
-        android:orderInCategory="5"/>
+        android:orderInCategory="9"/>
 </menu>

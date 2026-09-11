@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="16dp"
@@ -33,13 +34,16 @@
             android:layout_marginBottom="12dp" />
 
         <TextView
+            android:id="@+id/deleteAccountMessageTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/delete_account_dialog_message"
+            android:justificationMode="inter_word"
+            android:lineSpacingExtra="4dp"
+            android:textAlignment="viewStart"
             android:textColor="@color/colorSecondaryText"
-            android:textSize="16sp"
-            android:layout_marginBottom="24dp" />
+            android:textSize="15sp"
+            android:layout_marginBottom="24dp"
+            tools:text="@string/delete_account_dialog_message" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -61,7 +65,7 @@
                 android:id="@+id/btnConfirm"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/delete"
+                android:text="@string/delete_account_confirm"
                 android:textAllCaps="false"
                 android:textSize="14sp"
                 android:backgroundTint="@android:color/holo_red_light"

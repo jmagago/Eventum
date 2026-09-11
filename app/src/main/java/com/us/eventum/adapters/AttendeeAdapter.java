@@ -1,15 +1,22 @@
 package com.us.eventum.adapters;
 
+import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.card.MaterialCardView;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Attendee;
 import com.us.eventum.utils.ProfileImageManager;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +26,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     private List<Attendee> attendees = new ArrayList<>();
     private OnAttendeeClickListener onAttendeeClickListener;
-    private Map<String, Boolean> scannedAttendeesMap = new HashMap<>(); // Map de asistentes escaneados (userId -> isScanned)
+    private Map<String, Boolean> scannedAttendeesMap = new HashMap<>();
 
     public interface OnAttendeeClickListener {
         void onAttendeeClick(Attendee attendee);
@@ -48,7 +55,6 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             return;
         }
 
-        // Ordenar por apellido
         attendees.sort((a1, a2) -> {
             String lastName1 = a1.getLastName() != null ? a1.getLastName() : "";
             String lastName2 = a2.getLastName() != null ? a2.getLastName() : "";
@@ -64,20 +70,19 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Attendee attendee = attendees.get(position);
         android.util.Log.d("AttendeeAdapter", "onBindViewHolder posición: " + position + ", asistente: " + attendee.getUsername());
-        
+
         holder.nameTextView.setText(attendee.getSortedNameLabel());
-        
-            // Mostrar DNI como primer campo
-            String dni = attendee.getDni();
-            if (dni != null && !dni.isEmpty()) {
-                holder.dniTextView.setText(dni);
-                holder.dniTextView.setVisibility(View.VISIBLE);
-            } else {
-                holder.dniTextView.setVisibility(View.GONE);
-            }
-        
+
+        String dni = attendee.getDni();
+        if (dni != null && !dni.isEmpty()) {
+            holder.dniTextView.setText(dni);
+            holder.dniTextView.setVisibility(View.VISIBLE);
+        } else {
+            holder.dniTextView.setVisibility(View.GONE);
+        }
+
         holder.emailTextView.setText(attendee.getEmail());
-        
+
         String phone = attendee.getPhone();
         if (phone != null && !phone.isEmpty()) {
             holder.phoneTextView.setText(phone);
@@ -91,19 +96,30 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
                 holder.profileImageView,
                 attendee.getUid());
 
-        // Verificar si el asistente ha sido escaneado (QR verificado)
         boolean isScanned = scannedAttendeesMap.getOrDefault(attendee.getUid(), false);
-        if (isScanned) {
-            holder.itemView.setBackgroundResource(R.drawable.bg_card_verified);
-        } else {
-            holder.itemView.setBackgroundResource(R.drawable.bg_card_normal);
-        }
+        applyVerifiedCardStyle(holder, isScanned);
 
         holder.itemView.setOnClickListener(v -> {
             if (onAttendeeClickListener != null) {
                 onAttendeeClickListener.onAttendeeClick(attendee);
             }
         });
+    }
+
+    private void applyVerifiedCardStyle(ViewHolder holder, boolean isScanned) {
+        Resources res = holder.itemView.getContext().getResources();
+        int strokePx = Math.round(3f * res.getDisplayMetrics().density);
+        if (isScanned) {
+            holder.attendeeCard.setStrokeWidth(strokePx);
+            holder.attendeeCard.setStrokeColor(ColorStateList.valueOf(
+                    ContextCompat.getColor(holder.itemView.getContext(), R.color.attendee_verified_stroke)));
+        } else {
+            holder.attendeeCard.setStrokeWidth(0);
+            holder.attendeeCard.setStrokeColor(ColorStateList.valueOf(
+                    ContextCompat.getColor(holder.itemView.getContext(), android.R.color.transparent)));
+        }
+        holder.attendeeCard.setCardBackgroundColor(
+                ContextCompat.getColor(holder.itemView.getContext(), android.R.color.white));
     }
 
     @Override
@@ -113,6 +129,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        MaterialCardView attendeeCard;
         ImageView profileImageView;
         TextView nameTextView;
         TextView dniTextView;
@@ -121,6 +138,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            attendeeCard = (MaterialCardView) itemView;
             profileImageView = itemView.findViewById(R.id.attendeeProfileImage);
             nameTextView = itemView.findViewById(R.id.attendeeNameTextView);
             dniTextView = itemView.findViewById(R.id.attendeeDniTextView);
@@ -157,4 +175,4 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             }
         }
     }
-} 
+}

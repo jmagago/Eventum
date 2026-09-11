@@ -15,7 +15,9 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Event;
+import com.us.eventum.utils.EventImageManager;
 import com.us.eventum.utils.LocaleUtils;
+import de.hdodenhof.circleimageview.CircleImageView;
 import android.content.res.ColorStateList;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,11 +29,18 @@ import java.util.Locale;
  * Soporta tanto contador de participantes estático como dinámico desde Firestore
  */
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
+
+    public enum CardDisplayMode {
+        DEFAULT,
+        HISTORY
+    }
+
     private List<Event> events = new ArrayList<>();
     private OnEventClickListener listener;
     private FirebaseFirestore db;
     private boolean useDynamicParticipantCount = true;
     private boolean showQrQuickAction = false;
+    private CardDisplayMode cardDisplayMode = CardDisplayMode.DEFAULT;
     private SimpleDateFormat dateFormat;
 
     public interface OnEventClickListener {
@@ -76,30 +85,48 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         List<Event> newEvents = copyEvents(events);
         int oldSize = this.events.size();
         int newSize = newEvents.size();
+        List<Event> oldEvents = this.events;
         this.events = newEvents;
-        notifyListSizeChanged(oldSize, newSize);
+
+        if (oldSize != newSize) {
+            notifyListSizeChanged(oldEvents, newEvents, oldSize, newSize);
+            return;
+        }
+        for (int i = 0; i < newSize; i++) {
+            notifyItemDiff(oldEvents.get(i), newEvents.get(i), i);
+        }
     }
 
-    private static List<Event> copyEvents(List<Event> events) {
-        return events != null ? new ArrayList<>(events) : new ArrayList<>();
+    private void notifyItemDiff(Event oldEvent, Event newEvent, int position) {
+        if (oldEvent == null || newEvent == null
+                || oldEvent.getId() == null || newEvent.getId() == null
+                || !oldEvent.getId().equals(newEvent.getId())) {
+            notifyItemChanged(position);
+            return;
+        }
+        int flags = EventChangePayload.computeFlags(oldEvent, newEvent);
+        if (flags != 0) {
+            notifyItemChanged(position, new EventChangePayload(flags));
+        }
     }
 
-    private void notifyListSizeChanged(int oldSize, int newSize) {
-        if (newSize == oldSize) {
-            if (newSize > 0) {
-                notifyItemRangeChanged(0, newSize);
-            }
-        } else if (newSize > oldSize) {
-            if (oldSize > 0) {
-                notifyItemRangeChanged(0, oldSize);
+    private void notifyListSizeChanged(List<Event> oldEvents, List<Event> newEvents,
+                                       int oldSize, int newSize) {
+        if (newSize > oldSize) {
+            for (int i = 0; i < oldSize; i++) {
+                notifyItemDiff(oldEvents.get(i), newEvents.get(i), i);
             }
             notifyItemRangeInserted(oldSize, newSize - oldSize);
         } else {
             notifyItemRangeRemoved(newSize, oldSize - newSize);
-            if (newSize > 0) {
-                notifyItemRangeChanged(0, newSize);
+            for (int i = 0; i < newSize; i++) {
+                notifyItemDiff(oldEvents.get(i), newEvents.get(i), i);
             }
         }
+    }
+
+    private static List<Event> copyEvents(List<Event> events) {
+        return events != null ? new ArrayList<>(events) : new ArrayList<>();
     }
 
     /**
@@ -111,6 +138,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     public void setShowQrQuickAction(boolean showQrQuickAction) {
         this.showQrQuickAction = showQrQuickAction;
+    }
+
+    public void setCardDisplayMode(CardDisplayMode cardDisplayMode) {
+        this.cardDisplayMode = cardDisplayMode != null ? cardDisplayMode : CardDisplayMode.DEFAULT;
+        notifyItemRangeChanged(0, getItemCount());
     }
 
     @NonNull
@@ -130,6 +162,34 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     }
 
     @Override
+    public void onBindViewHolder(@NonNull EventViewHolder holder, int position,
+                                 @NonNull List<Object> payloads) {
+        if (payloads.isEmpty() || position < 0 || position >= events.size()) {
+            onBindViewHolder(holder, position);
+            return;
+        }
+        Event event = events.get(position);
+        boolean metadata = false;
+        boolean stats = false;
+        for (Object payload : payloads) {
+            if (payload instanceof EventChangePayload change) {
+                metadata |= change.includesMetadata();
+                stats |= change.includesStats();
+            }
+        }
+        if (!metadata && !stats) {
+            onBindViewHolder(holder, position);
+            return;
+        }
+        if (metadata) {
+            holder.bindMetadata(event);
+        }
+        if (stats) {
+            holder.bindStats(event);
+        }
+    }
+
+    @Override
     public int getItemCount() {
         return events.size();
     }
@@ -137,6 +197,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     class EventViewHolder extends RecyclerView.ViewHolder {
         private final MaterialCardView eventCard;
         private TextView titleText;
+        private CircleImageView eventImageView;
         private TextView dateText;
         private TextView locationText;
         private TextView participantsText;
@@ -149,6 +210,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             super(itemView);
             eventCard = (MaterialCardView) itemView;
             titleText = itemView.findViewById(R.id.eventTitleTextView);
+            eventImageView = itemView.findViewById(R.id.eventImageView);
             dateText = itemView.findViewById(R.id.eventDateTextView);
             locationText = itemView.findViewById(R.id.eventLocationTextView);
             participantsText = itemView.findViewById(R.id.eventParticipantsTextView);
@@ -192,37 +254,55 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         }
 
         public void bind(Event event) {
+            bindMetadata(event);
+            if (eventImageView != null) {
+                String eventId = event.getId();
+                Object imageTag = eventImageView.getTag(R.id.tag_image_load_key);
+                if (imageTag != null && eventId != null
+                        && !imageTag.toString().startsWith(eventId + "#")) {
+                    eventImageView.setImageResource(R.mipmap.ic_launcher);
+                    eventImageView.setTag(R.id.tag_image_load_key, null);
+                }
+                EventImageManager.loadEventImage(itemView.getContext(), eventImageView, eventId);
+            }
+
+            bindStats(event);
+        }
+
+        void bindMetadata(Event event) {
             titleText.setText(event.getTitle());
-            
-            // Mostrar icono de candado según el tipo de evento
+
+            boolean historyMode = cardDisplayMode == CardDisplayMode.HISTORY;
+            itemView.setAlpha(historyMode ? 0.72f : 1f);
+
             boolean isPrivate = event.getPrivateEvent();
-            Log.d("EventAdapter", "Evento: " + event.getTitle() + " - isPrivate: " + isPrivate);
             if (isPrivate) {
                 privateIcon.setImageResource(R.drawable.ic_lock_closed);
                 privateIcon.setVisibility(View.VISIBLE);
-                Log.d("EventAdapter", "Mostrando candado CERRADO para: " + event.getTitle());
             } else {
                 privateIcon.setImageResource(R.drawable.ic_lock_open);
                 privateIcon.setVisibility(View.VISIBLE);
-                Log.d("EventAdapter", "Mostrando candado ABIERTO para: " + event.getTitle());
             }
-            
-            // Formatear la fecha y la hora
-            String formattedDate = displayDateFormat.format(event.getDate());
-            formattedDate = LocaleUtils.capitalizeFirst(formattedDate);
-            dateText.setText(formattedDate);
 
-            // Hora en formato HH:mm
-            try {
-                SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-                timeText.setText(hourFormat.format(event.getDate()));
-            } catch (Exception e) {
+            if (event.getDate() != null) {
+                String formattedDate = displayDateFormat.format(event.getDate());
+                formattedDate = LocaleUtils.capitalizeFirst(formattedDate);
+                dateText.setText(formattedDate);
+                try {
+                    SimpleDateFormat hourFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                    timeText.setText(hourFormat.format(event.getDate()));
+                } catch (Exception e) {
+                    timeText.setText("");
+                }
+            } else {
+                dateText.setText("");
                 timeText.setText("");
             }
-            
+
             locationText.setText(event.getLocation());
-            
-            // Mostrar el número de participantes o mensaje de error
+        }
+
+        void bindStats(Event event) {
             if (event.getCurrentParticipants() == -1) {
                 participantsText.setText(itemView.getContext().getString(R.string.event_participants_load_error));
                 participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorError, itemView.getContext().getTheme()));
@@ -240,7 +320,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         }
 
         private void bindQrQuickAction(Event event) {
-            if (!showQrQuickAction || qrButton == null) {
+            if (!showQrQuickAction || qrButton == null
+                    || cardDisplayMode == CardDisplayMode.HISTORY) {
                 if (qrButton != null) {
                     qrButton.setVisibility(View.GONE);
                 }
@@ -256,25 +337,41 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             });
         }
 
-        /**
-         * Resalta en verde solo cuando el check-in QR del asistente ya fue validado.
-         */
         private void applyEnrolledCardStyle(Event event) {
             Resources res = itemView.getContext().getResources();
             int strokePx = Math.round(3f * res.getDisplayMetrics().density);
-            if (event.isCurrentUserScannedQR()) {
+            if (cardDisplayMode == CardDisplayMode.HISTORY) {
+                eventCard.setStrokeWidth(strokePx);
+                if (event.isCurrentUserScannedQR()) {
+                    eventCard.setStrokeColor(ColorStateList.valueOf(
+                            ContextCompat.getColor(itemView.getContext(), R.color.attendee_verified_stroke)));
+                } else {
+                    eventCard.setStrokeColor(ColorStateList.valueOf(
+                            ContextCompat.getColor(itemView.getContext(), R.color.attendee_not_attended_stroke)));
+                }
+                eventCard.setCardBackgroundColor(
+                        ContextCompat.getColor(itemView.getContext(), android.R.color.white));
+                return;
+            }
+            if (event.isCurrentUserWaitlistOffered()) {
+                eventCard.setStrokeWidth(strokePx);
+                eventCard.setStrokeColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(itemView.getContext(), R.color.waitlist_accent)));
+            } else if (event.isCurrentUserOnWaitlist()) {
+                eventCard.setStrokeWidth(strokePx);
+                eventCard.setStrokeColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(itemView.getContext(), R.color.attendee_waitlist_stroke)));
+            } else if (event.isCurrentUserScannedQR()) {
                 eventCard.setStrokeWidth(strokePx);
                 eventCard.setStrokeColor(ColorStateList.valueOf(
                         ContextCompat.getColor(itemView.getContext(), R.color.attendee_verified_stroke)));
-                eventCard.setCardBackgroundColor(
-                        ContextCompat.getColor(itemView.getContext(), R.color.attendee_verified_background));
             } else {
                 eventCard.setStrokeWidth(0);
                 eventCard.setStrokeColor(ColorStateList.valueOf(
                         ContextCompat.getColor(itemView.getContext(), android.R.color.transparent)));
-                eventCard.setCardBackgroundColor(
-                        ContextCompat.getColor(itemView.getContext(), android.R.color.white));
             }
+            eventCard.setCardBackgroundColor(
+                    ContextCompat.getColor(itemView.getContext(), android.R.color.white));
         }
     }
 } 

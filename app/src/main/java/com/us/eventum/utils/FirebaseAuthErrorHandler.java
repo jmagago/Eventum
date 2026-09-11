@@ -157,12 +157,22 @@ public final class FirebaseAuthErrorHandler {
                 "INVALID_LOGIN_CREDENTIALS", "INVALID-LOGIN-CREDENTIALS",
                 "INVALID_CREDENTIAL", "INVALID-CREDENTIAL",
                 "INVALID_PASSWORD", "INVALID-PASSWORD",
+                "REJECTED_CREDENTIAL", "REJECTED-CREDENTIAL",
                 "EMAIL_NOT_VERIFIED", "EMAIL-NOT-VERIFIED",
                 "USER_NOT_FOUND", "WRONG_PASSWORD",
                 "TOO_MANY_REQUESTS", "NETWORK_REQUEST_FAILED",
                 "CAPTCHA_CHECK_FAILED", "MISSING_RECAPTCHA_TOKEN",
                 "INVALID_RECAPTCHA_TOKEN", "RECAPTCHA_NOT_ENABLED",
-                "REQUIRES_RECENT_LOGIN", "SESSION_EXPIRED", "CODE_EXPIRED"
+                "REQUIRES_RECENT_LOGIN", "SESSION_EXPIRED", "CODE_EXPIRED",
+                "PASSWORD_DOES_NOT_MEET_REQUIREMENTS", "INVALID_OOB_CODE",
+                "MISSING_OR_INVALID_NONCE", "BLOCKING_FUNCTION_ERROR_RESPONSE",
+                "ADMIN_ONLY_OPERATION", "INVALID_API_KEY", "INVALID_APP_CREDENTIAL",
+                "MISSING_APP_CREDENTIAL", "PHONE_NUMBER_ALREADY_EXISTS",
+                "INVALID_PHONE_AUTH_CREDENTIAL", "MISSING_MULTI_FACTOR_INFO",
+                "INVALID_MULTI_FACTOR_SESSION", "SECOND_FACTOR_ALREADY_ENROLLED",
+                "SECOND_FACTOR_LIMIT_EXCEEDED", "FEDERATED_USER_ID_ALREADY_LINKED",
+                "EMAIL_CHANGE_NEEDS_VERIFICATION", "INVALID_CONTINUE_URI",
+                "TENANT_ID_MISMATCH", "INVALID_TENANT_ID"
         };
         for (String code : knownCodes) {
             if (upper.contains(code.replace('-', '_'))) {
@@ -194,18 +204,18 @@ public final class FirebaseAuthErrorHandler {
         switch (normalized) {
             case "INVALID_EMAIL":
             case "MISSING_EMAIL":
-            case "USER_NOT_FOUND":
             case "EMAIL_ALREADY_IN_USE":
+            case "EMAIL_EXISTS":
             case "EMAIL_NOT_VERIFIED":
             case "ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL":
-            case "EMAIL_EXISTS":
+                return AuthErrorField.EMAIL;
+            case "USER_NOT_FOUND":
                 return AuthErrorField.EMAIL;
             case "WRONG_PASSWORD":
             case "MISSING_PASSWORD":
             case "INVALID_LOGIN_CREDENTIALS":
             case "INVALID_CREDENTIAL":
             case "INVALID_PASSWORD":
-            case "WEAK_PASSWORD":
             case "REJECTED_CREDENTIAL":
                 return AuthErrorField.PASSWORD;
             default:
@@ -241,17 +251,20 @@ public final class FirebaseAuthErrorHandler {
             case "WRONG_PASSWORD":
                 stringRes = R.string.auth_error_wrong_password;
                 break;
-            case "MISSING_PASSWORD":
-                stringRes = R.string.auth_error_missing_password;
-                break;
             case "INVALID_LOGIN_CREDENTIALS":
             case "INVALID_CREDENTIAL":
             case "INVALID_PASSWORD":
             case "REJECTED_CREDENTIAL":
                 stringRes = R.string.auth_error_invalid_credentials;
                 break;
+            case "MISSING_PASSWORD":
+                stringRes = R.string.auth_error_missing_password;
+                break;
             case "WEAK_PASSWORD":
                 stringRes = R.string.auth_error_weak_password;
+                break;
+            case "PASSWORD_DOES_NOT_MEET_REQUIREMENTS":
+                stringRes = R.string.auth_error_password_requirements;
                 break;
             case "USER_DISABLED":
                 stringRes = R.string.auth_error_user_disabled;
@@ -272,6 +285,7 @@ public final class FirebaseAuthErrorHandler {
                 stringRes = R.string.auth_error_provider_already_linked;
                 break;
             case "USER_TOKEN_EXPIRED":
+            case "SESSION_EXPIRED":
                 stringRes = R.string.auth_error_session_expired;
                 break;
             case "INVALID_USER_TOKEN":
@@ -292,7 +306,11 @@ public final class FirebaseAuthErrorHandler {
             case "MISSING_MULTI_FACTOR_SESSION":
                 stringRes = R.string.auth_error_missing_mfa_session;
                 break;
+            case "INVALID_MULTI_FACTOR_SESSION":
+                stringRes = R.string.auth_error_mfa_session_invalid;
+                break;
             case "MULTI_FACTOR_INFO_NOT_FOUND":
+            case "MISSING_MULTI_FACTOR_INFO":
                 stringRes = R.string.auth_error_mfa_not_found;
                 break;
             case "NETWORK_REQUEST_FAILED":
@@ -325,10 +343,12 @@ public final class FirebaseAuthErrorHandler {
             case "INVALID_ACTION_CODE":
                 stringRes = R.string.auth_error_invalid_action_code;
                 break;
+            case "INVALID_OOB_CODE":
+                stringRes = R.string.auth_error_invalid_oob_code;
+                break;
             case "EXPIRED_ACTION_CODE":
                 stringRes = R.string.auth_error_expired_action_code;
                 break;
-            case "SESSION_EXPIRED":
             case "CODE_EXPIRED":
                 stringRes = R.string.auth_error_code_expired;
                 break;
@@ -353,6 +373,9 @@ public final class FirebaseAuthErrorHandler {
             case "RECAPTCHA_NOT_ENABLED":
                 stringRes = R.string.auth_error_recaptcha_not_enabled;
                 break;
+            case "MISSING_ACTIVITY_FOR_RECAPTCHA":
+                stringRes = R.string.auth_error_missing_activity_recaptcha;
+                break;
             case "MISSING_CLIENT_IDENTIFIER":
                 stringRes = R.string.auth_error_missing_client_identifier;
                 break;
@@ -362,8 +385,52 @@ public final class FirebaseAuthErrorHandler {
             case "INVALID_PHONE_NUMBER":
                 stringRes = R.string.auth_error_invalid_phone_number;
                 break;
-            case "MISSING_ACTIVITY_FOR_RECAPTCHA":
-                stringRes = R.string.auth_error_missing_activity_recaptcha;
+            case "MISSING_OR_INVALID_NONCE":
+                stringRes = R.string.auth_error_missing_nonce;
+                break;
+            case "BLOCKING_FUNCTION_ERROR_RESPONSE":
+                stringRes = R.string.auth_error_blocking_function;
+                break;
+            case "ADMIN_ONLY_OPERATION":
+                stringRes = R.string.auth_error_admin_only;
+                break;
+            case "INVALID_API_KEY":
+                stringRes = R.string.auth_error_invalid_api_key;
+                break;
+            case "INVALID_APP_CREDENTIAL":
+                stringRes = R.string.auth_error_invalid_app_credential;
+                break;
+            case "MISSING_APP_CREDENTIAL":
+                stringRes = R.string.auth_error_missing_app_credential;
+                break;
+            case "PHONE_NUMBER_ALREADY_EXISTS":
+                stringRes = R.string.auth_error_phone_already_exists;
+                break;
+            case "INVALID_PHONE_AUTH_CREDENTIAL":
+                stringRes = R.string.auth_error_invalid_phone_credential;
+                break;
+            case "SECOND_FACTOR_ALREADY_ENROLLED":
+                stringRes = R.string.auth_error_second_factor_enrolled;
+                break;
+            case "SECOND_FACTOR_LIMIT_EXCEEDED":
+            case "MAXIMUM_SECOND_FACTOR_COUNT_EXCEEDED":
+                stringRes = R.string.auth_error_second_factor_limit;
+                break;
+            case "FEDERATED_USER_ID_ALREADY_LINKED":
+                stringRes = R.string.auth_error_federated_already_linked;
+                break;
+            case "EMAIL_CHANGE_NEEDS_VERIFICATION":
+                stringRes = R.string.auth_error_email_change_verification;
+                break;
+            case "INVALID_CONTINUE_URI":
+            case "MISSING_CONTINUE_URI":
+                stringRes = R.string.auth_error_invalid_continue_uri;
+                break;
+            case "TENANT_ID_MISMATCH":
+                stringRes = R.string.auth_error_tenant_mismatch;
+                break;
+            case "INVALID_TENANT_ID":
+                stringRes = R.string.auth_error_invalid_tenant;
                 break;
             default:
                 if (normalized.contains("INVALID") && normalized.contains("CREDENTIAL")) {

@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función para verificar si el usuario está autenticado
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    // Función para verificar si el email está verificado
+    function isVerified() {
+      return isAuthed() && request.auth.token.email_verified == true;
+    }
+
+    // PERFILES DE ASISTENTES - Reglas permisivas para datos de prueba
+    match /attendees/{userId} {
+      // Permitir crear, leer, actualizar y eliminar para cualquier usuario autenticado
+      // Esto permite que el TestDataLoader cree asistentes sin problemas
+      allow read, write: if isAuthed();
+    }
+
+    // PERFILES DE ORGANIZADORES - Reglas permisivas para datos de prueba
+    match /organizers/{userId} {
+      // Permitir crear, leer, actualizar y eliminar para cualquier usuario autenticado
+      allow read, write: if isAuthed();
+    }
+
+    // EVENTOS - Reglas permisivas para datos de prueba
+    match /events/{eventId} {
+      // Lectura pública para que todos puedan ver los eventos
+      allow read: if true;
+
+      // Crear, actualizar y eliminar para cualquier usuario autenticado
+      // Esto permite que el TestDataLoader cree eventos sin problemas
+      allow create, update, delete: if isAuthed();
+
+      // Log de actividad del evento
+      match /activityLog/{logId} {
+        allow read, create: if isAuthed();
+        allow update, delete: if false;
+      }
+    }
+
+    // INSCRIPCIONES A EVENTOS - Reglas permisivas para datos de prueba
+    match /attendeesToEvent/{docId} {
+      // Permitir crear, leer, actualizar y eliminar para cualquier usuario autenticado
+      // Esto permite que el TestDataLoader cree inscripciones sin problemas
+      allow read, write: if isAuthed();
+    }
+
+    // LISTA DE ESPERA - Cola FIFO cuando el evento está lleno
+    match /waitlistToEvent/{docId} {
+      allow read, write: if isAuthed();
+    }
+
+    // DISPONIBILIDAD DE NOMBRES DE USUARIO - Reglas permisivas para datos de prueba
+    match /usernames/{usernameLower} {
+      // Lectura pública para verificar disponibilidad
+      allow read: if true;
+
+      // Crear, actualizar y eliminar para cualquier usuario autenticado
+      // Esto permite que el TestDataLoader cree índices de usernames sin problemas
+      allow write: if isAuthed();
+    }
+
+    // NOTIFICACIONES AL ORGANIZADOR (alta/baja de asistentes en un evento)
+    match /organizerNotifications/{notificationId} {
+      // Cualquier usuario autenticado puede crear (el asistente al apuntarse/bajarse)
+      allow create: if isAuthed();
+      // El organizador (u otro autenticado) puede leer las suyas vía query where organizerId ==
+      allow read: if isAuthed();
+      // No hace falta editar ni borrar desde la app
+      allow update, delete: if false;
+    }
+
+    // Notificaciones al asistente (check-in verificado, plaza en lista de espera, etc.)
+    match /attendeeNotifications/{notificationId} {
+      allow create: if isAuthed();
+      allow read: if isAuthed();
+      allow update, delete: if false;
+    }
+  }
+}

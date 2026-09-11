@@ -29,14 +29,45 @@
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
     </style>
 
-    <!-- Pantalla QR del asistente -->
-    <style name="AttendeeQrTheme" parent="AppTheme">
-        <item name="android:windowBackground">@android:color/white</item>
+    <style name="ThemeOverlay.Eventum.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="enableEdgeToEdge">true</item>
+        <item name="paddingBottomSystemWindowInsets">true</item>
+        <item name="bottomSheetStyle">@style/Widget.Eventum.BottomSheet.Modal</item>
+    </style>
+
+    <style name="ThemeOverlay.Eventum.FullScreenZoom" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <style name="Widget.Eventum.BottomSheet.Modal" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/colorSurface</item>
+        <item name="shapeAppearance">@style/ShapeAppearanceOverlay.Eventum.BottomSheet</item>
+    </style>
+
+    <style name="Widget.Eventum.BottomSheet.DragHandle.Light" parent="Widget.Material3.BottomSheet.DragHandle">
+        <item name="tint">@color/white</item>
+        <item name="android:alpha">0.85</item>
     </style>
 
     <!-- Estilo personalizado para TextInputLayout -->
     <style name="Widget.Eventum.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/colorAccent</item>
+        <item name="boxStrokeColor">@color/text_input_box_stroke</item>
+        <item name="hintTextColor">@color/colorPrimary</item>
+        <item name="android:textColorHint">@color/colorPrimary</item>
+        <item name="helperTextTextColor">@color/colorSecondaryText</item>
+        <item name="boxStrokeWidth">2dp</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="errorEnabled">true</item>
+        <item name="errorTextColor">@android:color/holo_red_light</item>
+    </style>
+
+    <style name="Widget.Eventum.TextInputLayout.ExposedDropdownMenu" parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxStrokeColor">@color/text_input_box_stroke</item>
         <item name="hintTextColor">@color/colorPrimary</item>
         <item name="android:textColorHint">@color/colorPrimary</item>
         <item name="helperTextTextColor">@color/colorSecondaryText</item>
@@ -147,18 +178,7 @@
         <item name="android:windowMinWidthMajor">90%</item>
         <item name="android:windowMinWidthMinor">85%</item>
     </style>
-    
-    <!-- Estilo para diálogos de búsqueda con fondo sólido -->
-    <style name="CustomSearchDialog" parent="ThemeOverlay.Material3.Dialog">
-        <item name="android:windowBackground">@drawable/dialog_background</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowMinWidthMajor">90%</item>
-        <item name="android:windowMinWidthMinor">85%</item>
-    </style>
-    
+
     <!-- Estilo para formularios de creación -->
     <style name="FormCardStyle">
         <item name="android:layout_width">match_parent</item>
@@ -196,5 +216,13 @@
     <style name="ShapeAppearanceOverlay.Eventum.FloatingActionButton.Circle" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Eventum.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">20dp</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
     </style>
 </resources> 

@@ -17,6 +17,7 @@ public class AttendeeEventsPagerAdapter extends FragmentStateAdapter {
 
     private static final int NUM_TABS = 3;
 
+    private final FragmentActivity hostActivity;
     private final List<Event> myEvents;
     private final List<Event> discoverEvents;
     private final List<Event> historyEvents;
@@ -27,6 +28,7 @@ public class AttendeeEventsPagerAdapter extends FragmentStateAdapter {
                                       List<Event> discoverEvents,
                                       List<Event> historyEvents) {
         super(activity);
+        this.hostActivity = activity;
         this.myEvents = myEvents;
         this.discoverEvents = discoverEvents;
         this.historyEvents = historyEvents;
@@ -54,7 +56,32 @@ public class AttendeeEventsPagerAdapter extends FragmentStateAdapter {
         }
         AttendeeEventsFragment fragment = AttendeeEventsFragment.newInstance(tabType, initial);
         fragmentsMap.put(position, fragment);
+
+        // Sincronizar datos actuales en cuanto el fragment tenga vista (p. ej. Historial creado tarde)
+        fragment.getViewLifecycleOwnerLiveData().observe(
+                hostActivity,
+                owner -> {
+                    if (owner != null) {
+                        syncEventsForPosition(position, fragment);
+                    }
+                });
+
         return fragment;
+    }
+
+    private void syncEventsForPosition(int position, AttendeeEventsFragment fragment) {
+        switch (position) {
+            case 0:
+                fragment.setEvents(myEvents);
+                break;
+            case 2:
+                fragment.setEvents(historyEvents);
+                break;
+            case 1:
+            default:
+                fragment.setEvents(discoverEvents);
+                break;
+        }
     }
 
     @Override

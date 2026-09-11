@@ -16,6 +16,7 @@
             android:scrollbars="none">
 
             <LinearLayout
+                android:id="@+id/eventsListContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -31,18 +32,24 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
+                    <ImageView
+                        android:id="@+id/noEventsIcon"
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_calendar"
+                        app:tint="@color/colorPrimary" />
+
                     <TextView
                         android:id="@+id/noEventsText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:drawablePadding="24dp"
-                        app:drawableTopCompat="@drawable/ic_calendar"
+                        android:layout_marginTop="24dp"
                         android:gravity="center"
                         android:lineSpacingExtra="8dp"
                         android:paddingHorizontal="32dp"
                         android:textColor="@color/colorPrimary"
-                        android:textSize="18sp"
-                        app:drawableTint="@color/colorPrimary" />
+                        android:textSize="18sp" />
 
                 </LinearLayout>
 

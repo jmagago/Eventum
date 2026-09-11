@@ -17,12 +17,15 @@ import android.graphics.Typeface;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
@@ -38,6 +41,7 @@ import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.OrganizerViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.PermissionUtils;
+import com.us.eventum.utils.PrivateAccessCodeDialogHelper;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.NotificationPermissionHelper;
@@ -62,15 +66,19 @@ import java.util.Map;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.us.eventum.utils.CreateEventPanelController;
+import com.us.eventum.utils.AttendeeCsvExportHelper;
+import com.us.eventum.utils.EditEventPanelController;
+import com.us.eventum.utils.EventImageManager;
 import com.us.eventum.utils.EventSearchFilter;
-import com.google.android.material.textfield.TextInputEditText;
-import android.view.LayoutInflater;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.ImageView;
+import com.us.eventum.utils.SearchEventsPanelController;
+import com.us.eventum.utils.WindowInsetsHelper;
 import androidx.appcompat.widget.ListPopupWindow;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+
+import androidx.core.util.Consumer;
+import android.widget.ImageView;
 
 public class OrganizerHomeActivity extends AppCompatActivity implements EventsPagerAdapter.EventContextMenuListener {
 
@@ -112,13 +120,30 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private MaterialCardView fabContainer;
     private FabBarController fabBarController;
     private OrganizerNotificationWatcher notificationWatcher;
+    private ActivityResultLauncher<String> pickEventImageLauncher;
+    private Consumer<Uri> eventImagePickHandler;
+    private CreateEventPanelController createEventPanelController;
+    private EditEventPanelController editEventPanelController;
+    private SearchEventsPanelController searchEventsPanelController;
+    private AttendeeCsvExportHelper csvExportHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        setupStatusBarStripe();
+        View statusBarStripe = findViewById(R.id.statusBarStripe);
+        if (statusBarStripe != null) {
+            WindowInsetsHelper.applyStatusBarStripe(statusBarStripe);
+        }
+
+        pickEventImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null && eventImagePickHandler != null) {
+                        eventImagePickHandler.accept(uri);
+                    }
+                });
 
         // Inicializar Firebase
         firebaseManager = FirebaseManager.getInstance();
@@ -126,16 +151,16 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
         dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
-            // Inicializar ViewModels
+        // Inicializar ViewModels
         sharedViewModel = SharedViewModel.getInstance();
-            eventViewModel = new ViewModelProvider(this).get(EventViewModel.class);
-            organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
-            attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
-            
-            // Inicializar repositorios en ViewModels
-            eventViewModel.initializeRepository(this);
-            organizerViewModel.initializeRepository(this);
-            attendeeViewModel.initializeRepository(this);
+        eventViewModel = new ViewModelProvider(this).get(EventViewModel.class);
+        organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
+        attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
+
+        // Inicializar repositorios en ViewModels
+        eventViewModel.initializeRepository(this);
+        organizerViewModel.initializeRepository(this);
+        attendeeViewModel.initializeRepository(this);
 
         // Inicializar vistas
         initializeViews();
@@ -144,6 +169,34 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         observeViewModels();
         loadEvents();
 
+        createEventPanelController = new CreateEventPanelController(
+                this,
+                handler -> {
+                    eventImagePickHandler = handler;
+                    pickEventImageLauncher.launch("image/*");
+                },
+                eventViewModel,
+                sharedViewModel);
+
+        editEventPanelController = new EditEventPanelController(
+                this,
+                handler -> {
+                    eventImagePickHandler = handler;
+                    pickEventImageLauncher.launch("image/*");
+                },
+                eventViewModel);
+
+        searchEventsPanelController = new SearchEventsPanelController(
+                this,
+                filter -> {
+                    currentSearchFilter = filter;
+                    applySearchFilters();
+                },
+                () -> currentSearchFilter);
+
+        csvExportHelper = new AttendeeCsvExportHelper(this);
+        setupPanelBackHandler();
+
         notificationWatcher = new OrganizerNotificationWatcher(this);
         NotificationPermissionHelper.requestIfNeeded(this);
 
@@ -151,19 +204,22 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         setupProfileImageObserver();
     }
 
-    private void setupStatusBarStripe() {
-        View stripe = findViewById(R.id.statusBarStripe);
-        if (stripe == null) {
-            return;
-        }
-        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
-            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            ViewGroup.LayoutParams lp = v.getLayoutParams();
-            lp.height = topInset;
-            v.setLayoutParams(lp);
-            return windowInsets;
+    private void setupPanelBackHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (editEventPanelController != null && editEventPanelController.isVisible()) {
+                    editEventPanelController.hide();
+                } else if (searchEventsPanelController != null && searchEventsPanelController.isVisible()) {
+                    searchEventsPanelController.hide();
+                } else if (createEventPanelController != null && createEventPanelController.isVisible()) {
+                    createEventPanelController.hide();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
         });
-        ViewCompat.requestApplyInsets(stripe);
     }
 
     private void observeViewModels() {
@@ -199,14 +255,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             }
         });
 
-        // Observar operaciones exitosas
-        eventViewModel.getEventCreated().observe(this, created -> {
-            if (created != null && created) {
-                ToastUtils.showCustomToast(this, "Evento creado con éxito", ToastUtils.ToastType.SUCCESS);
-                eventViewModel.clearOperationStates();
-            }
-        });
-
         eventViewModel.getEventUpdated().observe(this, updated -> {
             if (updated != null && updated) {
                 // El mensaje se muestra en el observer de eventUpdateMessage
@@ -225,6 +273,20 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 ToastUtils.showCustomToast(this, "Evento eliminado con éxito", ToastUtils.ToastType.SUCCESS);
                 eventViewModel.clearOperationStates();
             }
+        });
+
+        sharedViewModel.getEventsUpdated().observe(this, eventsUpdated -> {
+            if (!Boolean.TRUE.equals(eventsUpdated)) {
+                return;
+            }
+            boolean wasSearchActive = isSearchActive;
+            EventSearchFilter savedFilter = currentSearchFilter;
+            eventViewModel.restartListeningUserEvents();
+            if (wasSearchActive && savedFilter != null) {
+                isSearchActive = true;
+                currentSearchFilter = savedFilter;
+            }
+            sharedViewModel.resetEventsUpdated();
         });
 
         // Observar datos del organizador
@@ -283,33 +345,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     @Override
     protected void onResume() {
         super.onResume();
-        
-        // Siempre recargar eventos al volver a OrganizerHomeActivity
         loadEvents();
-        
-        // Observar cambios en los flags de actualización
-        sharedViewModel.getEventsUpdated().observe(this, eventsUpdated -> {
-            if (eventsUpdated) {
-                // Guardar el estado de búsqueda antes de recargar
-                boolean wasSearchActive = isSearchActive;
-                EventSearchFilter savedFilter = currentSearchFilter;
-                
-                // Limpiar las listas antes de recargar para evitar duplicados
-                futureEvents.clear();
-                pastEvents.clear();
-                loadEvents();
-                
-                // Restaurar el estado de búsqueda después de recargar
-                if (wasSearchActive && savedFilter != null) {
-                    isSearchActive = true;
-                    currentSearchFilter = savedFilter;
-                }
-                
-                sharedViewModel.resetEventsUpdated();
-            }
-        });
-
-        // Cargar imagen de perfil
         ProfileImageManager.loadProfileImage(this, profileImageView);
     }
 
@@ -377,30 +413,39 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             public void onPageSelected(int position) {
                 boolean isArchivedTab = position == 1;
                 createEventButton.setAlpha(isArchivedTab ? 0.5f : 1f);
-                updateSortButtonState(position);
+                updateActionButtonsState(position);
             }
         });
 
         if (sortFutureEventsButton != null) {
-            sortFutureEventsButton.setOnClickListener(v -> showFutureEventsSortMenu());
-            updateSortButtonState(viewPager.getCurrentItem());
+            sortFutureEventsButton.setOnClickListener(v -> showEventsSortMenu());
+            updateActionButtonsState(viewPager.getCurrentItem());
         }
     }
 
-    private void updateSortButtonState(int tabPosition) {
+    private void updateActionButtonsState(int tabPosition) {
+        int eventCount = tabPosition == 0 ? futureEvents.size() : pastEvents.size();
+        boolean sortEnabled = tabPosition == 0 && futureEvents.size() > 1;
+        boolean searchEnabled = eventCount > 1;
+
         if (sortFutureEventsButton != null) {
-            boolean enabled = tabPosition == 0;
-            sortFutureEventsButton.setEnabled(enabled);
-            sortFutureEventsButton.setAlpha(enabled ? 1.0f : 0.38f);
+            sortFutureEventsButton.setEnabled(sortEnabled);
+            sortFutureEventsButton.setAlpha(sortEnabled ? 1.0f : 0.38f);
+        }
+
+        if (searchEventsButton != null) {
+            searchEventsButton.setEnabled(searchEnabled);
+            searchEventsButton.setAlpha(searchEnabled ? 1.0f : 0.38f);
         }
     }
 
-    private void showFutureEventsSortMenu() {
+    private void showEventsSortMenu() {
         if (sortFutureEventsButton == null || !sortFutureEventsButton.isEnabled()) {
             return;
         }
 
         final FutureEventSort[] options = FutureEventSort.values();
+        final FutureEventSort activeSort = futureEventSort;
         ListPopupWindow popup = new ListPopupWindow(this);
         popup.setAnchorView(sortFutureEventsButton);
         popup.setModal(true);
@@ -434,7 +479,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 TextView titleView = optionView.findViewById(R.id.sortOptionTitle);
                 ImageView checkView = optionView.findViewById(R.id.sortOptionCheck);
                 titleView.setText(getSortOptionLabel(sort));
-                boolean selected = sort == futureEventSort;
+                boolean selected = sort == activeSort;
                 checkView.setVisibility(selected ? View.VISIBLE : View.GONE);
                 titleView.setTextColor(getResources().getColor(
                         selected ? R.color.colorAccent : R.color.colorPrimary, getTheme()));
@@ -472,32 +517,27 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     }
 
     private void sortFutureEventsList() {
-        Comparator<Event> comparator;
-        switch (futureEventSort) {
+        futureEvents.sort(buildEventComparator(futureEventSort));
+    }
+
+    private Comparator<Event> buildEventComparator(FutureEventSort sort) {
+        switch (sort) {
             case PLACES_ASC:
-                comparator = Comparator.comparingInt(Event::getMaxParticipants);
-                break;
+                return Comparator.comparingInt(Event::getMaxParticipants);
             case PLACES_DESC:
-                comparator = Comparator.comparingInt(Event::getMaxParticipants).reversed();
-                break;
+                return Comparator.comparingInt(Event::getMaxParticipants).reversed();
             case ATTENDEES_ASC:
-                comparator = Comparator.comparingInt(Event::getCurrentParticipants);
-                break;
+                return Comparator.comparingInt(Event::getCurrentParticipants);
             case ATTENDEES_DESC:
-                comparator = Comparator.comparingInt(Event::getCurrentParticipants).reversed();
-                break;
+                return Comparator.comparingInt(Event::getCurrentParticipants).reversed();
             case OCCUPANCY_ASC:
-                comparator = Comparator.comparingDouble(this::occupancyRate);
-                break;
+                return Comparator.comparingDouble(this::occupancyRate);
             case OCCUPANCY_DESC:
-                comparator = Comparator.comparingDouble(this::occupancyRate).reversed();
-                break;
+                return Comparator.comparingDouble(this::occupancyRate).reversed();
             case DATE_ASC:
             default:
-                comparator = Comparator.comparing(Event::getDate, Comparator.nullsLast(Comparator.naturalOrder()));
-                break;
+                return Comparator.comparing(Event::getDate, Comparator.nullsLast(Comparator.naturalOrder()));
         }
-        futureEvents.sort(comparator);
     }
 
     private double occupancyRate(Event event) {
@@ -541,11 +581,19 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 ToastUtils.showCustomToast(this, "No se pueden crear eventos desde Archivados. Cambia a Próximos.", ToastUtils.ToastType.INFO);
                 return;
             }
-            Intent intent = new Intent(this, CreateEventActivity.class);
-            startActivity(intent);
+            if (createEventPanelController != null) {
+                createEventPanelController.show();
+            }
         });
 
-        searchEventsButton.setOnClickListener(v -> showSearchDialog());
+        searchEventsButton.setOnClickListener(v -> {
+            if (!searchEventsButton.isEnabled()) {
+                return;
+            }
+            if (searchEventsPanelController != null) {
+                searchEventsPanelController.show();
+            }
+        });
         
         clearFiltersButton.setOnClickListener(v -> clearSearchFilters());
     }
@@ -567,8 +615,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
     private void updateUI() {
         sortFutureEventsList();
-
-        // Ordenar eventos pasados por fecha descendente
         pastEvents.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
         
         // Si hay una búsqueda activa, aplicar filtros en lugar de mostrar todos los eventos
@@ -600,12 +646,16 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         
         // Actualizar títulos de pestañas
         updateTabTitles(futureEvents.size(), pastEvents.size());
+        updateActionButtonsState(viewPager != null ? viewPager.getCurrentItem() : 0);
     }
 
     
 
     @Override
     protected void onDestroy() {
+        if (eventViewModel != null) {
+            eventViewModel.stopListeningUserEvents();
+        }
         super.onDestroy();
         if (tabLayoutMediator != null) {
             tabLayoutMediator.detach();
@@ -637,13 +687,16 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         int id = item.getItemId();
         Intent intent;
         if (id == R.id.action_edit_event) {
-            showEditEventDialog(event);
+            openEditEventPanel(event);
             return true;
         } else if (id == R.id.action_delete_event) {
             showDeleteEventDialog(event);
             return true;
         } else if (id == R.id.action_send_invitations) {
             ToastUtils.showCustomToast(this, "Próximamente: Enviar invitaciones", ToastUtils.ToastType.INFO);
+            return true;
+        } else if (id == R.id.action_view_private_access_code) {
+            PrivateAccessCodeDialogHelper.showViewCode(this, event.getPrivateAccessCode());
             return true;
         } else if (id == R.id.action_verify_attendees) {
             if (event.getId() == null || event.getId().isEmpty()) {
@@ -657,91 +710,44 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         } else if (id == R.id.action_clear_list) {
             showClearAttendeeListConfirmation(event);
             return true;
+        } else if (id == R.id.action_event_activity_log) {
+            intent = new Intent(this, EventDetailsActivity.class);
+            intent.putExtra("event", event);
+            intent.putExtra("show_activity_log", true);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_export_attendees_csv) {
+            if (event.getId() == null || event.getId().isEmpty()) {
+                ToastUtils.showCustomToast(this, "Error: evento sin identificador", ToastUtils.ToastType.ERROR);
+                return true;
+            }
+            csvExportHelper.exportForEvent(attendeeViewModel, event.getId(), event.getTitle());
+            return true;
         }
         return false;
     }
 
-    private void showEditEventDialog(Event event) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_event, null);
-        
-        EditText titleInput = dialogView.findViewById(R.id.titleInput);
-        EditText locationInput = dialogView.findViewById(R.id.locationInput);
-        EditText dateInput = dialogView.findViewById(R.id.dateInput);
-        EditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
-        CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
-        CheckBox requiresParentalAuthCheckBox = dialogView.findViewById(R.id.requiresParentalAuthCheckBox);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
-        Button saveButton = dialogView.findViewById(R.id.saveButton);
-        
-        // Rellenar los campos con los datos actuales del evento
-        titleInput.setText(event.getTitle());
-        locationInput.setText(event.getLocation());
-        dateInput.setText(dateFormat.format(event.getDate()));
-        maxParticipantsInput.setText(String.valueOf(event.getMaxParticipants()));
-        eventoPrivadoCheckBox.setChecked(event.getPrivateEvent());
-        requiresParentalAuthCheckBox.setChecked(event.getRequiresParentalAuth());
-        
-        // Configurar el DatePicker para la fecha
-        dateInput.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(event.getDate());
-            
-            DatePickerDialog datePicker = new DatePickerDialog(
-                this,
-                (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    dateInput.setText(dateFormat.format(calendar.getTime()));
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            );
-            datePicker.show();
-        });
-        
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        AlertDialog dialog = builder.setView(dialogView).create();
-        
-        // Configurar los botones
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-        
-        saveButton.setOnClickListener(v -> {
-            String title = titleInput.getText().toString().trim();
-            String location = locationInput.getText().toString().trim();
-            String dateStr = dateInput.getText().toString().trim();
-            String maxParticipantsStr = maxParticipantsInput.getText().toString().trim();
-            
-            if (title.isEmpty() || location.isEmpty() || dateStr.isEmpty() || maxParticipantsStr.isEmpty()) {
-                ToastUtils.showCustomToast(this, "Todos los campos son obligatorios", ToastUtils.ToastType.WARNING);
-                return;
+    private void openEditEventPanel(Event event) {
+        if (editEventPanelController == null || event == null) {
+            return;
+        }
+        int currentParticipants = Math.max(0, event.getCurrentParticipants());
+        editEventPanelController.show(event, new EditEventPanelController.SaveListener() {
+            @Override
+            public void onEventSaved(@NonNull Event savedEvent, @Nullable Uri newImageUri) {
+                sharedViewModel.notifyEventsUpdated();
             }
-            
-            try {
-                Date newDate = dateFormat.parse(dateStr);
-                int maxParticipants = Integer.parseInt(maxParticipantsStr);
-                
-                // Verificar que el número de plazas no sea menor al número actual de asistentes
-                if (maxParticipants < event.getCurrentParticipants()) {
-                    ToastUtils.showCustomToast(this, 
-                        "El número de plazas no puede ser menor que el número actual de asistentes (" + 
-                        event.getCurrentParticipants() + ")", 
-                        ToastUtils.ToastType.WARNING);
-                    return;
-                }
-                
-                // Usar EventViewModel para actualizar el evento
-                eventViewModel.updateEvent(event.getId(), title, event.getDescription(), newDate, 
-                    location, maxParticipants, event.getEventType(), eventoPrivadoCheckBox.isChecked(), requiresParentalAuthCheckBox.isChecked());
-                
-                        dialog.dismiss();
-            } catch (ParseException e) {
-                ToastUtils.showCustomToast(this, "Error en el formato de fecha", ToastUtils.ToastType.ERROR);
-            } catch (NumberFormatException e) {
-                ToastUtils.showCustomToast(this, "El número de plazas debe ser un número válido", ToastUtils.ToastType.ERROR);
+
+            @Override
+            public void onEventImageUploadComplete(@NonNull String eventId) {
+                sharedViewModel.notifyEventsUpdated();
+            }
+
+            @Override
+            public int getMinParticipantsAllowed() {
+                return currentParticipants;
             }
         });
-        
-        dialog.show();
     }
 
     private void showDeleteEventDialog(Event event) {
@@ -801,146 +807,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         attendeeViewModel.clearEventAttendees(event.getId());
     }
 
-    private void showSearchDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomSearchDialog);
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_search_events, null);
-        
-        // Obtener referencias a los campos
-        TextInputEditText keywordsEditText = dialogView.findViewById(R.id.keywordsEditText);
-        AutoCompleteTextView eventTypeAutoComplete = dialogView.findViewById(R.id.eventTypeAutoComplete);
-        TextInputEditText locationEditText = dialogView.findViewById(R.id.locationEditText);
-        TextInputEditText dateFromEditText = dialogView.findViewById(R.id.dateFromEditText);
-        TextInputEditText dateToEditText = dialogView.findViewById(R.id.dateToEditText);
-        MaterialButton clearButton = dialogView.findViewById(R.id.clearButton);
-        MaterialButton searchButton = dialogView.findViewById(R.id.searchButton);
-        View closeButton = dialogView.findViewById(R.id.closeButton);
-        
-        // Configurar AutoCompleteTextView para tipo de evento
-        String[] eventTypes = {
-            "Concierto", "Graduación", "Fiesta", "Despedida", 
-            "Aniversario", "Conferencia", "Seminario", "Taller", 
-            "Exposición", "Feria", "Congreso", "Ceremonia", "Otro"
-        };
-        
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this, 
-            R.layout.dropdown_item,
-            eventTypes
-        );
-        eventTypeAutoComplete.setAdapter(adapter);
-        
-        // Cargar filtros actuales
-        if (currentSearchFilter.getKeywords() != null) {
-            keywordsEditText.setText(currentSearchFilter.getKeywords());
-        }
-        if (currentSearchFilter.getEventType() != null) {
-            eventTypeAutoComplete.setText(currentSearchFilter.getEventType());
-        }
-        if (currentSearchFilter.getLocation() != null) {
-            locationEditText.setText(currentSearchFilter.getLocation());
-        }
-        if (currentSearchFilter.getDateFrom() != null) {
-            dateFromEditText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(currentSearchFilter.getDateFrom()));
-        }
-        if (currentSearchFilter.getDateTo() != null) {
-            dateToEditText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(currentSearchFilter.getDateTo()));
-        }
-        
-        // Configurar DatePickers
-        setupDatePicker(dateFromEditText, true);
-        setupDatePicker(dateToEditText, false);
-        
-        // Configurar botones
-        clearButton.setOnClickListener(v -> {
-            keywordsEditText.setText("");
-            eventTypeAutoComplete.setText("");
-            locationEditText.setText("");
-            dateFromEditText.setText("");
-            dateToEditText.setText("");
-        });
-        
-        searchButton.setOnClickListener(v -> {
-            // Aplicar filtros
-            String keywords = keywordsEditText.getText().toString().trim();
-            String eventType = eventTypeAutoComplete.getText().toString().trim();
-            String location = locationEditText.getText().toString().trim();
-            String dateFromStr = dateFromEditText.getText().toString().trim();
-            String dateToStr = dateToEditText.getText().toString().trim();
-            
-            // Validar que se introduzca al menos un campo
-            boolean hasValidSearch = !keywords.isEmpty() || !eventType.isEmpty() || !location.isEmpty() || !dateFromStr.isEmpty() || !dateToStr.isEmpty();
-            
-            if (!hasValidSearch) {
-                ToastUtils.showCustomToast(this, "Debe introducir al menos un criterio de búsqueda", ToastUtils.ToastType.WARNING);
-                return;
-            }
-            
-            // Crear nuevo filtro
-            EventSearchFilter newFilter = new EventSearchFilter();
-            newFilter.setKeywords(keywords.isEmpty() ? null : keywords);
-            newFilter.setEventType(eventType.isEmpty() ? null : eventType);
-            newFilter.setLocation(location.isEmpty() ? null : location);
-            
-            try {
-                if (!dateFromStr.isEmpty()) {
-                    newFilter.setDateFrom(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateFromStr));
-                }
-                if (!dateToStr.isEmpty()) {
-                    newFilter.setDateTo(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateToStr));
-                }
-            } catch (ParseException e) {
-                ToastUtils.showCustomToast(this, "Formato de fecha inválido", ToastUtils.ToastType.ERROR);
-                return;
-            }
-            
-            // Aplicar filtros
-            currentSearchFilter = newFilter;
-            applySearchFilters();
-            
-            // Cerrar diálogo
-            if (dialog != null) {
-                dialog.dismiss();
-            }
-        });
-        
-        closeButton.setOnClickListener(v -> {
-            if (dialog != null) {
-                dialog.dismiss();
-            }
-        });
-        
-        builder.setView(dialogView);
-        AlertDialog dialog = builder.create();
-        this.dialog = dialog; // Guardar referencia para poder cerrarlo
-        dialog.show();
-    }
-    
-    private AlertDialog dialog; // Variable para guardar referencia del diálogo
-    
-    private void setupDatePicker(TextInputEditText editText, boolean isFromDate) {
-        editText.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            if (isFromDate && currentSearchFilter.getDateFrom() != null) {
-                calendar.setTime(currentSearchFilter.getDateFrom());
-            } else if (!isFromDate && currentSearchFilter.getDateTo() != null) {
-                calendar.setTime(currentSearchFilter.getDateTo());
-            }
-            
-            DatePickerDialog datePickerDialog = new DatePickerDialog(
-                this,
-                (view, year, month, dayOfMonth) -> {
-                    Calendar selectedCalendar = Calendar.getInstance();
-                    selectedCalendar.set(year, month, dayOfMonth);
-                    editText.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(selectedCalendar.getTime()));
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            );
-            datePickerDialog.show();
-        });
-    }
-    
     private void applySearchFilters() {
         isSearchActive = currentSearchFilter.hasActiveFilters();
         
@@ -996,6 +862,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             // Ocultar indicador de filtros
             filterIndicatorLayout.setVisibility(View.GONE);
         }
+
+        updateActionButtonsState(tabLayout.getSelectedTabPosition());
     }
     
     private void clearSearchFilters() {
@@ -1075,7 +943,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     public void onRefreshRequested() {
         Log.d(TAG, "Refresh solicitado desde fragment");
         if (eventViewModel != null) {
-            eventViewModel.loadUserEvents();
+            eventViewModel.restartListeningUserEvents();
         }
     }
 } 

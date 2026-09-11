@@ -1,15 +1,16 @@
 package com.us.eventum.data.repositories.firebase;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Source;
 import com.google.firebase.firestore.Transaction;
+import com.us.eventum.R;
 import com.us.eventum.data.models.Organizer;
 import com.us.eventum.data.repositories.OrganizerRepository;
+import com.us.eventum.utils.FirebaseBackendErrorHandler;
 
 import java.util.HashMap;
 
@@ -23,16 +24,15 @@ public class FirebaseOrganizerRepository implements OrganizerRepository {
     }
 
     @Override
-    public void createOrganizer(Organizer organizer, OrganizerRepository.RepositoryCallback<Organizer> callback) {
+    public void createOrganizer(Organizer organizer, RepositoryCallback<Organizer> callback) {
         if (mAuth.getCurrentUser() == null) {
-            callback.onError("Usuario no autenticado");
+            callback.onError(FirebaseBackendErrorHandler.getNotAuthenticatedMessage(null));
             return;
         }
 
         String uid = mAuth.getCurrentUser().getUid();
         organizer.setUid(uid);
 
-        // Usar transacción para garantizar unicidad del username
         db.runTransaction((Transaction.Function<Void>) transaction -> {
             String usernameLower = organizer.getUsernameLower();
             DocumentReference usernameRef = db.collection("usernames").document(usernameLower);
@@ -42,41 +42,45 @@ public class FirebaseOrganizerRepository implements OrganizerRepository {
                 throw new FirebaseFirestoreException("Username already in use", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            // Crear índice de username y documento del organizador
             transaction.set(usernameRef, new HashMap<String, Object>() {{ put("uid", uid); }});
             transaction.set(db.collection("organizers").document(uid), organizer);
             return null;
         })
         .addOnSuccessListener(aVoid -> callback.onSuccess(organizer))
         .addOnFailureListener(e -> {
-            if (e instanceof FirebaseFirestoreException && 
-                ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED) {
-                callback.onError("Este username ya está en uso");
+            if (e instanceof FirebaseFirestoreException
+                    && ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED) {
+                callback.onError(FirebaseBackendErrorHandler.getUsernameInUseMessage(null));
             } else {
-                callback.onError("Error al crear organizador: " + e.getMessage());
+                callback.onError(FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_create_organizer));
             }
         });
     }
 
     @Override
-    public void getOrganizer(String uid, OrganizerRepository.RepositoryCallback<Organizer> callback) {
+    public void getOrganizer(String uid, RepositoryCallback<Organizer> callback) {
         db.collection("organizers").document(uid)
                 .get(Source.SERVER)
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         Organizer organizer = documentSnapshot.toObject(Organizer.class);
+                        if (organizer == null) {
+                            callback.onError(FirebaseBackendErrorHandler.getOrganizerNotFoundMessage(null));
+                            return;
+                        }
                         callback.onSuccess(organizer);
                     } else {
-                        callback.onError("Organizador no encontrado");
+                        callback.onError(FirebaseBackendErrorHandler.getOrganizerNotFoundMessage(null));
                     }
                 })
-                .addOnFailureListener(e -> callback.onError("Error al obtener organizador: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_load_organizer)));
     }
 
     @Override
-    public void updateOrganizer(Organizer organizer, OrganizerRepository.RepositoryCallback<Organizer> callback) {
+    public void updateOrganizer(Organizer organizer, RepositoryCallback<Organizer> callback) {
         if (mAuth.getCurrentUser() == null) {
-            callback.onError("Usuario no autenticado");
+            callback.onError(FirebaseBackendErrorHandler.getNotAuthenticatedMessage(null));
             return;
         }
 
@@ -86,40 +90,39 @@ public class FirebaseOrganizerRepository implements OrganizerRepository {
         db.collection("organizers").document(uid)
                 .set(organizer)
                 .addOnSuccessListener(aVoid -> callback.onSuccess(organizer))
-                .addOnFailureListener(e -> callback.onError("Error al actualizar organizador: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_update_organizer)));
     }
 
     @Override
-    public void deleteOrganizer(String uid, OrganizerRepository.RepositoryCallback<Void> callback) {
+    public void deleteOrganizer(String uid, RepositoryCallback<Void> callback) {
         if (mAuth.getCurrentUser() == null) {
-            callback.onError("Usuario no autenticado");
+            callback.onError(FirebaseBackendErrorHandler.getNotAuthenticatedMessage(null));
             return;
         }
 
-        // Obtener el organizador para eliminar el índice de username
-        getOrganizer(uid, new OrganizerRepository.RepositoryCallback<Organizer>() {
+        getOrganizer(uid, new RepositoryCallback<Organizer>() {
             @Override
             public void onSuccess(Organizer organizer) {
-                // Eliminar índice de username
                 if (organizer.getUsernameLower() != null) {
                     db.collection("usernames").document(organizer.getUsernameLower()).delete();
                 }
-                
-                // Eliminar documento del organizador
+
                 db.collection("organizers").document(uid).delete()
                         .addOnSuccessListener(aVoid -> callback.onSuccess(null))
-                        .addOnFailureListener(e -> callback.onError("Error al eliminar organizador: " + e.getMessage()));
+                        .addOnFailureListener(e -> callback.onError(
+                                FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_delete_organizer)));
             }
 
             @Override
             public void onError(String error) {
-                callback.onError("Error al obtener organizador para eliminación: " + error);
+                callback.onError(error);
             }
         });
     }
 
     @Override
-    public void checkUsernameAvailability(String username, OrganizerRepository.RepositoryCallback<Boolean> callback) {
+    public void checkUsernameAvailability(String username, RepositoryCallback<Boolean> callback) {
         String normalized = username == null ? null : username.trim().toLowerCase(java.util.Locale.ROOT);
         if (normalized == null || normalized.isEmpty()) {
             callback.onSuccess(false);
@@ -133,6 +136,7 @@ public class FirebaseOrganizerRepository implements OrganizerRepository {
                     boolean isAvailable = !documentSnapshot.exists();
                     callback.onSuccess(isAvailable);
                 })
-                .addOnFailureListener(e -> callback.onError("Error al verificar username: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_check_username)));
     }
 }

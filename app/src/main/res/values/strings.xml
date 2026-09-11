@@ -3,14 +3,14 @@
     
     <!-- Información de la app -->
     <string name="app_info_title">Información de la app</string>
+    <string name="app_info_header_tagline">Proyecto Fin de Grado · US</string>
+    <string name="app_info_got_it">Entendido</string>
     <string name="app_info_description"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
     <string name="app_info_contact">Información de Contacto</string>
     <string name="app_info_technical">Información Técnica</string>
     <string name="app_info_email">juagagpoy@alum.us.es</string>
     <string name="app_info_tutor">Álvarez García, Juan Antonio</string>
     <string name="app_info_copyright">© 2025 Eventum</string>
-    <string name="app_info_version">Versión: %1$s</string>
-    <string name="app_info_build">Compilación: %1$d</string>
     <string name="email_icon_desc">Icono de email</string>
     <string name="tutor_icon_desc">Icono de tutor</string>
     <string name="cancel">Cancelar</string>
@@ -37,6 +37,9 @@
     <string name="auth_error_missing_password">Introduce tu contraseña</string>
     <string name="auth_error_invalid_credentials">Correo o contraseña incorrectos</string>
     <string name="auth_error_weak_password">La contraseña es demasiado débil (mínimo 6 caracteres)</string>
+    <string name="error_password_min_length">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="error_password_required">La contraseña es obligatoria</string>
+    <string name="auth_error_password_requirements">La contraseña no cumple los requisitos de seguridad del proyecto</string>
     <string name="auth_error_user_disabled">Tu cuenta ha sido deshabilitada</string>
     <string name="auth_error_email_not_verified">Debes verificar tu correo antes de iniciar sesión</string>
     <string name="auth_error_operation_not_allowed">Este método de acceso no está habilitado</string>
@@ -48,6 +51,7 @@
     <string name="auth_error_user_mismatch">Las credenciales no corresponden al usuario actual</string>
     <string name="auth_error_second_factor_required">Se requiere un segundo factor de autenticación</string>
     <string name="auth_error_missing_mfa_session">Falta la sesión de verificación en dos pasos</string>
+    <string name="auth_error_mfa_session_invalid">La sesión de verificación en dos pasos no es válida</string>
     <string name="auth_error_mfa_not_found">No se encontró el método de verificación en dos pasos</string>
     <string name="auth_error_network">Error de red. Comprueba tu conexión a internet</string>
     <string name="auth_error_too_many_requests">Demasiados intentos. Espera un momento e inténtalo de nuevo</string>
@@ -60,26 +64,122 @@
     <string name="auth_error_missing_verification_id">Falta el identificador de verificación</string>
     <string name="auth_error_invalid_action_code">El enlace no es válido o ha caducado</string>
     <string name="auth_error_expired_action_code">El enlace ha caducado. Solicita uno nuevo</string>
+    <string name="auth_error_invalid_oob_code">El enlace de recuperación de contraseña no es válido</string>
+    <string name="auth_error_code_expired">El código ha caducado. Solicita uno nuevo</string>
     <string name="auth_error_quota_exceeded">Se ha superado el límite. Inténtalo más tarde</string>
     <string name="auth_error_app_not_authorized">La aplicación no está autorizada para usar Firebase</string>
     <string name="auth_error_captcha_failed">No se pudo completar la verificación de seguridad</string>
+    <string name="auth_error_missing_recaptcha_token">Falta la verificación de seguridad. Inténtalo de nuevo</string>
+    <string name="auth_error_invalid_recaptcha_token">La verificación de seguridad no es válida. Inténtalo de nuevo</string>
+    <string name="auth_error_recaptcha_not_enabled">La verificación de seguridad no está habilitada en este proyecto</string>
+    <string name="auth_error_missing_activity_recaptcha">No se pudo mostrar la verificación de seguridad</string>
     <string name="auth_error_verification_email_failed">No se pudo enviar el correo de verificación: %1$s</string>
     <string name="auth_error_not_authenticated">Usuario no autenticado</string>
     <string name="auth_error_user_not_in_database">Usuario no encontrado en la base de datos</string>
     <string name="auth_error_no_user_for_verification">No hay usuario autenticado para reenviar el correo de verificación</string>
     <string name="auth_error_null_firebase_user">Error de autenticación: no se pudo obtener el usuario</string>
     <string name="auth_error_repo_not_initialized">Repositorio no inicializado</string>
-    <string name="auth_error_missing_recaptcha_token">Falta la verificación de seguridad. Inténtalo de nuevo</string>
-    <string name="auth_error_invalid_recaptcha_token">La verificación de seguridad no es válida. Inténtalo de nuevo</string>
-    <string name="auth_error_recaptcha_not_enabled">La verificación de seguridad no está habilitada en este proyecto</string>
     <string name="auth_error_missing_client_identifier">Configuración de la app incompleta. Contacta con soporte</string>
-    <string name="auth_error_rejected_credential">Las credenciales no son válidas o han sido rechazadas</string>
     <string name="auth_error_provider_already_linked">Este proveedor ya está vinculado a tu cuenta</string>
     <string name="auth_error_unauthorized_domain">Dominio no autorizado para esta operación</string>
-    <string name="auth_error_code_expired">El código ha caducado. Solicita uno nuevo</string>
     <string name="auth_error_missing_phone_number">Introduce un número de teléfono</string>
     <string name="auth_error_invalid_phone_number">El número de teléfono no es válido</string>
-    <string name="auth_error_missing_activity_recaptcha">No se pudo mostrar la verificación de seguridad</string>
+    <string name="auth_error_missing_nonce">Error de seguridad en la solicitud. Inténtalo de nuevo</string>
+    <string name="auth_error_blocking_function">No se pudo completar el registro. Contacta con soporte</string>
+    <string name="auth_error_admin_only">Esta operación solo puede realizarla un administrador</string>
+    <string name="auth_error_invalid_api_key">Configuración de Firebase incorrecta en la app</string>
+    <string name="auth_error_invalid_app_credential">Credencial de la app no válida</string>
+    <string name="auth_error_missing_app_credential">Falta la credencial de la aplicación</string>
+    <string name="auth_error_phone_already_exists">Este número de teléfono ya está registrado</string>
+    <string name="auth_error_invalid_phone_credential">Credencial de teléfono no válida</string>
+    <string name="auth_error_second_factor_enrolled">Ya tienes activado ese segundo factor</string>
+    <string name="auth_error_second_factor_limit">Has alcanzado el límite de métodos de verificación</string>
+    <string name="auth_error_federated_already_linked">Esta cuenta ya está vinculada con otro proveedor</string>
+    <string name="auth_error_email_change_verification">Debes verificar el nuevo correo antes de usarlo</string>
+    <string name="auth_error_invalid_continue_uri">URL de continuación no válida</string>
+    <string name="auth_error_tenant_mismatch">El inquilino de autenticación no coincide</string>
+    <string name="auth_error_invalid_tenant">Inquilino de autenticación no válido</string>
+
+    <!-- Errores Firestore / Storage / backend Firebase -->
+    <string name="backend_error_generic">No se pudo completar la operación. Inténtalo de nuevo</string>
+    <string name="backend_error_firebase">Error del servicio en la nube. Inténtalo más tarde</string>
+    <string name="backend_error_internal">Error del servidor. Inténtalo más tarde</string>
+    <string name="backend_error_permission_denied">No tienes permiso para realizar esta operación</string>
+    <string name="backend_error_unauthenticated">Debes iniciar sesión para continuar</string>
+    <string name="backend_error_not_found">No se encontraron los datos solicitados</string>
+    <string name="backend_error_already_exists">El recurso ya existe</string>
+    <string name="backend_error_unavailable">Error de red. Comprueba tu conexión e inténtalo de nuevo</string>
+    <string name="backend_error_cancelled">Operación cancelada</string>
+    <string name="backend_error_quota">Se ha superado el límite del servicio. Inténtalo más tarde</string>
+    <string name="backend_error_invalid_request">Datos no válidos para esta operación</string>
+    <string name="backend_error_aborted">La operación no pudo completarse</string>
+    <string name="backend_error_storage">No se pudo acceder al almacenamiento</string>
+    <string name="backend_error_storage_not_found">El archivo no existe en el almacenamiento</string>
+    <string name="backend_error_storage_config">Configuración de almacenamiento incorrecta</string>
+    <string name="backend_error_storage_corrupt">El archivo está dañado o incompleto</string>
+    <string name="backend_error_invalid_event_id">ID de evento no válido</string>
+    <string name="backend_error_event_not_found">Evento no encontrado</string>
+    <string name="backend_error_attendee_not_found">Asistente no encontrado</string>
+    <string name="backend_error_organizer_not_found">Organizador no encontrado</string>
+    <string name="backend_error_read_event">No se pudo leer el evento</string>
+    <string name="backend_error_already_registered">Ya estás inscrito en este evento</string>
+    <string name="backend_error_username_in_use">Este nombre de usuario ya está en uso</string>
+    <string name="backend_error_incomplete_notification">Datos de notificación incompletos</string>
+    <string name="backend_error_incomplete_activity">Datos de actividad incompletos</string>
+    <string name="backend_error_invalid_event_for_activity">Evento no válido</string>
+    <string name="backend_error_incomplete_image_data">Datos de imagen incompletos</string>
+    <string name="backend_error_process_image">No se pudo procesar la imagen</string>
+    <string name="backend_op_load_events">No se pudieron cargar los eventos</string>
+    <string name="backend_op_listen_events">No se pudieron sincronizar los eventos</string>
+    <string name="backend_op_listen_event">No se pudo sincronizar el evento</string>
+    <string name="backend_op_create_event">No se pudo crear el evento</string>
+    <string name="backend_op_update_event">No se pudo actualizar el evento</string>
+    <string name="backend_op_update_event_privacy">No se pudo cambiar la privacidad del evento</string>
+    <string name="backend_op_delete_event">No se pudo eliminar el evento</string>
+    <string name="backend_op_load_event">No se pudo cargar el evento</string>
+    <string name="backend_op_create_attendee">No se pudo crear el perfil de asistente</string>
+    <string name="backend_op_load_attendee">No se pudo obtener el perfil de asistente</string>
+    <string name="backend_op_update_attendee">No se pudo actualizar el perfil de asistente</string>
+    <string name="backend_op_delete_attendee">No se pudo eliminar el perfil de asistente</string>
+    <string name="backend_op_check_username">No se pudo verificar el nombre de usuario</string>
+    <string name="backend_op_create_organizer">No se pudo crear el perfil de organizador</string>
+    <string name="backend_op_load_organizer">No se pudo obtener el perfil de organizador</string>
+    <string name="backend_op_update_organizer">No se pudo actualizar el perfil de organizador</string>
+    <string name="backend_op_delete_organizer">No se pudo eliminar el perfil de organizador</string>
+    <string name="backend_op_create_registration">No se pudo completar la inscripción</string>
+    <string name="backend_op_verify_registration">No se pudo verificar la inscripción</string>
+    <string name="backend_op_load_registrations">No se pudieron cargar las inscripciones</string>
+    <string name="backend_op_listen_registrations">No se pudieron sincronizar las inscripciones</string>
+    <string name="backend_op_listen_event_attendees">No se pudieron sincronizar los asistentes del evento</string>
+    <string name="backend_op_delete_registration">No se pudo eliminar la inscripción</string>
+    <string name="backend_op_update_registration">No se pudo actualizar la inscripción</string>
+    <string name="backend_op_create_waitlist">No se pudo unir a la lista de espera</string>
+    <string name="backend_op_verify_waitlist">No se pudo verificar la lista de espera</string>
+    <string name="backend_op_load_waitlist">No se pudo cargar la lista de espera</string>
+    <string name="backend_op_update_waitlist">No se pudo actualizar la lista de espera</string>
+    <string name="backend_op_delete_waitlist">No se pudo eliminar de la lista de espera</string>
+    <string name="backend_op_listen_waitlist">No se pudo sincronizar la lista de espera</string>
+    <string name="waitlist_join">Unirme a la lista de espera</string>
+    <string name="waitlist_leave">Salir de la lista</string>
+    <string name="waitlist_confirm_spot">Confirmar plaza</string>
+    <string name="waitlist_joined_success">Te has unido a la lista de espera</string>
+    <string name="waitlist_left_success">Has salido de la lista de espera</string>
+    <string name="waitlist_waiting_status">En lista de espera · Posición %1$d</string>
+    <string name="waitlist_offer_status">¡Hay una plaza para ti!</string>
+    <string name="waitlist_offer_deadline">%1$s Confirma antes de las %2$s.</string>
+    <string name="waitlist_count_suffix">%1$d en espera</string>
+    <string name="menu_view_waitlist">Lista de espera (%1$d)</string>
+    <string name="waitlist_dialog_title">Lista de espera</string>
+    <string name="waitlist_dialog_empty">Nadie está en la lista de espera.</string>
+    <string name="waitlist_status_waiting">En espera</string>
+    <string name="waitlist_status_offered">Plaza ofrecida</string>
+    <string name="waitlist_remove">Quitar</string>
+    <string name="notification_waitlist_spot_available">Hay una plaza disponible en %1$s. Confírmala en los próximos 60 minutos.</string>
+    <string name="backend_op_create_notification">No se pudo enviar la notificación</string>
+    <string name="backend_op_append_activity">No se pudo registrar la actividad</string>
+    <string name="backend_op_listen_activity">No se pudo sincronizar el historial de actividad</string>
+    <string name="backend_op_upload_event_image">No se pudo subir la imagen del evento</string>
+    <string name="backend_op_upload_profile_image">No se pudo actualizar la foto de perfil</string>
 
     <!-- Pantalla de Login -->
     <string name="login_title">Eventum</string>
@@ -102,7 +202,7 @@
     <string name="attendee_tab_history_count">Historial (%1$d)</string>
     <string name="attendee_empty_my_events">Aún no te has apuntado a ningún evento.\n\nExplora la pestaña Descubrir para inscribirte.</string>
     <string name="attendee_empty_discover">No hay eventos disponibles para inscribirte en este momento.</string>
-    <string name="attendee_empty_history">Aún no consta ninguna asistencia verificada.\n\nTras pasar tu QR en la entrada, el evento aparecerá aquí.</string>
+    <string name="attendee_empty_history">Aún no tienes eventos pasados en tu historial.\n\nLos eventos a los que te apuntaste y ya han finalizado aparecerán aquí.</string>
     <string name="attendee_history_no_unsubscribe">Ya consta tu asistencia en este evento; no puedes darte de baja desde el historial.</string>
     <!-- Pantalla Home Organizador -->
     <string name="organizer_sort_events">Ordenar eventos próximos</string>
@@ -114,7 +214,7 @@
     <string name="sort_occupancy_asc">Ocupación ↑</string>
     <string name="sort_occupancy_desc">Ocupación ↓</string>
     <string name="attendee_card_qr">Ver código QR del evento</string>
-
+    
     <!-- Filtros -->
     <string name="filter_active_indicator">Filtros activos</string>
     
@@ -127,7 +227,6 @@
     <string name="attendee_qr_hint">Muestra este código al organizador en la entrada.\nMantén el brillo al máximo.</string>
     <string name="attendee_qr_refresh_info">El código se renueva cada 5 minutos por seguridad.</string>
     <string name="attendee_qr_content_desc">Código QR de asistencia al evento</string>
-    <string name="label_qr_access_code">Código QR de acceso</string>
     <string name="attendee_qr_error">No se pudo generar el código QR para este evento.</string>
 
     <!-- Barra de acciones FAB -->
@@ -170,7 +269,10 @@
     <string name="notification_channel_attendee_desc">Avisos sobre tus inscripciones y asistencia verificada</string>
     <string name="notification_attendee_title">Eventum</string>
     <string name="notification_attendee_verified">Tu asistencia en «%1$s» ha sido verificada.</string>
+    <string name="notification_attendee_removed">El organizador te ha eliminado del evento «%1$s».</string>
     <string name="notification_attendee_generic">Novedad en el evento «%1$s».</string>
+    <string name="event_photo_hint">Toca para elegir la foto del evento</string>
+    <string name="cd_event_photo">Foto del evento</string>
 
     <!-- Formato común -->
     <string name="event_participants_load_error">Error al cargar asistentes</string>
@@ -211,7 +313,8 @@
     <string name="login_remember_me">Recordarme</string>
     <string name="login_forgot_password">¿Olvidaste tu contraseña?</string>
     <string name="login_button">Iniciar Sesión</string>
-    <string name="login_register_prompt">¿No tienes cuenta? Regístrate</string>
+    <string name="login_no_account_prompt">¿No tienes cuenta?</string>
+    <string name="login_register_link">Regístrate</string>
     <string name="hint_username">Nombre de usuario</string>
     <string name="hint_confirm_email">Confirmar correo electrónico</string>
     <string name="hint_confirm_password">Confirmar contraseña</string>
@@ -222,6 +325,7 @@
     <string name="register_button">Crear Cuenta</string>
     <string name="register_has_account_prompt">¿Ya tienes cuenta?</string>
     <string name="register_login_link">Inicia sesión</string>
+    <string name="register_card_title">Crea tu cuenta</string>
 
     <!-- Formularios comunes -->
     <string name="save">Guardar</string>
@@ -254,12 +358,68 @@
 
     <!-- Diálogo buscar asistente -->
     <string name="search_attendee_title">Buscar Asistente</string>
+    <string name="search_attendee_hint">Introduce al menos DNI, email, teléfono o nombre con primer apellido.</string>
+    <string name="search_attendee_section_id">Identificación</string>
+    <string name="search_attendee_section_name">Por nombre</string>
 
     <!-- Menú detalle evento -->
     <string name="menu_edit_event">Editar evento</string>
     <string name="menu_send_invitations">Enviar invitaciones</string>
+    <string name="menu_view_private_access_code">Ver código de acceso</string>
     <string name="menu_verify_attendees">Verificar asistentes</string>
     <string name="menu_clear_list">Vaciar lista</string>
+    <string name="menu_event_activity_log">Actividad del evento</string>
+    <string name="menu_export_attendees_csv">Exportar asistentes (CSV)</string>
+    <string name="menu_delete_event">Eliminar evento</string>
+    <string name="hint_private_access_code">Código de acceso</string>
+    <string name="helper_private_access_code">Alfanumérico, 4–20 caracteres</string>
+    <string name="cd_generate_private_access_code">Generar código de acceso aleatorio</string>
+    <string name="hint_attendee_private_access_code">Código del evento privado</string>
+    <string name="helper_attendee_private_access_code">Introduce el código que te ha facilitado el organizador</string>
+    <string name="error_private_access_code_format">El código debe ser alfanumérico (4–20 caracteres)</string>
+    <string name="error_private_access_code_wrong">El código introducido no es correcto</string>
+    <string name="set_private_access_code_title">Evento privado</string>
+    <string name="set_private_access_code_message">Introduce un código de acceso alfanumérico para que los asistentes puedan inscribirse a este evento.</string>
+    <string name="set_private_access_code_confirm">Guardar código</string>
+    <string name="label_event_private_access_code">Código de acceso del evento</string>
+    <string name="private_access_code_not_set">Este evento privado aún no tiene código de acceso configurado.</string>
+    <string name="cd_close_attendee_event_panel">Cerrar detalle del evento</string>
+    <string name="cd_close_attendee_qr_panel">Cerrar código QR</string>
+
+    <string name="export_attendees_csv_empty">No hay asistentes para exportar</string>
+    <string name="export_attendees_csv_success">Lista de asistentes exportada</string>
+    <string name="export_attendees_csv_error">No se pudo guardar el archivo CSV</string>
+    <string name="export_attendees_csv_loading">Cargando asistentes…</string>
+    <string name="cd_close_search_events">Cerrar búsqueda de eventos</string>
+    <string name="cd_close_search_attendee">Cerrar búsqueda de asistentes</string>
+    <string name="cd_close_add_attendee">Cerrar registro de asistente</string>
+    <string name="cd_close_create_event">Cerrar formulario de crear evento</string>
+    <string name="cd_close_edit_event">Cerrar formulario de editar evento</string>
+
+    <!-- Registro de actividad del evento -->
+    <string name="event_activity_log_title">Actividad del evento</string>
+    <string name="event_activity_log_subtitle">Historial cronológico de inscripciones, bajas y verificaciones</string>
+    <string name="event_activity_log_empty">Todavía no hay actividad registrada.\nLas acciones nuevas aparecerán aquí.</string>
+    <string name="event_activity_log_load_error">No se pudo cargar la actividad del evento</string>
+    <string name="cd_close_activity_log">Cerrar registro de actividad</string>
+    <string name="event_log_action_joined">Se apuntó al evento</string>
+    <string name="event_log_action_left">Se dio de baja del evento</string>
+    <string name="event_log_action_removed">Eliminado de la lista</string>
+    <string name="event_log_action_verified_qr">Asistencia verificada (QR)</string>
+    <string name="event_log_action_verified_manual">Asistencia verificada (manual)</string>
+    <string name="event_log_action_list_cleared">Lista de asistentes vaciada</string>
+    <string name="event_log_action_event_updated">Evento actualizado</string>
+    <string name="event_log_action_waitlist_joined">Se unió a la lista de espera</string>
+    <string name="event_log_action_waitlist_left">Salió de la lista de espera</string>
+    <string name="event_log_action_waitlist_offered">Plaza ofrecida desde la lista de espera</string>
+    <string name="event_log_action_waitlist_offer_expired">Oferta de plaza expirada</string>
+    <string name="event_log_action_waitlist_promoted">Confirmó plaza desde la lista de espera</string>
+    <string name="event_log_action_unknown">Actividad registrada</string>
+    <string name="event_log_detail_by_organizer">Por el organizador</string>
+    <plurals name="event_log_detail_cleared_count">
+        <item quantity="one">%d asistente eliminado</item>
+        <item quantity="other">%d asistentes eliminados</item>
+    </plurals>
 
     <!-- Diálogos confirmación -->
     <string name="logout_dialog_title">Cerrar sesión</string>
@@ -272,19 +432,15 @@
     <string name="clear_attendees_title">Vaciar lista de asistentes</string>
     <string name="clear_attendees_message">¿Estás seguro de que deseas eliminar todos los asistentes? Esta acción no se puede deshacer.</string>
     <string name="filters_summary">Filtros: %1$s</string>
-    <string name="app_info_version_unavailable">Versión: No disponible</string>
-    <string name="app_info_build_unavailable">Compilación: No disponible</string>
     <string name="profile_readonly_title">Perfil (datos no modificables)</string>
     <string name="birth_date_not_specified">No especificada</string>
     <string name="complete_profile_join_title">Completar perfil para inscribirte</string>
     <string name="attendee_unsubscribe_short">Darme de baja</string>
-    <string name="label_event_private_title">Evento Privado</string>
     <string name="date_format_dmy">%1$s/%2$s/%3$d</string>
     <string name="add_attendee_title">Registrar asistente</string>
     <string name="add_attendee_button">Registrar Asistente</string>
     <string name="attendee_join_event_short">Apuntarse</string>
     <string name="create_event_button">Crear Evento</string>
-    <string name="edit_event_subtitle">Modifica los datos del evento</string>
     <string name="complete_profile_title">Completar perfil</string>
 
     <!-- Ajustes -->
@@ -315,8 +471,10 @@
     <string name="hint_first_surname_required">Primer apellido *</string>
     <string name="hint_second_surname_required">Segundo apellido *</string>
     <string name="hint_dni_required">DNI/NIE *</string>
+    <string name="dni_required">El DNI es requerido</string>
+    <string name="dni_invalid_letter">DNI inválido. La letra no coincide con el número</string>
     <string name="hint_phone_required">Teléfono *</string>
-    <string name="hint_birth_date_required">Fecha de nacimiento (dd/MM/yyyy) *</string>
+    <string name="hint_birth_date_compact">Nacim. (dd/MM/yyyy) *</string>
     <string name="helper_date_format">Formato: dd/MM/yyyy</string>
     <string name="helper_time_format_24h">Formato 24h: HH:mm</string>
     <string name="helper_location_brief">Dirección o referencia breve</string>
@@ -339,6 +497,20 @@
     <string name="cd_register_organizer_icon">Icono de organizador</string>
     <string name="cd_register_attendee_icon">Icono de asistente</string>
     <string name="complete_profile_message_long">Completa tus datos personales para poder inscribirte en eventos. Estos datos no se podrán modificar.</string>
+    <string name="profile_complete_all_required">Por favor, completa todos los campos obligatorios</string>
+    <string name="age_attendee_min_error">Debes tener al menos 16 años</string>
+    <string name="age_organizer_min_error">Debes tener al menos 18 años para registrarte como organizador</string>
+    <string name="age_birth_date_invalid">Formato de fecha inválido (usa dd/MM/yyyy)</string>
+    <string name="age_birth_date_required_organizer">La fecha de nacimiento es obligatoria para organizadores</string>
+    <string name="hint_organizer_birth_date_required">Fecha de nacimiento (dd/MM/yyyy) *</string>
+    <string name="event_minor_not_allowed">Este evento no admite menores de 18 años</string>
+    <string name="parental_auth_dialog_title">Autorización parental</string>
+    <string name="parental_auth_dialog_message">Tendrás menos de 18 años el día del evento. Debes subir un documento de autorización parental (imagen o PDF) para inscribirte.</string>
+    <string name="parental_auth_select_file">Seleccionar documento</string>
+    <string name="parental_auth_file_selected">Documento seleccionado</string>
+    <string name="parental_auth_upload_and_join">Subir y inscribirme</string>
+    <string name="parental_auth_upload_error">No se pudo subir la autorización parental</string>
+    <string name="parental_auth_file_required">Selecciona un documento de autorización parental</string>
     <string name="edit_organizer_profile_title">Editar perfil</string>
     <string name="edit_organizer_profile_message">Como organizador, puedes actualizar el nombre de tu empresa y otros datos opcionales.</string>
     <string name="hint_company_name_required">Nombre de la empresa *</string>
@@ -346,6 +518,17 @@
     <string name="hint_contact_phone_optional">Teléfono de contacto (opcional)</string>
     <string name="delete_account_dialog_title">Eliminar cuenta</string>
     <string name="delete_account_dialog_message">¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer y todos tus datos serán eliminados permanentemente.</string>
+    <string name="delete_account_dialog_intro">¿Estás seguro de que quieres eliminar tu cuenta?</string>
+    <string name="delete_account_dialog_list_header">Esta acción eliminará:</string>
+    <string name="delete_account_dialog_bullet_profile">Tu perfil y datos personales</string>
+    <string name="delete_account_dialog_bullet_photo">Tu foto de perfil</string>
+    <string name="delete_account_dialog_bullet_events_organizer">Todos tus eventos</string>
+    <string name="delete_account_dialog_bullet_registrations_attendee">Todas tus inscripciones a eventos</string>
+    <string name="delete_account_dialog_footer">Esta acción NO se puede deshacer.</string>
+    <string name="delete_account_password_title">Confirma tu contraseña</string>
+    <string name="delete_account_password_message">Introduce tu contraseña para eliminar la cuenta de forma permanente.</string>
+    <string name="delete_account_confirm">Eliminar cuenta</string>
+    <string name="settings_profile_incomplete_badge">Completar perfil</string>
     <string name="cd_delete_account_icon">Icono de eliminar cuenta</string>
     <string name="cd_event_menu">Menú del evento</string>
     <string name="event_no_attendees">No hay asistentes registrados para este evento</string>
@@ -353,8 +536,15 @@
     <string name="label_version">Versión</string>
     <string name="label_build">Compilación</string>
     <string name="label_tutor">Tutor</string>
-    <string name="cd_version_icon">Icono de versión</string>
-    <string name="cd_build_icon">Icono de compilación</string>
     <string name="close">Cerrar</string>
-    
+
+    <string name="error_edit_event_title_required">El título del evento es obligatorio</string>
+    <string name="error_edit_event_location_required">El lugar del evento es obligatorio</string>
+    <string name="error_edit_event_date_required">La fecha es obligatoria</string>
+    <string name="error_edit_event_time_required">La hora es obligatoria</string>
+    <string name="error_edit_event_date_past">La fecha no puede ser anterior a hoy</string>
+    <string name="error_edit_event_max_participants_required">El número de plazas es obligatorio</string>
+    <string name="error_edit_event_max_participants_invalid">Debe ser un número mayor que 0</string>
+    <string name="error_edit_event_max_below_current">No puede ser menor que los asistentes actuales (%1$d)</string>
+
 </resources>

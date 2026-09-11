@@ -6,9 +6,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -34,11 +31,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true"
-        android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:largeHeap="true"
-        tools:targetApi="31">
+        tools:targetApi="33">
 
         <activity
             android:name=".presentation.activities.LoginActivity"
@@ -73,11 +68,6 @@
         </activity>
 
         <activity
-            android:name=".presentation.activities.CreateEventActivity"
-            android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
-
-        <activity
             android:name=".presentation.activities.SettingsActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
@@ -100,11 +90,6 @@
             android:name=".presentation.activities.QRScannerActivity"
             android:exported="false"
             android:theme="@style/QrScannerTheme"/>
-
-        <activity
-            android:name=".presentation.activities.AttendeeQrDisplayActivity"
-            android:exported="false"
-            android:theme="@style/AttendeeQrTheme"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

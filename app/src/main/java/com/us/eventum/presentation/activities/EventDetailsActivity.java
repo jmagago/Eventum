@@ -3,16 +3,20 @@ package com.us.eventum.presentation.activities;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,11 +25,12 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.IntentCompat;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,6 +45,11 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.adapters.AttendeeAdapter;
+import com.us.eventum.adapters.EventsPagerAdapter;
+import com.us.eventum.utils.ActivityLogPanelController;
+import com.us.eventum.utils.AddAttendeePanelController;
+import com.us.eventum.utils.EditEventPanelController;
+import com.us.eventum.utils.SearchAttendeePanelController;
 import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.repositories.AttendeeRepository;
@@ -62,28 +72,52 @@ import java.util.Map;
 import android.widget.PopupMenu;
 
 import android.widget.ImageView;
+import com.us.eventum.utils.EventImageManager;
+import com.us.eventum.utils.EventPrivateAccessCode;
 import com.us.eventum.utils.LocaleUtils;
+import com.us.eventum.utils.PrivateAccessCodeDialogHelper;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.NotificationPermissionHelper;
+import com.us.eventum.utils.NetworkUtils;
 import com.us.eventum.utils.OrganizerNotificationDispatcher;
 import com.us.eventum.utils.OrganizerNotificationHelper;
 import com.us.eventum.utils.OrganizerNotificationWatcher;
+import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.FabBarController;
+import com.us.eventum.utils.WindowInsetsHelper;
 import com.us.eventum.data.models.OrganizerNotification;
+import com.us.eventum.utils.AttendeeCsvExportHelper;
 import com.us.eventum.utils.AttendeeSearchFilter;
+import com.us.eventum.utils.AddAttendeePanelController;
+import com.us.eventum.utils.EditEventPanelController;
+import com.us.eventum.utils.SearchAttendeePanelController;
 import com.us.eventum.utils.QrCheckInResult;
+import com.us.eventum.data.models.WaitlistToEvent;
 import com.us.eventum.utils.VibrationUtils;
+import com.us.eventum.utils.WaitlistDialogHelper;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
+
+import de.hdodenhof.circleimageview.CircleImageView;
+
+import androidx.core.util.Consumer;
 
 public class EventDetailsActivity extends AppCompatActivity {
     private static final String TAG = "EventDetailsActivity";
     private Event event;
     
     private ActivityResultLauncher<Intent> qrScannerLauncher;
+    private ActivityResultLauncher<String> pickEventImageLauncher;
+    private AttendeeCsvExportHelper csvExportHelper;
+    private EditEventPanelController editEventPanelController;
+    private SearchAttendeePanelController searchAttendeePanelController;
+    private AddAttendeePanelController addAttendeePanelController;
+    private ActivityLogPanelController activityLogPanelController;
+    private Consumer<Uri> eventImagePickHandler;
     private FirebaseFirestore db;
     private AttendeeAdapter attendeeAdapter;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
     private List<Attendee> attendees = new ArrayList<>();
+    private int activeWaitlistCount;
     private TextView dateTextView, locationTextView, descriptionTextView;
     private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
@@ -139,13 +173,21 @@ public class EventDetailsActivity extends AppCompatActivity {
         qrScannerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                    // Recargar la lista de asistentes y la información de escaneado
-                    loadAttendees();
-                    loadScannedAttendeesInfo();
+                if (result.getResultCode() == RESULT_OK && event != null && event.getId() != null) {
+                    attendeeViewModel.restartListeningEventAttendees(event.getId());
                 }
             }
         );
+
+        pickEventImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null && eventImagePickHandler != null) {
+                        eventImagePickHandler.accept(uri);
+                    }
+                });
+
+        csvExportHelper = new AttendeeCsvExportHelper(this);
 
         // Configurar Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -171,8 +213,8 @@ public class EventDetailsActivity extends AppCompatActivity {
 
                         @Override
                         public void onError(String error) {
-                            ToastUtils.showCustomToast(EventDetailsActivity.this,
-                                    "Error al cargar el evento", ToastUtils.ToastType.ERROR);
+                            ToastUtils.showCustomToast(EventDetailsActivity.this, error,
+                                    ToastUtils.ToastType.ERROR);
                             finish();
                         }
                     });
@@ -184,17 +226,9 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     private void setupStatusBarStripe() {
         View stripe = findViewById(R.id.statusBarStripe);
-        if (stripe == null) {
-            return;
+        if (stripe != null) {
+            WindowInsetsHelper.applyStatusBarStripe(stripe);
         }
-        ViewCompat.setOnApplyWindowInsetsListener(stripe, (v, windowInsets) -> {
-            int topInset = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
-            lp.height = topInset;
-            v.setLayoutParams(lp);
-            return windowInsets;
-        });
-        ViewCompat.requestApplyInsets(stripe);
     }
 
     private void setupEventUi(TextView toolbarTitleTextView) {
@@ -203,18 +237,24 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
         toolbarTitleTextView.setText(event.getTitle());
+        CircleImageView toolbarEventImageView = findViewById(R.id.toolbarEventImageView);
+        if (toolbarEventImageView != null) {
+            EventImageManager.loadEventImage(this, toolbarEventImageView, event.getId());
+        }
         initializeViews();
         setupRecyclerView();
         setupAttendeesSwipeRefresh();
         displayEventDetails();
         observeViewModels();
-        loadAttendees();
+        startRealtimeSync();
         updateAddAttendeeButtonState();
 
         if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
             showClearAttendeeListConfirmation();
         } else if (getIntent().getBooleanExtra("show_delete_dialog", false)) {
             showDeleteEventDialog();
+        } else if (getIntent().getBooleanExtra("show_activity_log", false)) {
+            showActivityLogPanel();
         }
     }
 
@@ -236,6 +276,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         fabBarController = new FabBarController(this, fabDock, fabContainer, fabBarHandle, fabBarCollapse);
         fabBarController.attachToActivity(this);
         attendeesRecyclerView = findViewById(R.id.attendeesRecyclerView);
+        if (attendeesRecyclerView != null) {
+            WindowInsetsHelper.applyOverlayFabListPadding(attendeesRecyclerView);
+        }
         attendeesSwipeRefresh = findViewById(R.id.attendeesSwipeRefresh);
         eventMenuButton = findViewById(R.id.eventMenuButton);
         
@@ -255,12 +298,18 @@ public class EventDetailsActivity extends AppCompatActivity {
                 ToastUtils.showCustomToast(this, "Capacidad máxima alcanzada (" + event.getMaxParticipants() + "). Edite el evento para aumentar el límite.", ToastUtils.ToastType.WARNING);
                 return;
             }
-            showAddAttendeeDialog();
+            if (addAttendeePanelController != null) {
+                addAttendeePanelController.show();
+            }
         });
         eventMenuButton.setOnClickListener(v -> showEventMenu());
 
         // Abrir búsqueda de asistente
-        searchAttendeeFab.setOnClickListener(v -> showSearchAttendeeDialog());
+        searchAttendeeFab.setOnClickListener(v -> {
+            if (searchAttendeePanelController != null) {
+                searchAttendeePanelController.show();
+            }
+        });
         // Abrir lector QR
         verifyQrFab.setOnClickListener(v -> startQRScanner());
         
@@ -269,17 +318,31 @@ public class EventDetailsActivity extends AppCompatActivity {
             clearFiltersButton.setOnClickListener(v -> clearSearchFilters());
         }
 
+        setupActivityLogPanel();
+        setupEditEventPanel();
+        setupAttendeePanels();
+        setupPanelBackHandler();
+
         // Configurar clic largo en el icono del candado para cambiar privacidad
         if (eventPrivateIconDetails != null) {
             eventPrivateIconDetails.setOnLongClickListener(v -> {
-                if (event != null) {
+                if (event != null && event.getId() != null) {
                     boolean newPrivateState = !event.getPrivateEvent();
-                    // Actualizo el estado del evento local inmediatamente para que el icono se actualice
-                    event.setPrivateEvent(newPrivateState);
-                    // Actualizo el icono visualmente de inmediato
-                    updateLockIcon(newPrivateState);
-                    // Luego actualizo en el servidor
-                    eventViewModel.toggleEventPrivacy(event.getId(), newPrivateState);
+                    if (newPrivateState) {
+                        PrivateAccessCodeDialogHelper.show(this, new PrivateAccessCodeDialogHelper.Callback() {
+                            @Override
+                            public void onCodeConfirmed(@NonNull String accessCode) {
+                                applyPrivacyChange(true, accessCode);
+                            }
+
+                            @Override
+                            public void onCancelled() {
+                                // Sin cambios
+                            }
+                        });
+                    } else {
+                        applyPrivacyChange(false, null);
+                    }
                     return true;
                 }
                 return false;
@@ -287,8 +350,58 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
     }
 
+    private void applyPrivacyChange(boolean isPrivate, @Nullable String accessCode) {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+        event.setPrivateEvent(isPrivate);
+        event.setPrivateAccessCode(isPrivate ? EventPrivateAccessCode.normalize(accessCode) : null);
+        updateLockIcon(isPrivate);
+        displayEventDetails();
+        eventViewModel.updateEventPrivacy(event.getId(), isPrivate, accessCode);
+    }
+
+    private void startRealtimeSync() {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+        eventViewModel.startListeningEvent(event.getId());
+        attendeeViewModel.startListeningEventAttendees(event.getId());
+        attendeeViewModel.startListeningEventWaitlist(event.getId());
+    }
+
     private void observeViewModels() {
-        // Observar asistentes
+        eventViewModel.getObservedEvent().observe(this, updated -> {
+            if (updated == null) {
+                if (event != null) {
+                    ToastUtils.showCustomToast(this,
+                            "Este evento ya no está disponible",
+                            ToastUtils.ToastType.WARNING);
+                    finish();
+                }
+                return;
+            }
+            event = updated;
+            TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
+            if (toolbarTitleTextView != null) {
+                toolbarTitleTextView.setText(updated.getTitle());
+            }
+            displayEventDetails();
+            updateAddAttendeeButtonState();
+        });
+
+        attendeeViewModel.getScannedAttendeesMap().observe(this, map -> {
+            if (map == null) {
+                return;
+            }
+            scannedAttendeesMap.clear();
+            scannedAttendeesMap.putAll(map);
+            if (attendeeAdapter != null) {
+                attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
+            }
+            updateAttendeesCount();
+        });
+
         attendeeViewModel.getAttendees().observe(this, attendeesList -> {
             Log.d("EventDetailsActivity", "Observando asistentes: " + (attendeesList != null ? attendeesList.size() : 0));
             if (attendeesList != null) {
@@ -301,10 +414,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 attendees.addAll(attendeesList);
                 
                 Log.d("EventDetailsActivity", "Asistentes actualizados en adapter: " + attendees.size());
-                
-                // Cargar información de escaneado para actualizar bordes
-                loadScannedAttendeesInfo();
-                
+
                 // Aplicar filtros si hay búsqueda activa
                 if (isSearchActive) {
                     applySearchFilters();
@@ -342,6 +452,21 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
         });
 
+        attendeeViewModel.getEventWaitlist().observe(this, waitlistEntries -> {
+            int count = 0;
+            if (waitlistEntries != null) {
+                for (WaitlistToEvent entry : waitlistEntries) {
+                    if (entry != null && entry.isActiveForUser()) {
+                        count++;
+                    }
+                }
+            }
+            activeWaitlistCount = count;
+            if (event != null) {
+                event.setWaitlistCount(count);
+            }
+        });
+
         // Observar estado de carga
         attendeeViewModel.getIsLoading().observe(this, loading -> {
             if (Boolean.FALSE.equals(loading) && attendeesSwipeRefresh != null) {
@@ -352,17 +477,10 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Observar cuando se elimina un asistente
         attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
             if (deleted) {
-                Log.d("EventDetailsActivity", "Asistente eliminado, recargando lista...");
-                // Recargar la lista de asistentes (esto disparará el observer de getAttendees() 
-                // que actualizará el contador automáticamente)
-                loadAttendees();
-                // Notificar al EventViewModel para actualizar el contador
+                Log.d("EventDetailsActivity", "Asistente eliminado");
                 if (event != null) {
-                    eventViewModel.loadUserEvents();
+                    sharedViewModel.notifyEventsUpdated();
                 }
-                // Notificar al SharedViewModel para actualizar la actividad de origen
-                sharedViewModel.notifyEventsUpdated();
-                // Limpiar el flag de operación
                 attendeeViewModel.clearOperationStates();
             }
         });
@@ -411,7 +529,6 @@ public class EventDetailsActivity extends AppCompatActivity {
                 case VALID:
                     scannedAttendeesMap.put(attendeeId, true);
                     attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
-                    loadScannedAttendeesInfo();
                     updateAttendeesCount();
                     VibrationUtils.vibrateSuccess(this);
                     dismissAttendeeDetailsDialog();
@@ -450,25 +567,20 @@ public class EventDetailsActivity extends AppCompatActivity {
         attendeeViewModel.getAttendeesCleared().observe(this, cleared -> {
             if (cleared != null && cleared) {
                 ToastUtils.showCustomToast(this, "Lista de asistentes vaciada con éxito", ToastUtils.ToastType.SUCCESS);
-                // Recargar la lista de asistentes (esto disparará el observer de getAttendees() 
-                // que actualizará el contador automáticamente)
-                loadAttendees();
-                // Notificar al EventViewModel para actualizar el contador
                 if (event != null) {
-                    eventViewModel.loadUserEvents();
+                    sharedViewModel.notifyEventsUpdated();
                 }
-                // Notificar al SharedViewModel para actualizar la actividad de origen
-                sharedViewModel.notifyEventsUpdated();
                 attendeeViewModel.clearOperationStates();
             }
         });
 
         eventViewModel.getEventUpdated().observe(this, updated -> {
             if (updated != null && updated) {
-                // El mensaje se muestra en el observer de eventUpdateMessage
-                // El estado del evento ya se actualizó en el listener, solo actualizo la UI completa
                 displayEventDetails();
                 sharedViewModel.notifyEventsUpdated();
+                if (event != null && event.getId() != null) {
+                    attendeeViewModel.promoteWaitlistIfNeeded(event.getId());
+                }
             }
         });
 
@@ -504,85 +616,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                     ? ToastUtils.ToastType.WARNING
                     : ToastUtils.ToastType.INFO;
             ToastUtils.showCustomToast(this, body, type);
-            if (event != null && notification.getEventId() != null
-                    && notification.getEventId().equals(event.getId())) {
-                loadAttendees();
-            }
         });
-    }
-
-    private void showSearchAttendeeDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomSearchDialog);
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_search_attendee, null);
-        TextInputEditText dniEditText = dialogView.findViewById(R.id.dniEditText);
-        TextInputEditText nameEditText = dialogView.findViewById(R.id.nameEditText);
-        TextInputEditText firstLastNameEditText = dialogView.findViewById(R.id.firstLastNameEditText);
-        TextInputEditText secondLastNameEditText = dialogView.findViewById(R.id.secondLastNameEditText);
-        TextInputEditText emailEditText = dialogView.findViewById(R.id.emailEditText);
-        TextInputEditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
-        MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
-        MaterialButton searchButton = dialogView.findViewById(R.id.searchButton);
-
-        // Cargar filtros actuales si hay búsqueda activa
-        if (isSearchActive) {
-            if (currentSearchFilter.getDni() != null) {
-                dniEditText.setText(currentSearchFilter.getDni());
-            }
-            if (currentSearchFilter.getName() != null) {
-                nameEditText.setText(currentSearchFilter.getName());
-            }
-            if (currentSearchFilter.getFirstLastName() != null) {
-                firstLastNameEditText.setText(currentSearchFilter.getFirstLastName());
-            }
-            if (currentSearchFilter.getSecondLastName() != null) {
-                secondLastNameEditText.setText(currentSearchFilter.getSecondLastName());
-            }
-            if (currentSearchFilter.getEmail() != null) {
-                emailEditText.setText(currentSearchFilter.getEmail());
-            }
-            if (currentSearchFilter.getPhone() != null) {
-                phoneEditText.setText(currentSearchFilter.getPhone());
-            }
-        }
-
-        builder.setView(dialogView);
-        AlertDialog dialog = builder.create();
-
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-        searchButton.setOnClickListener(v -> {
-            String dni = dniEditText.getText() != null ? dniEditText.getText().toString().trim() : "";
-            String name = nameEditText.getText() != null ? nameEditText.getText().toString().trim() : "";
-            String firstLastName = firstLastNameEditText.getText() != null ? firstLastNameEditText.getText().toString().trim() : "";
-            String secondLastName = secondLastNameEditText.getText() != null ? secondLastNameEditText.getText().toString().trim() : "";
-            String email = emailEditText.getText() != null ? emailEditText.getText().toString().trim() : "";
-            String phone = phoneEditText.getText() != null ? phoneEditText.getText().toString().trim() : "";
-
-            // Validar que se introduzca al menos: DNI O email O teléfono O (nombre + primer apellido)
-            boolean hasValidSearch = !dni.isEmpty() || !email.isEmpty() || !phone.isEmpty() || (!name.isEmpty() && !firstLastName.isEmpty());
-            
-            if (!hasValidSearch) {
-                ToastUtils.showCustomToast(this, "Debe introducir al menos: DNI, email, teléfono o nombre + primer apellido", ToastUtils.ToastType.WARNING);
-                return;
-            }
-
-            // Crear nuevo filtro
-            AttendeeSearchFilter newFilter = new AttendeeSearchFilter();
-            newFilter.setDni(dni.isEmpty() ? null : dni);
-            newFilter.setName(name.isEmpty() ? null : name);
-            newFilter.setFirstLastName(firstLastName.isEmpty() ? null : firstLastName);
-            newFilter.setSecondLastName(secondLastName.isEmpty() ? null : secondLastName);
-            newFilter.setEmail(email.isEmpty() ? null : email);
-            newFilter.setPhone(phone.isEmpty() ? null : phone);
-
-            // Aplicar filtros
-            currentSearchFilter = newFilter;
-            applySearchFilters();
-            
-            // Cerrar diálogo
-            dialog.dismiss();
-        });
-
-        dialog.show();
     }
 
     private void setupRecyclerView() {
@@ -596,10 +630,10 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
         attendeesSwipeRefresh.setOnRefreshListener(() -> {
-            if (event != null) {
-                loadAttendees();
-                loadScannedAttendeesInfo();
-            } else {
+            if (event != null && event.getId() != null) {
+                attendeeViewModel.restartListeningEventAttendees(event.getId());
+                eventViewModel.restartListeningEvent(event.getId());
+            } else if (attendeesSwipeRefresh != null) {
                 attendeesSwipeRefresh.setRefreshing(false);
             }
         });
@@ -729,7 +763,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Mostrar icono del candado según el estado de privacidad
         updateLockIcon(event.getPrivateEvent());
-        
+
         // Mostrar descripción si existe
         View descriptionSpacer = findViewById(R.id.descriptionSpacer);
         if (event.getDescription() != null && !event.getDescription().isEmpty()) {
@@ -746,241 +780,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
     }
 
-    private void loadAttendees() {
-        if (event != null) {
-            Log.d("EventDetailsActivity", "Cargando asistentes para evento ID: " + event.getId() + ", Título: " + event.getTitle());
-            attendeeViewModel.loadEventAttendees(event.getId());
-        } else {
-            Log.e("EventDetailsActivity", "Event es null, no se pueden cargar asistentes");
-        }
-    }
-
     private void updateAttendeesCount() {
-        // Solo actualizar la información de capacidad en displayEventDetails
         displayEventDetails();
-    }
-
-    private void loadScannedAttendeesInfo() {
-        if (event == null || event.getId() == null) {
-            return;
-        }
-        
-        // Usar el repositorio directamente para obtener la lista de AttendeesToEvent
-        com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository repository = 
-            new com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository();
-        
-        repository.loadAttendeesToEvent(event.getId(), 
-            new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
-                @Override
-                public void onSuccess(List<AttendeesToEvent> result) {
-                    // Crear el Map con la información de escaneado
-                    scannedAttendeesMap.clear();
-                    for (AttendeesToEvent attendeeToEvent : result) {
-                        scannedAttendeesMap.put(attendeeToEvent.getUserId(), attendeeToEvent.isScannedQR());
-                    }
-                    
-                    // Actualizar el adapter con la información de escaneado
-                    attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
-                }
-
-                @Override
-                public void onError(String error) {
-                    Log.e("EventDetailsActivity", "Error al cargar AttendeesToEvent: " + error);
-                }
-            });
-    }
-
-    private void showAddAttendeeDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_attendee, null);
-
-        TextInputEditText nameEditText = dialogView.findViewById(R.id.nameEditText);
-        TextInputEditText firstLastNameEditText = dialogView.findViewById(R.id.firstLastNameEditText);
-        TextInputEditText secondLastNameEditText = dialogView.findViewById(R.id.secondLastNameEditText);
-        TextInputEditText dniEditText = dialogView.findViewById(R.id.dniEditText);
-        TextInputEditText emailEditText = dialogView.findViewById(R.id.emailEditText);
-        TextInputEditText phoneEditText = dialogView.findViewById(R.id.phoneEditText);
-        TextInputEditText birthDateEditText = dialogView.findViewById(R.id.birthDateEditText);
-        MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
-        MaterialButton addButton = dialogView.findViewById(R.id.addAttendeeButton);
-        
-        // Obtener los TextInputLayout para mostrar errores
-        com.google.android.material.textfield.TextInputLayout dniLayout = dialogView.findViewById(R.id.dniLayout);
-        com.google.android.material.textfield.TextInputLayout phoneLayout = dialogView.findViewById(R.id.phoneLayout);
-        com.google.android.material.textfield.TextInputLayout birthDateLayout = dialogView.findViewById(R.id.birthDateLayout);
-
-
-        // Configurar validador de DNI (solo cuando pierde el foco)
-        dniEditText.setOnFocusChangeListener(com.us.eventum.utils.DniValidator.createDniFocusValidator(dniLayout));
-
-        // Validar teléfono español al perder el foco
-        phoneEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                String phoneText = phoneEditText.getText().toString().trim();
-                // Eliminar todos los caracteres que no sean números
-                String cleanPhone = phoneText.replaceAll("[^0-9]", "");
-                if (!cleanPhone.equals(phoneText)) {
-                    phoneEditText.setText(cleanPhone);
-                }
-                
-                // Validar después de limpiar
-                if (!cleanPhone.isEmpty()) {
-                    if (cleanPhone.length() == 9) {
-                        // Validar que empiece por 6, 7, 8 o 9 (móviles españoles)
-                        if (cleanPhone.matches("^[6-9]\\d{8}$")) {
-                            phoneLayout.setError(null);
-                        } else {
-                            phoneLayout.setError("Debe empezar por 6, 7, 8 o 9");
-                        }
-                    } else {
-                        phoneLayout.setError("Debe tener 9 dígitos");
-                    }
-                } else {
-                    phoneLayout.setError(null);
-                }
-            }
-        });
-
-        // Validar edad al escribir manualmente
-        birthDateEditText.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                String dateText = s.toString().trim();
-                if (!dateText.isEmpty() && dateText.matches("\\d{2}/\\d{2}/\\d{4}")) {
-                    try {
-                        Date parsed = dateFormat.parse(dateText);
-                        if (parsed != null) {
-                            int age = calculateAge(parsed);
-                            if (age < 16) {
-                                birthDateLayout.setError("Debe tener al menos 16 años");
-                            } else {
-                                birthDateLayout.setError(null);
-                            }
-                        }
-                    } catch (ParseException e) {
-                        birthDateLayout.setError("Formato inválido (dd/MM/yyyy)");
-                    }
-                } else if (!dateText.isEmpty()) {
-                    birthDateLayout.setError("Formato: dd/MM/yyyy");
-                } else {
-                    birthDateLayout.setError(null);
-                }
-            }
-        });
-
-        // Configurar el selector de fecha
-        birthDateEditText.setOnClickListener(v -> {
-            Calendar calendar = Calendar.getInstance();
-            DatePickerDialog datePickerDialog = new DatePickerDialog(
-                this,
-                (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    birthDateEditText.setText(dateFormat.format(calendar.getTime()));
-
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            );
-
-            // Restringir a mayores o iguales a 16 años (no permitir seleccionar menos de 16)
-            Calendar maxSelectable = Calendar.getInstance();
-            maxSelectable.add(Calendar.YEAR, -16);
-            datePickerDialog.getDatePicker().setMaxDate(maxSelectable.getTimeInMillis());
-            datePickerDialog.show();
-        });
-
-        AlertDialog dialog = builder
-            .setView(dialogView)
-            .create();
-
-        // Configurar botones
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-        
-        addButton.setOnClickListener(view -> {
-            String name = nameEditText.getText().toString().trim();
-            String firstLastName = firstLastNameEditText.getText().toString().trim();
-            String secondLastName = secondLastNameEditText.getText().toString().trim();
-            String dni = dniEditText.getText().toString().trim().toUpperCase(java.util.Locale.ROOT);
-            String email = emailEditText.getText().toString().trim();
-            String phone = phoneEditText.getText().toString().trim();
-            String birthDate = birthDateEditText.getText().toString().trim();
-
-            // Validar campos obligatorios
-            if (name.isEmpty() || firstLastName.isEmpty() || dni.isEmpty() || email.isEmpty() || phone.isEmpty()) {
-                ToastUtils.showCustomToast(this, "Por favor, completa los campos obligatorios (nombre, primer apellido, DNI, email y teléfono)", ToastUtils.ToastType.INFO);
-                return;
-            }
-
-            // Validar DNI
-            if (!com.us.eventum.utils.DniValidator.isValidDni(dni)) {
-                ToastUtils.showCustomToast(this, "El DNI no es válido", ToastUtils.ToastType.INFO);
-                return;
-            }
-
-            // Verificar si el DNI ya existe en la lista de asistentes
-            boolean dniExists = allAttendees.stream()
-                .anyMatch(attendee -> attendee.getDni() != null && attendee.getDni().equalsIgnoreCase(dni));
-            
-            if (dniExists) {
-                ToastUtils.showCustomToast(this, "Ya existe un asistente con este DNI en la lista", ToastUtils.ToastType.WARNING);
-                return;
-            }
-
-            // El apellido puede estar vacío, solo lo concatenamos si existe
-            String lastName = "";
-            if (!firstLastName.isEmpty()) {
-                lastName = firstLastName;
-                if (!secondLastName.isEmpty()) {
-                    lastName += " " + secondLastName;
-                }
-            }
-
-            // Validar edad si se proporciona fecha de nacimiento
-            if (!birthDate.isEmpty()) {
-                try {
-                    Date parsed = dateFormat.parse(birthDate);
-                    if (parsed != null) {
-                        int age = calculateAge(parsed);
-                        if (age < 16) {
-                            ToastUtils.showCustomToast(this, "El asistente debe tener al menos 16 años", ToastUtils.ToastType.INFO);
-                            return;
-                        }
-                    }
-                } catch (ParseException e) {
-                    ToastUtils.showCustomToast(this, "Formato de fecha inválido (usa dd/MM/yyyy)", ToastUtils.ToastType.INFO);
-                    return;
-                }
-            }
-
-            // Usar AttendeeViewModel para añadir el asistente (incluye userId)
-            String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
-                    ? com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid()
-                    : null;
-            attendeeViewModel.addAttendee(event.getId(), uid, name, lastName, dni, email, phone, birthDate, event.getRequiresParentalAuth());
-            dialog.dismiss();
-        });
-
-        dialog.show();
-    }
-
-    private int calculateAge(Date birthDate) {
-        if (birthDate == null) return 0;
-        Calendar today = Calendar.getInstance();
-        Calendar dob = Calendar.getInstance();
-        dob.setTime(birthDate);
-
-        int age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR);
-        if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) {
-            age--;
-        }
-        return Math.max(age, 0);
     }
 
     private void showAttendeeDetails(Attendee attendee) {
@@ -988,6 +789,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_attendee_details, null);
 
         TextView nameTextView = dialogView.findViewById(R.id.detailNameTextView);
+        ImageView profileImageView = dialogView.findViewById(R.id.detailProfileImageView);
         TextView dniTextView = dialogView.findViewById(R.id.detailDniTextView);
         TextView emailTextView = dialogView.findViewById(R.id.detailEmailTextView);
         TextView phoneTextView = dialogView.findViewById(R.id.detailPhoneTextView);
@@ -1000,7 +802,23 @@ public class EventDetailsActivity extends AppCompatActivity {
         MaterialButton deleteButton = dialogView.findViewById(R.id.dialog_delete_button);
 
         nameTextView.setText(attendee.getFullNameLabel());
-        
+        ProfileImageManager.loadProfileImageForUserId(this, profileImageView, attendee.getUid(), available -> {
+            profileImageView.setClickable(available);
+            profileImageView.setFocusable(available);
+            if (available) {
+                TypedValue ripple = new TypedValue();
+                getTheme().resolveAttribute(
+                        android.R.attr.selectableItemBackgroundBorderless, ripple, true);
+                profileImageView.setBackgroundResource(ripple.resourceId);
+                profileImageView.setOnClickListener(v ->
+                        ProfileImageManager.showFullScreenProfileImage(
+                                EventDetailsActivity.this, attendee.getUid()));
+            } else {
+                profileImageView.setBackground(null);
+                profileImageView.setOnClickListener(null);
+            }
+        });
+
         // Mostrar DNI
         String dni = attendee.getDni();
         if (dni != null && !dni.isEmpty()) {
@@ -1116,13 +934,21 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         cancelButton.setOnClickListener(v -> confirmDialog.dismiss());
         confirmButton.setOnClickListener(v -> {
+            if (!NetworkUtils.isOnline(this)) {
+                showManualCheckInFeedback(R.string.manual_checkin_error_network, ToastUtils.ToastType.ERROR);
+                return;
+            }
             MaterialButton verifyButton = dialogView.findViewById(R.id.dialog_verify_attendance_button);
             if (verifyButton != null) {
                 verifyButton.setEnabled(false);
             }
             manualCheckInAwaitingResult = true;
             pendingManualCheckInAttendeeId = attendee.getUid();
-            attendeeViewModel.verifyAttendeeCheckIn(attendee.getUid(), event.getId());
+            attendeeViewModel.verifyAttendeeCheckIn(
+                    attendee.getUid(),
+                    event.getId(),
+                    AttendeeViewModel.CheckInMethod.MANUAL,
+                    attendee.getFullNameLabel());
             confirmDialog.dismiss();
         });
 
@@ -1181,7 +1007,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Usar AttendeeViewModel para eliminar el asistente del evento
         // Esto elimina tanto el registro en AttendeesToEvent como el perfil del asistente
         if (event != null && event.getId() != null) {
-            attendeeViewModel.removeAttendeeFromEvent(attendee.getUid(), event.getId());
+            attendeeViewModel.removeAttendeeFromEvent(
+                    attendee.getUid(), event.getId(), attendee.getFullNameLabel());
         } else {
             // Fallback: si no hay evento, solo eliminar el perfil
             attendeeViewModel.deleteAttendee(attendee.getUid());
@@ -1228,293 +1055,89 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
 
-    private void showEditEventDialog() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_event, null);
-        
-        TextInputEditText titleInput = dialogView.findViewById(R.id.titleInput);
-        TextInputEditText descriptionInput = dialogView.findViewById(R.id.descriptionInput);
-        TextInputEditText locationInput = dialogView.findViewById(R.id.locationInput);
-        TextInputEditText dateInput = dialogView.findViewById(R.id.dateInput);
-        TextInputEditText timeInput = dialogView.findViewById(R.id.timeInput);
-        TextInputEditText maxParticipantsInput = dialogView.findViewById(R.id.maxParticipantsInput);
-        CheckBox eventoPrivadoCheckBox = dialogView.findViewById(R.id.eventoPrivadoCheckBox);
-        CheckBox requiresParentalAuthCheckBox = dialogView.findViewById(R.id.requiresParentalAuthCheckBox);
-        MaterialButton cancelButton = dialogView.findViewById(R.id.cancelButton);
-        MaterialButton saveButton = dialogView.findViewById(R.id.saveButton);
-        
-        // Preparar Calendar con la fecha del evento
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(event.getDate());
-        
-        // Formato para hora
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-        
-        // Guardar valores iniciales para comparar cambios
-        String initialTitle = event.getTitle();
-        String initialDescription = event.getDescription() != null ? event.getDescription() : "";
-        String initialLocation = event.getLocation();
-        String initialDate = dateFormat.format(event.getDate());
-        String initialTime = timeFormat.format(event.getDate());
-        int initialMaxParticipants = event.getMaxParticipants();
-        boolean initialPrivateEvent = event.getPrivateEvent();
-        boolean initialRequiresParentalAuth = event.getRequiresParentalAuth();
-        
-        // Rellenar los campos con los datos actuales del evento
-        titleInput.setText(initialTitle);
-        descriptionInput.setText(initialDescription);
-        locationInput.setText(initialLocation);
-        dateInput.setText(initialDate);
-        timeInput.setText(initialTime);
-        maxParticipantsInput.setText(String.valueOf(initialMaxParticipants));
-        eventoPrivadoCheckBox.setChecked(initialPrivateEvent);
-        requiresParentalAuthCheckBox.setChecked(initialRequiresParentalAuth);
-        
-        // Función para verificar si hay cambios y habilitar/deshabilitar el botón
-        Runnable checkChanges = () -> {
-            String currentTitle = titleInput.getText() != null ? titleInput.getText().toString().trim() : "";
-            String currentDescription = descriptionInput.getText() != null ? descriptionInput.getText().toString().trim() : "";
-            String currentLocation = locationInput.getText() != null ? locationInput.getText().toString().trim() : "";
-            String currentDate = dateInput.getText() != null ? dateInput.getText().toString().trim() : "";
-            String currentTime = timeInput.getText() != null ? timeInput.getText().toString().trim() : "";
-            String currentMaxParticipantsStr = maxParticipantsInput.getText() != null ? maxParticipantsInput.getText().toString().trim() : "";
-            boolean currentPrivateEvent = eventoPrivadoCheckBox.isChecked();
-            boolean currentRequiresParentalAuth = requiresParentalAuthCheckBox.isChecked();
-            
-            boolean hasChanges = false;
-            
-            // Comparar cada campo
-            if (!currentTitle.equals(initialTitle) || 
-                !currentDescription.equals(initialDescription) ||
-                !currentLocation.equals(initialLocation) ||
-                !currentDate.equals(initialDate) ||
-                !currentTime.equals(initialTime) ||
-                currentPrivateEvent != initialPrivateEvent ||
-                currentRequiresParentalAuth != initialRequiresParentalAuth) {
-                hasChanges = true;
-            } else {
-                // Comparar maxParticipants (puede ser un número)
-                try {
-                    int currentMaxParticipants = Integer.parseInt(currentMaxParticipantsStr);
-                    if (currentMaxParticipants != initialMaxParticipants) {
-                        hasChanges = true;
-                    }
-                } catch (NumberFormatException e) {
-                    // Si no es un número válido, no hay cambios reales
-                }
-            }
-            
-            // Habilitar/deshabilitar botón según haya cambios
-            saveButton.setEnabled(hasChanges);
-            saveButton.setAlpha(hasChanges ? 1.0f : 0.5f);
-        };
-        
-        // Inicialmente deshabilitar el botón (no hay cambios al inicio)
-        saveButton.setEnabled(false);
-        saveButton.setAlpha(0.5f);
-        
-        // Agregar listeners para detectar cambios
-        titleInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        descriptionInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        locationInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        dateInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        timeInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        maxParticipantsInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-                checkChanges.run();
-            }
-        });
-        
-        eventoPrivadoCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> checkChanges.run());
-        requiresParentalAuthCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> checkChanges.run());
-        
-        // Configurar el DatePicker para la fecha (solo se abre al hacer clic en el icono del calendario)
-        // El campo es editable para poder escribir directamente
-        TextInputLayout dateLayout = dialogView.findViewById(R.id.dateLayout);
-        if (dateLayout != null) {
-            // Configurar el icono de inicio (calendario) para abrir el DatePicker
-            dateLayout.setStartIconOnClickListener(v -> {
-                DatePickerDialog datePicker = new DatePickerDialog(
-                    this,
-                    (view, year, month, dayOfMonth) -> {
-                        calendar.set(Calendar.YEAR, year);
-                        calendar.set(Calendar.MONTH, month);
-                        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                        dateInput.setText(dateFormat.format(calendar.getTime()));
-                        checkChanges.run(); // Verificar cambios después de actualizar la fecha
-                    },
-                    calendar.get(Calendar.YEAR),
-                    calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)
-                );
-                datePicker.show();
-            });
-        }
-        
-        // Configurar el TimePicker para la hora
-        timeInput.setOnClickListener(v -> {
-            TimePickerDialog timePicker = new TimePickerDialog(
-                this,
-                (view, hourOfDay, minute) -> {
-                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                    calendar.set(Calendar.MINUTE, minute);
-                    timeInput.setText(timeFormat.format(calendar.getTime()));
-                    checkChanges.run(); // Verificar cambios después de actualizar la hora
+    private void setupEditEventPanel() {
+        editEventPanelController = new EditEventPanelController(this,
+                handler -> {
+                    eventImagePickHandler = handler;
+                    pickEventImageLauncher.launch("image/*");
                 },
-                calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE),
-                true
-            );
-            // No establecer título para que sea similar al DatePicker
-            timePicker.show();
-        });
-        
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        AlertDialog dialog = builder.setView(dialogView).create();
-        
-        // Configurar los botones
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
-        
-        saveButton.setOnClickListener(v -> {
-            String title = titleInput.getText().toString().trim();
-            String description = descriptionInput.getText() != null ? descriptionInput.getText().toString().trim() : "";
-            String location = locationInput.getText().toString().trim();
-            String dateStr = dateInput.getText().toString().trim();
-            String timeStr = timeInput.getText().toString().trim();
-            String maxParticipantsStr = maxParticipantsInput.getText().toString().trim();
-            
-            if (title.isEmpty() || location.isEmpty() || dateStr.isEmpty() || timeStr.isEmpty() || maxParticipantsStr.isEmpty()) {
-                ToastUtils.showCustomToast(this, "Todos los campos son obligatorios", ToastUtils.ToastType.INFO);
-                return;
-            }
-            
-            try {
-                // Parsear fecha y hora por separado y combinarlas
-                Date dateOnly = dateFormat.parse(dateStr);
-                Calendar dateCalendar = Calendar.getInstance();
-                dateCalendar.setTime(dateOnly);
-                
-                // Parsear la hora (formato HH:mm)
-                String[] timeParts = timeStr.split(":");
-                if (timeParts.length != 2) {
-                    ToastUtils.showCustomToast(this, "Formato de hora inválido. Use HH:mm", ToastUtils.ToastType.INFO);
-                    return;
-                }
-                int hour = Integer.parseInt(timeParts[0]);
-                int minute = Integer.parseInt(timeParts[1]);
-                
-                // Combinar fecha y hora
-                dateCalendar.set(Calendar.HOUR_OF_DAY, hour);
-                dateCalendar.set(Calendar.MINUTE, minute);
-                dateCalendar.set(Calendar.SECOND, 0);
-                dateCalendar.set(Calendar.MILLISECOND, 0);
-                
-                Date newDate = dateCalendar.getTime();
-                int maxParticipants = Integer.parseInt(maxParticipantsStr);
-                
-                if (maxParticipants < attendees.size()) {
-                    ToastUtils.showCustomToast(this, 
-                        "El número de plazas no puede ser menor que el número actual de asistentes (" + 
-                        attendees.size() + ")", 
-                        ToastUtils.ToastType.WARNING);
-                    return;
-                }
-                
-                // Actualizar el objeto evento local inmediatamente para feedback visual
-                boolean newPrivateState = eventoPrivadoCheckBox.isChecked();
-                event.setTitle(title);
-                event.setDescription(description);
-                event.setLocation(location);
-                event.setDate(newDate);
-                event.setMaxParticipants(maxParticipants);
-                event.setPrivateEvent(newPrivateState);
-                event.setRequiresParentalAuth(requiresParentalAuthCheckBox.isChecked());
-                
-                // Actualizar el título en la toolbar inmediatamente
+                eventViewModel);
+    }
+
+    private void setupAttendeePanels() {
+        searchAttendeePanelController = new SearchAttendeePanelController(
+                this,
+                filter -> {
+                    currentSearchFilter = filter;
+                    applySearchFilters();
+                },
+                () -> currentSearchFilter,
+                () -> isSearchActive);
+
+        addAttendeePanelController = new AddAttendeePanelController(
+                this,
+                attendeeViewModel,
+                () -> event,
+                () -> allAttendees);
+    }
+
+    private void openEditEventPanel() {
+        if (event == null || editEventPanelController == null) {
+            return;
+        }
+        editEventPanelController.show(event, new EditEventPanelController.SaveListener() {
+            @Override
+            public void onEventSaved(@NonNull Event savedEvent, @Nullable Uri newImageUri) {
                 TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
                 if (toolbarTitleTextView != null) {
-                    toolbarTitleTextView.setText(title);
+                    toolbarTitleTextView.setText(savedEvent.getTitle());
                 }
-                
-                // Actualizar el icono del candado inmediatamente
-                updateLockIcon(newPrivateState);
-                
-                // Actualizar la UI inmediatamente con los nuevos valores
+                CircleImageView toolbarEventImageView = findViewById(R.id.toolbarEventImageView);
+                if (toolbarEventImageView != null && newImageUri != null) {
+                    EventImageManager.loadLocalPreview(EventDetailsActivity.this,
+                            toolbarEventImageView, newImageUri);
+                }
+                updateLockIcon(savedEvent.getPrivateEvent());
                 displayEventDetails();
-                
-                // Usar EventViewModel para actualizar el evento en el servidor
-                eventViewModel.updateEvent(event.getId(), title, description, newDate, 
-                    location, maxParticipants, event.getEventType(), newPrivateState, requiresParentalAuthCheckBox.isChecked());
-                
-                dialog.dismiss();
-            } catch (ParseException e) {
-                ToastUtils.showCustomToast(this, "Error en el formato de fecha", ToastUtils.ToastType.INFO);
-            } catch (NumberFormatException e) {
-                ToastUtils.showCustomToast(this, "El número de plazas debe ser un número válido", ToastUtils.ToastType.INFO);
+            }
+
+            @Override
+            public void onEventImageUploadComplete(@NonNull String eventId) {
+                sharedViewModel.notifyEventsUpdated();
+                CircleImageView toolbarEventImageView = findViewById(R.id.toolbarEventImageView);
+                if (toolbarEventImageView != null) {
+                    EventImageManager.loadEventImage(EventDetailsActivity.this,
+                            toolbarEventImageView, eventId);
+                }
+            }
+
+            @Override
+            public int getMinParticipantsAllowed() {
+                return attendees.size();
             }
         });
-        
-        dialog.show();
+    }
+
+    private void exportAttendeesCsv() {
+        if (csvExportHelper == null || event == null) {
+            return;
+        }
+        csvExportHelper.export(allAttendees, event.getTitle());
     }
 
     private void showEventMenu() {
         PopupMenu popup = new PopupMenu(this, eventMenuButton);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
         
+        EventsPagerAdapter.configurePrivateAccessCodeMenuItem(popup.getMenu(), event);
+        MenuItem waitlistItem = popup.getMenu().findItem(R.id.action_view_waitlist);
+        if (waitlistItem != null) {
+            waitlistItem.setTitle(getString(R.string.menu_view_waitlist, activeWaitlistCount));
+            boolean hideForPast = event != null && event.getDate() != null
+                    && event.getDate().before(new Date());
+            waitlistItem.setVisible(!hideForPast);
+        }
+
         // Ocultar acciones que no aplican para eventos pasados
         try {
             if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
@@ -1537,16 +1160,31 @@ public class EventDetailsActivity extends AppCompatActivity {
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.action_edit_event) {
-                showEditEventDialog();
+                openEditEventPanel();
                 return true;
             } else if (id == R.id.action_send_invitations) {
                 ToastUtils.showCustomToast(this, "Enviar invitaciones", ToastUtils.ToastType.INFO);
+                return true;
+            } else if (id == R.id.action_view_waitlist) {
+                if (event != null && event.getId() != null) {
+                    WaitlistDialogHelper.show(this, event.getId(), attendeeViewModel);
+                }
+                return true;
+            } else if (id == R.id.action_view_private_access_code) {
+                PrivateAccessCodeDialogHelper.showViewCode(this,
+                        event != null ? event.getPrivateAccessCode() : null);
                 return true;
             } else if (id == R.id.action_verify_attendees) {
                 startQRScanner();
                 return true;
             } else if (id == R.id.action_clear_list) {
                 showClearAttendeeListConfirmation();
+                return true;
+            } else if (id == R.id.action_event_activity_log) {
+                showActivityLogPanel();
+                return true;
+            } else if (id == R.id.action_export_attendees_csv) {
+                exportAttendeesCsv();
                 return true;
             } else if (id == R.id.action_delete_event) {
                 showDeleteEventDialog();
@@ -1735,6 +1373,58 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     private boolean isEventPast() {
         return event != null && event.getDate() != null && event.getDate().before(new Date());
+    }
+
+    private void setupActivityLogPanel() {
+        activityLogPanelController = new ActivityLogPanelController(this);
+    }
+
+    private void setupPanelBackHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (addAttendeePanelController != null && addAttendeePanelController.isVisible()) {
+                    addAttendeePanelController.hide();
+                } else if (searchAttendeePanelController != null && searchAttendeePanelController.isVisible()) {
+                    searchAttendeePanelController.hide();
+                } else if (editEventPanelController != null && editEventPanelController.isVisible()) {
+                    editEventPanelController.hide();
+                } else if (activityLogPanelController != null && activityLogPanelController.isVisible()) {
+                    activityLogPanelController.hide();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+    }
+
+    private void showActivityLogPanel() {
+        if (event == null || event.getId() == null || activityLogPanelController == null) {
+            return;
+        }
+        activityLogPanelController.show(event.getId(), event.getTitle());
+    }
+
+    private void hideActivityLogPanel() {
+        if (activityLogPanelController != null) {
+            activityLogPanelController.hide();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (activityLogPanelController != null) {
+            activityLogPanelController.destroy();
+        }
+        if (eventViewModel != null) {
+            eventViewModel.stopListeningEvent();
+        }
+        if (attendeeViewModel != null) {
+            attendeeViewModel.stopListeningEventAttendees();
+            attendeeViewModel.stopListeningEventWaitlist();
+        }
+        super.onDestroy();
     }
 
     @Override

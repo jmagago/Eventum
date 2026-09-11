@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/privateEventOptionsRow"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/private_event_code_row_height"
+    android:layout_marginBottom="4dp"
+    android:baselineAligned="false"
+    android:gravity="top"
+    android:orientation="horizontal">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/eventoPrivadoCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/label_event_private"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:textColor="@color/colorPrimary"
+        app:buttonTint="@color/colorAccent" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/privateAccessCodeLayout"
+        style="@style/Widget.Eventum.TextInputLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/private_event_code_field_start_margin"
+        android:layout_weight="1"
+        android:hint="@string/hint_private_access_code"
+        android:visibility="invisible"
+        app:endIconContentDescription="@string/cd_generate_private_access_code"
+        app:endIconDrawable="@drawable/ic_generate_access_code"
+        app:endIconMode="custom"
+        app:endIconTint="@color/colorAccent"
+        app:helperText="@string/helper_private_access_code"
+        app:startIconDrawable="@drawable/ic_lock"
+        app:startIconTint="@color/colorPrimary">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/privateAccessCodeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textVisiblePassword|textNoSuggestions"
+            android:maxLength="20"
+            android:maxLines="1" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

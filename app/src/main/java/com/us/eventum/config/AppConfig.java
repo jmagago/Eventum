@@ -12,7 +12,9 @@ public class AppConfig {
     public static final boolean REQUIRE_UPPERCASE = true;
     
     // Validación de edad
-    public static final int MIN_AGE = 18;
+    public static final int ATTENDEE_MIN_AGE = 16;
+    public static final int ADULT_AGE = 18;
+    public static final int ORGANIZER_MIN_AGE = 18;
 
     // Número máximo de intentos de inicio de sesión
     public static final int MAX_LOGIN_ATTEMPTS = 3;

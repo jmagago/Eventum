@@ -1,4 +1,3 @@
-import java.io.File
 import java.util.Properties
 
 plugins {
@@ -6,30 +5,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// Función para leer y actualizar el número de build
-fun getNextBuildNumber(): Int {
-    val versionFile = File("version.properties")
-    val properties = Properties()   
-    
+val appVersion = Properties().apply {
+    val versionFile = rootProject.file("version.properties")
     if (versionFile.exists()) {
-        properties.load(versionFile.inputStream())
+        versionFile.inputStream().use { load(it) }
     }
-    
-    val currentBuildNumber = properties.getProperty("buildNumber", "1").trim().toInt()
-    val nextBuildNumber = currentBuildNumber + 1
-    
-    properties.setProperty("buildNumber", nextBuildNumber.toString())
-    versionFile.outputStream().use { properties.store(it, "Build number for Eventum app") }
-    
-    return currentBuildNumber
 }
 
 android {
     namespace = "com.us.eventum"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     val localProperties = Properties()
@@ -45,25 +31,16 @@ android {
     defaultConfig {
         applicationId = "com.us.eventum"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         buildConfigField("String", "QR_SIGNING_SECRET", "\"$qrSigningSecret\"")
-        
-        // Versión de la aplicación
-        val majorVersion = 1  // Cambiado a 0 para indicar desarrollo temprano
-        val minorVersion = 3  // Incrementado a 3 para incluir pull-to-refresh y mejoras de sincronización
-        val patchVersion = 0
-        val buildNumber = getNextBuildNumber() // Obtener el siguiente número de build automáticamente
-        
-        // El versionCode debe ser único y creciente
-        versionCode = buildNumber
-        
-        // El versionName muestra la versión semántica con sufijo -alpha para indicar prelanzamiento
+
+        val majorVersion = appVersion.getProperty("major", "1").trim().toInt()
+        val minorVersion = appVersion.getProperty("minor", "0").trim().toInt()
+        val patchVersion = appVersion.getProperty("patch", "0").trim().toInt()
+
+        versionCode = majorVersion * 10_000 + minorVersion * 100 + patchVersion
+        // Quitar -alpha cuando publiquemos en Play Store
         versionName = "$majorVersion.$minorVersion.$patchVersion-alpha"
-        
-        println("Configuración de versión:")
-        println("versionCode: $versionCode")
-        println("versionName: $versionName")
-        println("Build Number: $buildNumber")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -107,7 +84,7 @@ android {
     
     // Configuración de lint
     lint {
-        baseline = file("lint-baseline.xml")
+        lintConfig = file("lint.xml")
     }
 }
 
@@ -158,7 +135,6 @@ dependencies {
     
     // SwipeRefreshLayout
     implementation(libs.swiperefreshlayout)
-    
     // Testing
     testImplementation(libs.junit4)
     androidTestImplementation(libs.junit)

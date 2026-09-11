@@ -9,6 +9,8 @@ import com.google.firebase.firestore.PropertyName;
 public class AttendeeNotification {
 
     public static final String TYPE_ATTENDANCE_VERIFIED = "ATTENDANCE_VERIFIED";
+    public static final String TYPE_REMOVED_BY_ORGANIZER = "REMOVED_BY_ORGANIZER";
+    public static final String TYPE_WAITLIST_SPOT_AVAILABLE = "WAITLIST_SPOT_AVAILABLE";
 
     private String id;
     private String attendeeId;

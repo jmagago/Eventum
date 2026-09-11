@@ -3,41 +3,42 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:maxHeight="600dp"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:maxHeight="600dp">
 
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
-        app:cardBackgroundColor="@android:color/white"
-        app:strokeWidth="0dp">
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp">
 
         <LinearLayout
-            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:orientation="vertical"
+            android:padding="24dp">
 
             <TextView
                 android:id="@+id/dialogTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="@string/complete_profile_title"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:textColor="@color/colorPrimaryText"
-                android:paddingBottom="8dp"/>
+                android:textColor="@color/colorPrimary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/dialogMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
                 android:text="@string/complete_profile_message_long"
-                android:textSize="14sp"
                 android:textColor="@color/colorSecondaryText"
-                android:paddingBottom="16dp"/>
+                android:textSize="14sp" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/usernameLayout"
@@ -51,13 +52,13 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/usernameInput"
+                    style="@style/TextAppearance.Eventum.Input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="text"
                     android:enabled="false"
-                    android:textColor="@color/colorSecondaryText"
-                    android:maxLines="1"/>
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textColor="@color/colorSecondaryText" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -73,11 +74,11 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/nameInput"
+                    style="@style/TextAppearance.Eventum.Input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
                     android:inputType="textCapWords"
-                    android:maxLines="1"/>
+                    android:maxLines="1" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -93,11 +94,11 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/firstSurnameInput"
+                    style="@style/TextAppearance.Eventum.Input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
                     android:inputType="textCapWords"
-                    android:maxLines="1"/>
+                    android:maxLines="1" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -113,11 +114,11 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/secondSurnameInput"
+                    style="@style/TextAppearance.Eventum.Input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
                     android:inputType="textCapWords"
-                    android:maxLines="1"/>
+                    android:maxLines="1" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -133,85 +134,95 @@
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/dniInput"
+                    style="@style/TextAppearance.Eventum.Input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
                     android:inputType="textCapCharacters"
                     android:maxLength="9"
-                    android:maxLines="1"/>
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/phoneLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:hint="@string/hint_phone_required"
-                app:startIconDrawable="@drawable/ic_phone"
-                app:startIconTint="@color/colorPrimary">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/phoneInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:inputType="phone"
-                    android:maxLines="1"/>
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/birthDateLayout"
-                style="@style/Widget.Eventum.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:hint="@string/hint_birth_date_required"
-                app:startIconDrawable="@drawable/ic_calendar"
-                app:startIconTint="@color/colorPrimary">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/birthDateInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/TextAppearance.Eventum.Input"
-                    android:focusable="false"
-                    android:clickable="true"
-                    android:inputType="none"
-                    android:maxLines="1"/>
+                    android:maxLines="1" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_marginBottom="8dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/phoneLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:hint="@string/hint_phone_required"
+                    app:startIconDrawable="@drawable/ic_phone"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/phoneInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="phone"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/birthDateLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/hint_birth_date_compact"
+                    app:startIconDrawable="@drawable/ic_calendar"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/birthDateInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:inputType="none"
+                        android:maxLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:gravity="end"
-                android:paddingTop="16dp">
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancelButton"
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
                     android:text="@string/cancel"
-                    android:layout_marginEnd="8dp"/>
+                    android:textAllCaps="false" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/saveButton"
-                    style="@style/Widget.Material3.Button"
+                    style="@style/Widget.Eventum.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/save"
-                    app:backgroundTint="@color/colorPrimary"/>
+                    android:textAllCaps="false" />
+
             </LinearLayout>
 
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
 </androidx.core.widget.NestedScrollView>
-
-

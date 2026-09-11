@@ -7,13 +7,20 @@
 
 	<!-- Fondo circular principal -->
 	<path
-		android:fillColor="#1565C0"
+		android:fillColor="@color/colorPrimary"
 		android:pathData="M60,60m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"/>
 
 	<!-- Círculo interior para contraste -->
 	<path
 		android:fillColor="#FFFFFF"
 		android:pathData="M60,60m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"/>
+
+	<!-- Borde azul primario sobre el blanco -->
+	<path
+		android:fillColor="@android:color/transparent"
+		android:pathData="M60,60m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"
+		android:strokeColor="@color/colorPrimary"
+		android:strokeWidth="3"/>
 
 	<!-- Pin de ubicación estilizado (cuerpo) -->
 	<!-- Parte superior (círculo del pin) -->

@@ -8,13 +8,14 @@
     
     <!-- Colores básicos -->
     <color name="colorWhite">#FFFFFF</color>
+    <color name="fullscreen_image_scrim">#99000000</color>
     
     <!-- Colores de fondo -->
     <color name="colorBackground">#FAFAFA</color>
     <color name="colorSurface">#FFFFFF</color>
     <!-- Fondo de la barra FAB (casi transparente) -->
     <color name="fab_bar_background">#00FFFFFF</color>
-    <color name="ic_launcher_background">#1565C0</color>
+    <color name="ic_launcher_background">@color/colorPrimary</color>
     <color name="splash_background">@color/colorPrimary</color> <!-- Mismo azul del degradado login -->
     
     <!-- Colores de texto -->
@@ -27,7 +28,6 @@
     <color name="colorWarning">#FFC107</color>
     
     <!-- Colores de bordes y divisores -->
-    <color name="colorDivider">#BDBDBD</color>
     <color name="colorBorder">#E0E0E0</color>
     
     <!-- Colores adicionales -->
@@ -35,7 +35,9 @@
     
     <!-- Colores para el estado de verificación de asistentes -->
     <color name="attendee_verified_stroke">#A5D6A7</color>
-    <color name="attendee_verified_background">#F1F8E9</color>
+    <color name="attendee_not_attended_stroke">#E57373</color>
+    <color name="attendee_waitlist_stroke">#FFB74D</color>
+    <color name="waitlist_accent">#F57C00</color>
     
     <!-- Colores para los toasts personalizados -->
     <color name="error">#F44336</color>

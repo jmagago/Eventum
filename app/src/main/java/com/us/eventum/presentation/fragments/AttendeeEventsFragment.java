@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -20,7 +21,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.us.eventum.R;
 import com.us.eventum.adapters.EventAdapter;
 import com.us.eventum.data.models.Event;
-import com.us.eventum.presentation.activities.AttendeeQrDisplayActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +40,8 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
 
         void onLockIconLongClick(Event event);
 
+        void onEventQrClick(Event event);
+
         void onRefreshRequested();
     }
 
@@ -49,6 +51,7 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
     private TabType tabType;
     private List<Event> events = new ArrayList<>();
     private TextView noEventsText;
+    private ImageView noEventsIcon;
     private LinearLayout noEventsLayout;
     private RecyclerView eventsRecyclerView;
     private EventAdapter eventAdapter;
@@ -94,6 +97,7 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
         View view = inflater.inflate(R.layout.fragment_events, container, false);
 
         noEventsText = view.findViewById(R.id.noEventsText);
+        noEventsIcon = view.findViewById(R.id.noEventsIcon);
         noEventsLayout = view.findViewById(R.id.noEventsLayout);
         eventsRecyclerView = view.findViewById(R.id.eventsRecyclerView);
         progressBar = view.findViewById(R.id.progressBar);
@@ -102,14 +106,18 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
         setupRecyclerView();
         setupSwipeRefresh();
 
-        if (!events.isEmpty()) {
-            dataLoaded = true;
-            updateUI();
-        } else {
-            showLoadingState();
-        }
+        dataLoaded = true;
+        updateUI();
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (dataLoaded && getView() != null) {
+            updateUI();
+        }
     }
 
     private void setupRecyclerView() {
@@ -117,6 +125,8 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
         eventAdapter.setOnItemClickListener(this);
         if (tabType == TabType.MY_EVENTS) {
             eventAdapter.setShowQrQuickAction(true);
+        } else if (tabType == TabType.HISTORY) {
+            eventAdapter.setCardDisplayMode(EventAdapter.CardDisplayMode.HISTORY);
         }
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         eventsRecyclerView.setAdapter(eventAdapter);
@@ -161,9 +171,12 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
         if (events == null || events.isEmpty()) {
             eventsRecyclerView.setVisibility(View.GONE);
             noEventsLayout.setVisibility(View.VISIBLE);
-            noEventsText.setCompoundDrawablesRelativeWithIntrinsicBounds(0,
-                    tabType == TabType.DISCOVER ? R.drawable.ic_search : R.drawable.ic_calendar,
-                    0, 0);
+            noEventsText.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0);
+            if (noEventsIcon != null) {
+                noEventsIcon.setImageResource(tabType == TabType.DISCOVER
+                        ? R.drawable.ic_search
+                        : R.drawable.ic_calendar);
+            }
             switch (tabType) {
                 case MY_EVENTS:
                     noEventsText.setText(R.string.attendee_empty_my_events);
@@ -218,9 +231,8 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
 
     @Override
     public void onEventQrClick(Event event) {
-        if (event == null || event.getId() == null || getContext() == null) {
-            return;
+        if (eventListener != null) {
+            eventListener.onEventQrClick(event);
         }
-        AttendeeQrDisplayActivity.start(getContext(), event.getId(), event.getTitle());
     }
 }

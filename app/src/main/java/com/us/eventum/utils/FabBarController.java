@@ -5,6 +5,7 @@ import android.content.Context;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -69,11 +70,40 @@ public final class FabBarController {
         };
         fabDock.setOnTouchListener(flingListener);
         fabContainer.setOnTouchListener(flingListener);
+
+        fabContainer.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            private boolean initialCollapseDone;
+
+            @Override
+            public boolean onPreDraw() {
+                if (!initialCollapseDone && fabContainer.getWidth() > 0) {
+                    initialCollapseDone = true;
+                    collapseImmediate();
+                }
+                return true;
+            }
+        });
     }
 
     public void attachToActivity(@NonNull Activity activity) {
         WindowInsetsHelper.applyBottomNavigationBarMargin(activity, fabDock);
-        fabContainer.post(this::hide);
+        fabContainer.post(this::collapseImmediate);
+    }
+
+    /** Plegar sin animación (estado inicial al entrar en pantalla). */
+    public void collapseImmediate() {
+        expanded = false;
+        fabContainer.animate().cancel();
+        float distance = fabContainer.getWidth();
+        if (distance <= 0f) {
+            return;
+        }
+        distance += fabContainer.getResources().getDisplayMetrics().density * 8f;
+        fabContainer.setTranslationX(distance);
+        fabBarHandle.animate().cancel();
+        fabBarHandle.setVisibility(View.VISIBLE);
+        fabBarHandle.setAlpha(1f);
+        fabBarHandle.bringToFront();
     }
 
     public void hide() {

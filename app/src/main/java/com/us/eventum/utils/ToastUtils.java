@@ -68,6 +68,13 @@ public class ToastUtils {
         showSnackbar(anchor, toastView, duration, bottomMarginPx);
     }
 
+    /**
+     * Muestra un mensaje anclado a un panel overlay (por encima del scrim).
+     */
+    public static void showPanelToast(@NonNull View panelOverlay, String message, ToastType type) {
+        showCustomToastOnAnchor(panelOverlay, message, type, dpToPx(panelOverlay.getContext(), 96));
+    }
+
     public static void showCustomToast(Activity activity, String message, ToastType type) {
         int layoutRes;
         switch (type) {
@@ -98,6 +105,7 @@ public class ToastUtils {
         Snackbar snackbar = Snackbar.make(anchor, "", duration);
         View snackbarView = snackbar.getView();
         snackbarView.setBackgroundColor(Color.TRANSPARENT);
+        snackbarView.setElevation(dpToPx(anchor.getContext(), 24));
 
         ViewGroup.LayoutParams layoutParams = snackbarView.getLayoutParams();
         if (layoutParams instanceof ViewGroup.MarginLayoutParams) {
@@ -110,7 +118,18 @@ public class ToastUtils {
             ViewGroup group = (ViewGroup) snackbarView;
             group.removeAllViews();
             group.setPadding(0, 0, 0, 0);
-            group.addView(customView);
+
+            android.widget.FrameLayout wrapper = new android.widget.FrameLayout(group.getContext());
+            wrapper.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            android.widget.FrameLayout.LayoutParams childLp =
+                    new android.widget.FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            android.view.Gravity.CENTER_HORIZONTAL);
+            wrapper.addView(customView, childLp);
+            group.addView(wrapper);
         }
 
         snackbar.show();

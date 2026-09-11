@@ -3,7 +3,6 @@ package com.us.eventum.presentation.activities;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -17,10 +16,14 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.us.eventum.data.repositories.FirebaseManager;
 import com.us.eventum.utils.FirebaseAuthErrorHandler;
+import com.us.eventum.utils.SecureCredentialsStore;
 import com.us.eventum.utils.ToastUtils;
+import com.us.eventum.utils.WindowInsetsHelper;
 import com.us.eventum.presentation.viewmodels.AuthViewModel;
-import androidx.annotation.NonNull;
 import com.us.eventum.R;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class LoginActivity extends AppCompatActivity {
     private FirebaseManager firebaseManager;
@@ -29,10 +32,10 @@ public class LoginActivity extends AppCompatActivity {
     private TextView emailErrorText;
     private TextView passwordErrorText;
     private MaterialButton loginButton;
-    private MaterialButton registerButton;
+    private TextView registerLink;
     private MaterialCheckBox rememberMeCheckBox;
     private View progressBar;
-    private SharedPreferences sharedPreferences;
+    private SecureCredentialsStore credentialsStore;
     private AuthViewModel authViewModel;
     private int loginAttempts = 0;
     private static final int MAX_LOGIN_ATTEMPTS = 5;
@@ -40,11 +43,21 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_login);
+
+        setupLoginWindowInsets();
 
         // Inicializar Firebase
         firebaseManager = FirebaseManager.getInstance();
-        sharedPreferences = getSharedPreferences("EventumLogin", MODE_PRIVATE);
+        try {
+            credentialsStore = SecureCredentialsStore.create(this);
+        } catch (Exception e) {
+            credentialsStore = null;
+            ToastUtils.showCustomToast(this,
+                    "No se pudo inicializar el almacenamiento seguro de credenciales",
+                    ToastUtils.ToastType.WARNING);
+        }
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         
         // Inicializar repositorios en ViewModel
@@ -66,20 +79,38 @@ public class LoginActivity extends AppCompatActivity {
         observeViewModel();
     }
 
+    private void setupLoginWindowInsets() {
+        View statusBarStripe = findViewById(R.id.statusBarStripe);
+        if (statusBarStripe != null) {
+            WindowInsetsHelper.applyStatusBarStripe(statusBarStripe);
+        }
+
+        View root = findViewById(R.id.loginRoot);
+        if (root == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
+            int bottomInset = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), bottomInset);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(root);
+    }
+
     private void initializeViews() {
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
         emailErrorText = findViewById(R.id.emailErrorText);
         passwordErrorText = findViewById(R.id.passwordErrorText);
         loginButton = findViewById(R.id.loginButton);
-        registerButton = findViewById(R.id.registerButton);
+        registerLink = findViewById(R.id.registerLink);
         rememberMeCheckBox = findViewById(R.id.rememberMeCheckBox);
         progressBar = findViewById(R.id.progressBar);
     }
 
     private void setupListeners() {
         loginButton.setOnClickListener(v -> loginUser());
-        registerButton.setOnClickListener(v -> navigateToRegister());
+        registerLink.setOnClickListener(v -> navigateToRegister());
         
         // Listener para el texto de olvidaste tu contraseña
         findViewById(R.id.forgotPasswordTextView).setOnClickListener(v -> {
@@ -89,15 +120,13 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loadSavedData() {
-        String savedEmail = sharedPreferences.getString("email", "");
-        String savedPassword = sharedPreferences.getString("password", "");
-        boolean rememberMe = sharedPreferences.getBoolean("rememberMe", false);
-
-        if (rememberMe) {
-            emailEditText.setText(savedEmail);
-            passwordEditText.setText(savedPassword);
-            rememberMeCheckBox.setChecked(true);
+        if (credentialsStore == null || !credentialsStore.isRememberMe()) {
+            return;
         }
+
+        emailEditText.setText(credentialsStore.getEmail());
+        passwordEditText.setText(credentialsStore.getPassword());
+        rememberMeCheckBox.setChecked(true);
     }
 
 
@@ -110,7 +139,7 @@ public class LoginActivity extends AppCompatActivity {
             findViewById(R.id.rememberMeCheckBox),
             findViewById(R.id.forgotPasswordTextView),
             loginButton,
-            registerButton
+            findViewById(R.id.registerPromptLayout)
         };
 
         for (int i = 0; i < views.length; i++) {
@@ -175,10 +204,16 @@ public class LoginActivity extends AppCompatActivity {
                 String email = emailEditText.getText().toString().trim();
                 String password = passwordEditText.getText().toString().trim();
 
-                if (rememberMeCheckBox.isChecked()) {
-                    saveCredentials(email, password);
-                } else {
-                    clearSavedCredentials();
+                if (credentialsStore != null) {
+                    if (rememberMeCheckBox.isChecked()) {
+                        try {
+                            credentialsStore.saveCredentials(email, password);
+                        } catch (Exception e) {
+                            credentialsStore.clearCredentials();
+                        }
+                    } else {
+                        credentialsStore.clearCredentials();
+                    }
                 }
 
                 // Esperar a que se cargue el usuario y decidir navegación por rol
@@ -266,21 +301,5 @@ public class LoginActivity extends AppCompatActivity {
 
     private void showProgress(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-    }
-
-    private void saveCredentials(String email, String password) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("email", email);
-        editor.putString("password", password);
-        editor.putBoolean("rememberMe", true);
-        editor.apply();
-    }
-
-    private void clearSavedCredentials() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove("email");
-        editor.remove("password");
-        editor.remove("rememberMe");
-        editor.apply();
     }
 } 

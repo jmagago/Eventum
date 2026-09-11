@@ -50,6 +50,12 @@ public final class AttendeeNotificationHelper {
         if (AttendeeNotification.TYPE_ATTENDANCE_VERIFIED.equals(notification.getType())) {
             return context.getString(R.string.notification_attendee_verified, eventTitle);
         }
+        if (AttendeeNotification.TYPE_REMOVED_BY_ORGANIZER.equals(notification.getType())) {
+            return context.getString(R.string.notification_attendee_removed, eventTitle);
+        }
+        if (AttendeeNotification.TYPE_WAITLIST_SPOT_AVAILABLE.equals(notification.getType())) {
+            return context.getString(R.string.notification_waitlist_spot_available, eventTitle);
+        }
         return context.getString(R.string.notification_attendee_generic, eventTitle);
     }
 

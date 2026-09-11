@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="16dp">
+
+    <TextView
+        style="@style/FormSectionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/section_personal_info" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/hint_name"
+        app:startIconDrawable="@drawable/ic_person"
+        app:startIconTint="@color/colorPrimary"
+        style="@style/Widget.Eventum.TextInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/addAttendeeNameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            style="@style/TextAppearance.Eventum.Input" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_first_surname"
+                app:startIconDrawable="@drawable/ic_person"
+                app:startIconTint="@color/colorPrimary"
+                style="@style/Widget.Eventum.TextInputLayout">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/addAttendeeFirstLastNameEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    style="@style/TextAppearance.Eventum.Input" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="12dp"
+                android:background="@color/colorPrimary"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:text="@string/label_badge_1"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_second_surname"
+                app:startIconDrawable="@drawable/ic_person"
+                app:startIconTint="@color/colorPrimary"
+                style="@style/Widget.Eventum.TextInputLayout">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/addAttendeeSecondLastNameEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"
+                    style="@style/TextAppearance.Eventum.Input" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="12dp"
+                android:background="@color/colorPrimary"
+                android:elevation="2dp"
+                android:gravity="center"
+                android:text="@string/label_badge_2"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/addAttendeeDniLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/hint_dni"
+        app:errorEnabled="true"
+        app:errorTextAppearance="@style/TextAppearance.Eventum.Helper"
+        app:startIconDrawable="@drawable/ic_id_card"
+        app:startIconTint="@color/colorPrimary"
+        style="@style/Widget.Eventum.TextInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/addAttendeeDniEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapCharacters"
+            android:maxLength="9"
+            style="@style/TextAppearance.Eventum.Input" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/addAttendeeBirthDateLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/hint_birth_date"
+        app:errorEnabled="true"
+        app:errorTextAppearance="@style/TextAppearance.Eventum.Helper"
+        app:startIconDrawable="@drawable/ic_calendar"
+        app:startIconTint="@color/colorPrimary"
+        style="@style/Widget.Eventum.TextInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/addAttendeeBirthDateEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="date"
+            style="@style/TextAppearance.Eventum.Input" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/colorBorder" />
+
+    <TextView
+        style="@style/FormSectionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/section_contact_info" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/hint_email"
+        app:startIconDrawable="@drawable/ic_email"
+        app:startIconTint="@color/colorPrimary"
+        style="@style/Widget.Eventum.TextInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/addAttendeeEmailEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textEmailAddress"
+            style="@style/TextAppearance.Eventum.Input" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/addAttendeePhoneLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/hint_phone"
+        app:errorEnabled="true"
+        app:errorTextAppearance="@style/TextAppearance.Eventum.Helper"
+        app:startIconDrawable="@drawable/ic_phone"
+        app:startIconTint="@color/colorPrimary"
+        style="@style/Widget.Eventum.TextInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/addAttendeePhoneEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:maxLength="9"
+            style="@style/TextAppearance.Eventum.Input" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

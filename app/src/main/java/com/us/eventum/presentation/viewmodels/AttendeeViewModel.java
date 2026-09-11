@@ -1,6 +1,7 @@
 package com.us.eventum.presentation.viewmodels;
 
 import android.content.Context;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -26,9 +27,24 @@ import com.us.eventum.data.models.AttendeeNotification;
 
 import android.util.Log;
 
+import com.us.eventum.data.models.WaitlistToEvent;
+import com.us.eventum.data.repositories.WaitlistRepository;
+import com.us.eventum.data.repositories.firebase.FirebaseWaitlistRepository;
+import com.us.eventum.utils.EventActivityLogHelper;
+import com.us.eventum.utils.WaitlistService;
+import com.us.eventum.utils.WaitlistUtils;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AttendeeViewModel extends ViewModel {
+
+    public enum CheckInMethod {
+        QR,
+        MANUAL
+    }
+
     private MutableLiveData<Attendee> currentAttendee = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeRegistered = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeUpdated = new MutableLiveData<>();
@@ -44,6 +60,7 @@ public class AttendeeViewModel extends ViewModel {
     private OrganizerNotificationRepository organizerNotificationRepository;
     private AttendeeNotificationRepository attendeeNotificationRepository;
     private EventRepository eventRepository;
+    private WaitlistRepository waitlistRepository;
     private static final String TAG = "AttendeeViewModel";
 
     // Getters para LiveData
@@ -74,6 +91,9 @@ public class AttendeeViewModel extends ViewModel {
         }
         if (eventRepository == null) {
             eventRepository = new FirebaseEventRepository();
+        }
+        if (waitlistRepository == null) {
+            waitlistRepository = new FirebaseWaitlistRepository();
         }
     }
 
@@ -245,11 +265,6 @@ public class AttendeeViewModel extends ViewModel {
             isLoading.postValue(false);
             return;
         }
-        if (nombre == null || nombre.trim().isEmpty()) {
-            errorMessage.postValue("El nombre es obligatorio");
-            isLoading.postValue(false);
-            return;
-        }
 
         // Verificar disponibilidad del username
         attendeeRepository.checkUsernameAvailability(username, new AttendeeRepository.RepositoryCallback<Boolean>() {
@@ -265,7 +280,7 @@ public class AttendeeViewModel extends ViewModel {
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error al verificar nombre de usuario: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
             }
         });
@@ -354,6 +369,21 @@ public class AttendeeViewModel extends ViewModel {
                 
                 // Actualizar fecha de nacimiento si se proporciona
                 if (fechaNacimiento != null && !fechaNacimiento.isEmpty()) {
+                    java.util.Date parsed = com.us.eventum.utils.AgeUtils.parseBirthDate(fechaNacimiento);
+                    if (parsed == null) {
+                        errorMessage.postValue(appContext != null
+                                ? appContext.getString(com.us.eventum.R.string.age_birth_date_invalid)
+                                : "Fecha de nacimiento inválida");
+                        isLoading.postValue(false);
+                        return;
+                    }
+                    if (!com.us.eventum.utils.AgeUtils.isAttendeeAgeValid(parsed, new java.util.Date())) {
+                        errorMessage.postValue(appContext != null
+                                ? appContext.getString(com.us.eventum.R.string.age_attendee_min_error)
+                                : "Debes tener al menos 16 años");
+                        isLoading.postValue(false);
+                        return;
+                    }
                     currentAttendee.setFechaNacimientoFromString(fechaNacimiento);
                 }
 
@@ -361,8 +391,8 @@ public class AttendeeViewModel extends ViewModel {
                 attendeeRepository.updateAttendee(currentAttendee, new AttendeeRepository.RepositoryCallback<Attendee>() {
                     @Override
                     public void onSuccess(Attendee result) {
+                        AttendeeViewModel.this.currentAttendee.postValue(result);
                         attendeeUpdated.postValue(true);
-                        // currentAttendee ya se actualiza automáticamente
                         isLoading.postValue(false);
                     }
 
@@ -376,7 +406,7 @@ public class AttendeeViewModel extends ViewModel {
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error al obtener asistente: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
             }
         });
@@ -440,6 +470,11 @@ public class AttendeeViewModel extends ViewModel {
      * Check-in por QR: válido, ya usado o no inscrito en el evento.
      */
     public void verifyAttendeeCheckIn(String attendeeId, String eventId) {
+        verifyAttendeeCheckIn(attendeeId, eventId, CheckInMethod.QR, null);
+    }
+
+    public void verifyAttendeeCheckIn(String attendeeId, String eventId,
+                                      CheckInMethod method, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
             qrCheckInResult.postValue(QrCheckInResult.INVALID_TOKEN);
             return;
@@ -469,6 +504,7 @@ public class AttendeeViewModel extends ViewModel {
                                         public void onSuccess(AttendeesToEvent updatedResult) {
                                             qrCheckInResult.postValue(QrCheckInResult.VALID);
                                             notifyAttendeeAttendanceVerified(attendeeId, eventId);
+                                            logCheckIn(eventId, attendeeId, method, attendeeDisplayName);
                                             isLoading.postValue(false);
                                         }
 
@@ -515,11 +551,10 @@ public class AttendeeViewModel extends ViewModel {
                     isLoading.postValue(false);
                     return;
                 }
-                
-                // Eliminar cada registro
-                int[] completed = {0};
+
                 int total = result.size();
-                
+                int[] completed = {0};
+
                 for (AttendeesToEvent attendeeToEvent : result) {
                     attendeesToEventRepository.deleteAttendeeToEvent(attendeeToEvent.getId(), new AttendeesToEventRepository.RepositoryCallback<Void>() {
                         @Override
@@ -528,12 +563,14 @@ public class AttendeeViewModel extends ViewModel {
                             if (completed[0] == total) {
                                 attendeeUpdated.postValue(true);
                                 isLoading.postValue(false);
+                                EventActivityLogHelper.logListCleared(eventId, total);
+                                tryPromoteFromWaitlist(eventId);
                             }
                         }
 
                         @Override
                         public void onError(String error) {
-                            errorMessage.postValue("Error eliminando asistente: " + error);
+                            errorMessage.postValue(error);
                             isLoading.postValue(false);
                         }
                     });
@@ -556,8 +593,11 @@ public class AttendeeViewModel extends ViewModel {
         attendeeUpdated.postValue(false);
         attendeeAdded.postValue(false);
         attendeeDeleted.postValue(false);
+        waitlistJoined.postValue(false);
+        waitlistLeft.postValue(false);
         usernameAvailable.postValue(false);
         qrCheckInResult.postValue(null);
+        errorMessage.postValue(null);
     }
 
     public LiveData<QrCheckInResult> getQrCheckInResult() {
@@ -580,12 +620,25 @@ public class AttendeeViewModel extends ViewModel {
 
     // Métodos adicionales para compatibilidad con Activities
     private MutableLiveData<List<Attendee>> attendees = new MutableLiveData<>();
+    private MutableLiveData<Map<String, Boolean>> scannedAttendeesMapLiveData = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeAdded = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeDeleted = new MutableLiveData<>();
+    private MutableLiveData<Boolean> waitlistJoined = new MutableLiveData<>();
+    private MutableLiveData<Boolean> waitlistLeft = new MutableLiveData<>();
+    private MutableLiveData<List<WaitlistToEvent>> eventWaitlist = new MutableLiveData<>();
+    private MutableLiveData<WaitlistToEvent> currentUserWaitlistEntry = new MutableLiveData<>();
     private MutableLiveData<QrCheckInResult> qrCheckInResult = new MutableLiveData<>();
+    private boolean listeningEventAttendees;
+    private boolean listeningEventWaitlist;
+    private String listeningAttendeesEventId;
+    private String listeningWaitlistEventId;
 
     public LiveData<List<Attendee>> getAttendees() {
         return attendees;
+    }
+
+    public LiveData<Map<String, Boolean>> getScannedAttendeesMap() {
+        return scannedAttendeesMapLiveData;
     }
 
     /** Evita que un observer reciba la lista de un evento anterior al abrir otro diálogo. */
@@ -601,46 +654,111 @@ public class AttendeeViewModel extends ViewModel {
         return attendeeDeleted;
     }
 
+    public LiveData<Boolean> getWaitlistJoined() {
+        return waitlistJoined;
+    }
+
+    public LiveData<Boolean> getWaitlistLeft() {
+        return waitlistLeft;
+    }
+
+    public LiveData<List<WaitlistToEvent>> getEventWaitlist() {
+        return eventWaitlist;
+    }
+
+    public LiveData<WaitlistToEvent> getCurrentUserWaitlistEntry() {
+        return currentUserWaitlistEntry;
+    }
+
     /**
-     * Carga la lista completa de asistentes para un evento específico
-     * Incluye todos los datos del perfil de cada asistente
+     * Escucha en tiempo real las inscripciones de un evento y carga los perfiles.
      */
-    public void loadEventAttendees(String eventId) {
+    public void startListeningEventAttendees(String eventId) {
         if (attendeesToEventRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
             return;
         }
-        
+        if (eventId == null || eventId.isEmpty()) {
+            return;
+        }
+        if (listeningEventAttendees && eventId.equals(listeningAttendeesEventId)) {
+            return;
+        }
+        stopListeningEventAttendees();
+        listeningEventAttendees = true;
+        listeningAttendeesEventId = eventId;
         attendees.setValue(null);
         isLoading.postValue(true);
         errorMessage.postValue(null);
-        
-        attendeesToEventRepository.loadAttendeesToEvent(eventId, new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
-            @Override
-            public void onSuccess(List<AttendeesToEvent> result) {
-                // Convertimos los registros de inscripción en perfiles completos de asistentes
-                List<Attendee> attendeeList = new java.util.ArrayList<>();
-                if (result.isEmpty()) {
+
+        attendeesToEventRepository.startEventAttendeesListener(eventId,
+                new AttendeesToEventRepository.EventAttendeesListener() {
+                    @Override
+                    public void onAttendeesUpdated(List<AttendeesToEvent> result) {
+                        handleAttendeesToEventSnapshot(result);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.w(TAG, "Attendees listener: " + error);
+                        attendees.postValue(new java.util.ArrayList<>());
+                        isLoading.postValue(false);
+                    }
+                });
+    }
+
+    public void stopListeningEventAttendees() {
+        if (attendeesToEventRepository == null || !listeningEventAttendees) {
+            return;
+        }
+        attendeesToEventRepository.stopEventAttendeesListener();
+        listeningEventAttendees = false;
+        listeningAttendeesEventId = null;
+    }
+
+    public void restartListeningEventAttendees(String eventId) {
+        stopListeningEventAttendees();
+        startListeningEventAttendees(eventId);
+    }
+
+    private void handleAttendeesToEventSnapshot(List<AttendeesToEvent> result) {
+        Map<String, Boolean> scanned = new HashMap<>();
+        if (result != null) {
+            for (AttendeesToEvent row : result) {
+                if (row != null && row.getUserId() != null) {
+                    scanned.put(row.getUserId(), row.isScannedQR());
+                }
+            }
+        }
+        scannedAttendeesMapLiveData.postValue(scanned);
+
+        List<Attendee> attendeeList = new java.util.ArrayList<>();
+        if (result == null || result.isEmpty()) {
+            attendees.postValue(attendeeList);
+            isLoading.postValue(false);
+            return;
+        }
+
+        int[] loadedCount = {0};
+        int totalCount = result.size();
+        for (AttendeesToEvent attendeeToEvent : result) {
+            if (attendeeToEvent == null || attendeeToEvent.getUserId() == null) {
+                loadedCount[0]++;
+                if (loadedCount[0] == totalCount) {
                     attendees.postValue(attendeeList);
                     isLoading.postValue(false);
-                    return;
                 }
-                
-                // Cargar datos completos de cada asistente usando su UID
-                int[] loadedCount = {0};
-                int totalCount = result.size();
-                
-                for (AttendeesToEvent attendeeToEvent : result) {
-                    attendeeRepository.getAttendee(attendeeToEvent.getUserId(), new AttendeeRepository.RepositoryCallback<Attendee>() {
+                continue;
+            }
+            attendeeRepository.getAttendee(attendeeToEvent.getUserId(),
+                    new AttendeeRepository.RepositoryCallback<Attendee>() {
                         @Override
                         public void onSuccess(Attendee attendee) {
                             if (attendee != null) {
                                 attendeeList.add(attendee);
                             }
                             loadedCount[0]++;
-                            
-                            // Cuando hayamos cargado todos los asistentes
                             if (loadedCount[0] == totalCount) {
                                 attendees.postValue(attendeeList);
                                 isLoading.postValue(false);
@@ -649,7 +767,6 @@ public class AttendeeViewModel extends ViewModel {
 
                         @Override
                         public void onError(String error) {
-                            // Si falla la carga de un asistente, continuamos con los demás
                             loadedCount[0]++;
                             if (loadedCount[0] == totalCount) {
                                 attendees.postValue(attendeeList);
@@ -657,15 +774,15 @@ public class AttendeeViewModel extends ViewModel {
                             }
                         }
                     });
-                }
-            }
+        }
+    }
 
-            @Override
-            public void onError(String error) {
-                errorMessage.postValue(error);
-                isLoading.postValue(false);
-            }
-        });
+    /**
+     * Carga la lista completa de asistentes para un evento específico
+     * Incluye todos los datos del perfil de cada asistente
+     */
+    public void loadEventAttendees(String eventId) {
+        startListeningEventAttendees(eventId);
     }
 
     /**
@@ -675,7 +792,7 @@ public class AttendeeViewModel extends ViewModel {
     public void addAttendee(String eventId, String uid, String name, String lastName, String dni,
                             String email, String phone, String birthDate, boolean requiresAuth) {
         addAttendee(eventId, uid, name, lastName, dni, email, phone, birthDate, requiresAuth,
-                null, null, null);
+                null, null, null, null);
     }
 
     /**
@@ -684,6 +801,14 @@ public class AttendeeViewModel extends ViewModel {
     public void addAttendee(String eventId, String uid, String name, String lastName, String dni,
                             String email, String phone, String birthDate, boolean requiresAuth,
                             String organizerId, String eventTitle, String attendeeDisplayName) {
+        addAttendee(eventId, uid, name, lastName, dni, email, phone, birthDate, requiresAuth,
+                organizerId, eventTitle, attendeeDisplayName, null);
+    }
+
+    public void addAttendee(String eventId, String uid, String name, String lastName, String dni,
+                            String email, String phone, String birthDate, boolean requiresAuth,
+                            String organizerId, String eventTitle, String attendeeDisplayName,
+                            String parentalAuthUrl) {
         if (attendeesToEventRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
@@ -699,6 +824,9 @@ public class AttendeeViewModel extends ViewModel {
         attendeeToEvent.setEventId(eventId);
         attendeeToEvent.setUserId(uid);
         attendeeToEvent.setScannedQR(false);
+        if (parentalAuthUrl != null && !parentalAuthUrl.trim().isEmpty()) {
+            attendeeToEvent.setParentalAuthUrl(parentalAuthUrl.trim());
+        }
         
         attendeesToEventRepository.createAttendeeToEvent(attendeeToEvent, new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
             @Override
@@ -710,6 +838,7 @@ public class AttendeeViewModel extends ViewModel {
                         attendeeDisplayName,
                         OrganizerNotification.TYPE_ATTENDEE_JOINED,
                         eventTitle);
+                EventActivityLogHelper.logJoined(eventId, attendeeDisplayName);
             }
 
             @Override
@@ -766,6 +895,8 @@ public class AttendeeViewModel extends ViewModel {
                                         attendeeDisplayName,
                                         OrganizerNotification.TYPE_ATTENDEE_LEFT,
                                         eventTitle);
+                                EventActivityLogHelper.logLeft(eventId, attendeeDisplayName);
+                                tryPromoteFromWaitlist(eventId);
                             }
 
                             @Override
@@ -795,6 +926,10 @@ public class AttendeeViewModel extends ViewModel {
      * Solo elimina su registro en AttendeesToEvent, NO elimina el perfil del usuario
      */
     public void removeAttendeeFromEvent(String attendeeId, String eventId) {
+        removeAttendeeFromEvent(attendeeId, eventId, null);
+    }
+
+    public void removeAttendeeFromEvent(String attendeeId, String eventId, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
@@ -817,11 +952,14 @@ public class AttendeeViewModel extends ViewModel {
                             public void onSuccess(Void deleteResult) {
                                 attendeeDeleted.postValue(true);
                                 isLoading.postValue(false);
+                                EventActivityLogHelper.logRemoved(eventId, attendeeDisplayName);
+                                notifyAttendeeRemovedByOrganizer(attendeeId, eventId);
+                                tryPromoteFromWaitlist(eventId);
                             }
 
                             @Override
                             public void onError(String error) {
-                                errorMessage.postValue("Error eliminando inscripción: " + error);
+                                errorMessage.postValue(error);
                                 isLoading.postValue(false);
                             }
                         });
@@ -835,7 +973,7 @@ public class AttendeeViewModel extends ViewModel {
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error al cargar inscripciones: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
             }
         });
@@ -869,8 +1007,66 @@ public class AttendeeViewModel extends ViewModel {
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error eliminando asistente: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
+            }
+        });
+    }
+
+    private void notifyAttendeeRemovedByOrganizer(String attendeeId, String eventId) {
+        if (attendeeNotificationRepository == null || eventRepository == null
+                || attendeeId == null || eventId == null) {
+            return;
+        }
+        eventRepository.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                String title = event != null && event.getTitle() != null
+                        ? event.getTitle().trim()
+                        : "";
+                persistAttendeeNotification(
+                        attendeeId,
+                        eventId,
+                        title,
+                        AttendeeNotification.TYPE_REMOVED_BY_ORGANIZER);
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "No se pudo cargar evento para notificar baja forzada: " + error);
+                persistAttendeeNotification(
+                        attendeeId,
+                        eventId,
+                        "",
+                        AttendeeNotification.TYPE_REMOVED_BY_ORGANIZER);
+            }
+        });
+    }
+
+    private void logCheckIn(String eventId, String attendeeId, CheckInMethod method,
+                            String attendeeDisplayName) {
+        if (method == CheckInMethod.MANUAL) {
+            EventActivityLogHelper.logVerifiedManual(eventId, attendeeDisplayName);
+            return;
+        }
+        if (attendeeDisplayName != null && !attendeeDisplayName.trim().isEmpty()) {
+            EventActivityLogHelper.logVerifiedQr(eventId, attendeeDisplayName);
+            return;
+        }
+        if (attendeeRepository == null || attendeeId == null) {
+            EventActivityLogHelper.logVerifiedQr(eventId, null);
+            return;
+        }
+        attendeeRepository.getAttendee(attendeeId, new AttendeeRepository.RepositoryCallback<Attendee>() {
+            @Override
+            public void onSuccess(Attendee attendee) {
+                String name = attendee != null ? attendee.getFullNameLabel() : null;
+                EventActivityLogHelper.logVerifiedQr(eventId, name);
+            }
+
+            @Override
+            public void onError(String error) {
+                EventActivityLogHelper.logVerifiedQr(eventId, null);
             }
         });
     }
@@ -905,6 +1101,284 @@ public class AttendeeViewModel extends ViewModel {
             @Override
             public void onError(String error) {
                 callback.onError(error);
+            }
+        });
+    }
+
+    @Override
+    protected void onCleared() {
+        stopListeningEventAttendees();
+        stopListeningEventWaitlist();
+        super.onCleared();
+    }
+
+    private void tryPromoteFromWaitlist(String eventId) {
+        WaitlistService.promoteIfNeeded(
+                eventId,
+                attendeesToEventRepository,
+                waitlistRepository,
+                eventRepository,
+                attendeeNotificationRepository);
+    }
+
+    public void promoteWaitlistIfNeeded(String eventId) {
+        tryPromoteFromWaitlist(eventId);
+    }
+
+    public void startListeningEventWaitlist(String eventId) {
+        if (waitlistRepository == null) {
+            return;
+        }
+        if (eventId == null || eventId.isEmpty()) {
+            return;
+        }
+        if (listeningEventWaitlist && eventId.equals(listeningWaitlistEventId)) {
+            return;
+        }
+        stopListeningEventWaitlist();
+        listeningEventWaitlist = true;
+        listeningWaitlistEventId = eventId;
+        eventWaitlist.setValue(null);
+        currentUserWaitlistEntry.setValue(null);
+        waitlistRepository.startEventWaitlistListener(eventId, new WaitlistRepository.EventWaitlistListener() {
+            @Override
+            public void onWaitlistUpdated(List<WaitlistToEvent> entries) {
+                List<WaitlistToEvent> list = entries != null ? entries : new java.util.ArrayList<>();
+                eventWaitlist.postValue(list);
+                String uid = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
+                currentUserWaitlistEntry.postValue(WaitlistUtils.findActiveEntryForUser(list, uid));
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Waitlist listener: " + error);
+                eventWaitlist.postValue(new java.util.ArrayList<>());
+                currentUserWaitlistEntry.postValue(null);
+            }
+        });
+    }
+
+    public void stopListeningEventWaitlist() {
+        if (waitlistRepository == null || !listeningEventWaitlist) {
+            return;
+        }
+        waitlistRepository.stopEventWaitlistListener();
+        listeningEventWaitlist = false;
+        listeningWaitlistEventId = null;
+    }
+
+    public void loadEventWaitlist(String eventId) {
+        startListeningEventWaitlist(eventId);
+    }
+
+    public void joinWaitlist(String eventId, String uid, @Nullable String parentalAuthUrl,
+                             @Nullable String attendeeDisplayName) {
+        if (waitlistRepository == null) {
+            errorMessage.postValue("Repositorio no inicializado");
+            return;
+        }
+        isLoading.postValue(true);
+        errorMessage.postValue(null);
+        waitlistJoined.postValue(false);
+
+        WaitlistToEvent entry = new WaitlistToEvent(eventId, uid, WaitlistToEvent.STATUS_WAITING);
+        if (parentalAuthUrl != null && !parentalAuthUrl.trim().isEmpty()) {
+            entry.setParentalAuthUrl(parentalAuthUrl.trim());
+        }
+        waitlistRepository.createWaitlistEntry(entry, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+            @Override
+            public void onSuccess(WaitlistToEvent result) {
+                waitlistJoined.postValue(true);
+                isLoading.postValue(false);
+                EventActivityLogHelper.logWaitlistJoined(eventId, attendeeDisplayName);
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                isLoading.postValue(false);
+            }
+        });
+    }
+
+    public void leaveWaitlist(String eventId, String uid, @Nullable String attendeeDisplayName) {
+        if (waitlistRepository == null) {
+            errorMessage.postValue("Repositorio no inicializado");
+            return;
+        }
+        isLoading.postValue(true);
+        errorMessage.postValue(null);
+        waitlistLeft.postValue(false);
+
+        waitlistRepository.loadWaitlistForEvent(eventId, new WaitlistRepository.RepositoryCallback<List<WaitlistToEvent>>() {
+            @Override
+            public void onSuccess(List<WaitlistToEvent> entries) {
+                WaitlistToEvent active = WaitlistUtils.findActiveEntryForUser(entries, uid);
+                if (active == null || active.getId() == null) {
+                    errorMessage.postValue("No estás en la lista de espera");
+                    isLoading.postValue(false);
+                    return;
+                }
+                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(active.getStatus());
+                active.setStatus(WaitlistToEvent.STATUS_CANCELLED);
+                active.setOfferedAt(null);
+                active.setOfferExpiresAt(null);
+                waitlistRepository.updateWaitlistEntry(active, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        waitlistLeft.postValue(true);
+                        isLoading.postValue(false);
+                        EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
+                        if (wasOffered) {
+                            tryPromoteFromWaitlist(eventId);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        errorMessage.postValue(error);
+                        isLoading.postValue(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                isLoading.postValue(false);
+            }
+        });
+    }
+
+    public void confirmWaitlistOffer(String eventId, String uid, String name, String lastName,
+                                     String dni, String email, String phone, String birthDate,
+                                     boolean requiresAuth, String organizerId, String eventTitle,
+                                     String attendeeDisplayName) {
+        if (waitlistRepository == null || attendeesToEventRepository == null) {
+            errorMessage.postValue("Repositorio no inicializado");
+            return;
+        }
+        isLoading.postValue(true);
+        errorMessage.postValue(null);
+        attendeeAdded.postValue(false);
+
+        waitlistRepository.loadWaitlistForEvent(eventId, new WaitlistRepository.RepositoryCallback<List<WaitlistToEvent>>() {
+            @Override
+            public void onSuccess(List<WaitlistToEvent> entries) {
+                WaitlistToEvent offer = WaitlistUtils.findActiveEntryForUser(entries, uid);
+                if (offer == null || !WaitlistToEvent.STATUS_OFFERED.equals(offer.getStatus())) {
+                    errorMessage.postValue("No tienes una plaza pendiente de confirmar");
+                    isLoading.postValue(false);
+                    return;
+                }
+                if (!WaitlistUtils.isValidOffer(offer, System.currentTimeMillis())) {
+                    errorMessage.postValue("El plazo para confirmar la plaza ha expirado");
+                    isLoading.postValue(false);
+                    tryPromoteFromWaitlist(eventId);
+                    return;
+                }
+                String parentalAuthUrl = offer.getParentalAuthUrl();
+                AttendeesToEvent attendeeToEvent = new AttendeesToEvent();
+                attendeeToEvent.setEventId(eventId);
+                attendeeToEvent.setUserId(uid);
+                attendeeToEvent.setScannedQR(false);
+                if (parentalAuthUrl != null && !parentalAuthUrl.trim().isEmpty()) {
+                    attendeeToEvent.setParentalAuthUrl(parentalAuthUrl.trim());
+                }
+                attendeesToEventRepository.createAttendeeToEvent(attendeeToEvent,
+                        new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
+                            @Override
+                            public void onSuccess(AttendeesToEvent result) {
+                                offer.setStatus(WaitlistToEvent.STATUS_PROMOTED);
+                                offer.setOfferedAt(null);
+                                offer.setOfferExpiresAt(null);
+                                waitlistRepository.updateWaitlistEntry(offer,
+                                        new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                                            @Override
+                                            public void onSuccess(WaitlistToEvent updated) {
+                                                attendeeAdded.postValue(true);
+                                                isLoading.postValue(false);
+                                                notifyOrganizerAfterRegistrationChange(
+                                                        eventId,
+                                                        attendeeDisplayName,
+                                                        OrganizerNotification.TYPE_ATTENDEE_JOINED,
+                                                        eventTitle);
+                                                EventActivityLogHelper.logJoined(eventId, attendeeDisplayName);
+                                                EventActivityLogHelper.logWaitlistPromoted(
+                                                        eventId, attendeeDisplayName);
+                                            }
+
+                                            @Override
+                                            public void onError(String error) {
+                                                attendeeAdded.postValue(true);
+                                                isLoading.postValue(false);
+                                                Log.w(TAG, "Inscrito pero no se actualizó waitlist: " + error);
+                                            }
+                                        });
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                errorMessage.postValue(error);
+                                isLoading.postValue(false);
+                            }
+                        });
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                isLoading.postValue(false);
+            }
+        });
+    }
+
+    public void removeFromWaitlistByOrganizer(String entryId, String eventId,
+                                              @Nullable String attendeeDisplayName) {
+        if (waitlistRepository == null) {
+            errorMessage.postValue("Repositorio no inicializado");
+            return;
+        }
+        isLoading.postValue(true);
+        waitlistRepository.loadWaitlistForEvent(eventId, new WaitlistRepository.RepositoryCallback<List<WaitlistToEvent>>() {
+            @Override
+            public void onSuccess(List<WaitlistToEvent> entries) {
+                WaitlistToEvent target = null;
+                for (WaitlistToEvent entry : entries) {
+                    if (entry != null && entryId.equals(entry.getId())) {
+                        target = entry;
+                        break;
+                    }
+                }
+                if (target == null) {
+                    errorMessage.postValue("Entrada de lista de espera no encontrada");
+                    isLoading.postValue(false);
+                    return;
+                }
+                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(target.getStatus());
+                target.setStatus(WaitlistToEvent.STATUS_CANCELLED);
+                waitlistRepository.updateWaitlistEntry(target, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        isLoading.postValue(false);
+                        EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
+                        if (wasOffered) {
+                            tryPromoteFromWaitlist(eventId);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        errorMessage.postValue(error);
+                        isLoading.postValue(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                isLoading.postValue(false);
             }
         });
     }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Fondo blanco -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+
+    <!-- Borde azul primario -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0"
+        android:strokeColor="@color/colorPrimary"
+        android:strokeWidth="4" />
+
+    <!-- Pin de ubicación (cuerpo) -->
+    <path
+        android:fillColor="@color/colorAccent"
+        android:pathData="M54,49m-16,0a16,16 0,1 1,32 0a16,16 0,1 1,-32 0" />
+
+    <path
+        android:fillColor="@color/colorAccent"
+        android:pathData="M54,81 L66,58 L42,58 Z" />
+
+    <!-- Estrella del evento -->
+    <path
+        android:fillColor="#FFEB3B"
+        android:pathData="M54,42
+            l2.78,5.63 6.22,0.9 -4.5,4.39 1.06,6.2 -5.56,-2.92 -5.56,2.92 1.06,-6.2 -4.5,-4.39 6.22,-0.9z" />
+
+</vector>

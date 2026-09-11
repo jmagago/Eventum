@@ -17,11 +17,22 @@ public class Event implements Parcelable {
     private String eventType;
     private int currentParticipants;
     private boolean privateEvent;
+    private String privateAccessCode;
     private boolean requiresParentalAuth;
     /** Solo UI (lista de asistente): inscripción del usuario actual; no se persiste en Firestore. */
     private boolean currentUserJoined;
     /** Solo UI (lista de asistente): check-in QR validado; no se persiste en Firestore. */
     private boolean currentUserScannedQR;
+    /** Solo UI: el usuario está en lista de espera (estado WAITING). */
+    private boolean currentUserWaitlisted;
+    /** Solo UI: tiene una plaza ofrecida pendiente de confirmar. */
+    private boolean currentUserWaitlistOffered;
+    /** Solo UI: posición en cola (solo WAITING). */
+    private int currentUserWaitlistPosition;
+    /** Solo UI: caducidad de la oferta activa. */
+    private Date waitlistOfferExpiresAt;
+    /** Solo UI: personas en lista de espera activa del evento. */
+    private int waitlistCount;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -164,6 +175,16 @@ public class Event implements Parcelable {
         this.requiresParentalAuth = requiresParentalAuth;
     }
 
+    @PropertyName("privateAccessCode")
+    public String getPrivateAccessCode() {
+        return privateAccessCode;
+    }
+
+    @PropertyName("privateAccessCode")
+    public void setPrivateAccessCode(String privateAccessCode) {
+        this.privateAccessCode = privateAccessCode;
+    }
+
     @Exclude
     public boolean isCurrentUserJoined() {
         return currentUserJoined;
@@ -184,6 +205,61 @@ public class Event implements Parcelable {
         this.currentUserScannedQR = currentUserScannedQR;
     }
 
+    @Exclude
+    public boolean isCurrentUserWaitlisted() {
+        return currentUserWaitlisted;
+    }
+
+    @Exclude
+    public void setCurrentUserWaitlisted(boolean currentUserWaitlisted) {
+        this.currentUserWaitlisted = currentUserWaitlisted;
+    }
+
+    @Exclude
+    public boolean isCurrentUserWaitlistOffered() {
+        return currentUserWaitlistOffered;
+    }
+
+    @Exclude
+    public void setCurrentUserWaitlistOffered(boolean currentUserWaitlistOffered) {
+        this.currentUserWaitlistOffered = currentUserWaitlistOffered;
+    }
+
+    @Exclude
+    public int getCurrentUserWaitlistPosition() {
+        return currentUserWaitlistPosition;
+    }
+
+    @Exclude
+    public void setCurrentUserWaitlistPosition(int currentUserWaitlistPosition) {
+        this.currentUserWaitlistPosition = currentUserWaitlistPosition;
+    }
+
+    @Exclude
+    public Date getWaitlistOfferExpiresAt() {
+        return waitlistOfferExpiresAt;
+    }
+
+    @Exclude
+    public void setWaitlistOfferExpiresAt(Date waitlistOfferExpiresAt) {
+        this.waitlistOfferExpiresAt = waitlistOfferExpiresAt;
+    }
+
+    @Exclude
+    public int getWaitlistCount() {
+        return waitlistCount;
+    }
+
+    @Exclude
+    public void setWaitlistCount(int waitlistCount) {
+        this.waitlistCount = waitlistCount;
+    }
+
+    @Exclude
+    public boolean isCurrentUserOnWaitlist() {
+        return currentUserWaitlisted || currentUserWaitlistOffered;
+    }
+
     // Constructor para Parcelable
     protected Event(Parcel in) {
         id = in.readString();
@@ -197,9 +273,16 @@ public class Event implements Parcelable {
         eventType = in.readString();
         currentParticipants = in.readInt();
         privateEvent = in.readByte() != 0;
+        privateAccessCode = in.readString();
         requiresParentalAuth = in.readByte() != 0;
         currentUserJoined = in.readByte() != 0;
         currentUserScannedQR = in.readByte() != 0;
+        currentUserWaitlisted = in.readByte() != 0;
+        currentUserWaitlistOffered = in.readByte() != 0;
+        currentUserWaitlistPosition = in.readInt();
+        long offerExpiry = in.readLong();
+        waitlistOfferExpiresAt = offerExpiry != -1 ? new Date(offerExpiry) : null;
+        waitlistCount = in.readInt();
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -231,9 +314,15 @@ public class Event implements Parcelable {
         dest.writeString(eventType);
         dest.writeInt(currentParticipants);
         dest.writeByte((byte) (privateEvent ? 1 : 0));
+        dest.writeString(privateAccessCode);
         dest.writeByte((byte) (requiresParentalAuth ? 1 : 0));
         dest.writeByte((byte) (currentUserJoined ? 1 : 0));
         dest.writeByte((byte) (currentUserScannedQR ? 1 : 0));
+        dest.writeByte((byte) (currentUserWaitlisted ? 1 : 0));
+        dest.writeByte((byte) (currentUserWaitlistOffered ? 1 : 0));
+        dest.writeInt(currentUserWaitlistPosition);
+        dest.writeLong(waitlistOfferExpiresAt != null ? waitlistOfferExpiresAt.getTime() : -1);
+        dest.writeInt(waitlistCount);
     }
 }
 

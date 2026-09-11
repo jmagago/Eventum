@@ -1,6 +1,9 @@
 package com.us.eventum.data.models;
 
+import com.google.firebase.Timestamp;
+
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Locale;
 
 public class Organizer implements Serializable {
@@ -9,6 +12,7 @@ public class Organizer implements Serializable {
     private String email;
     private String cif;
     private String phone;
+    private Timestamp fechaNacimiento;
     private String usernameLower; // Para búsquedas case-insensitive
 
     public Organizer() {
@@ -16,12 +20,18 @@ public class Organizer implements Serializable {
     }
 
     public Organizer(String uid, String username, String email, String cif, String phone) {
+        this(uid, username, email, cif, phone, null);
+    }
+
+    public Organizer(String uid, String username, String email, String cif, String phone,
+                     String fechaNacimiento) {
         this.uid = uid;
         this.username = username;
         this.email = email;
         this.cif = cif;
         this.phone = phone;
         this.usernameLower = username != null ? username.trim().toLowerCase(Locale.ROOT) : null;
+        setFechaNacimientoFromString(fechaNacimiento);
     }
 
     public String getUid() {
@@ -71,5 +81,32 @@ public class Organizer implements Serializable {
 
     public void setUsernameLower(String usernameLower) {
         this.usernameLower = usernameLower;
+    }
+
+    public Timestamp getFechaNacimiento() {
+        return fechaNacimiento;
+    }
+
+    public void setFechaNacimiento(Timestamp fechaNacimiento) {
+        this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public void setFechaNacimientoFromString(String fechaNacimiento) {
+        if (fechaNacimiento == null || fechaNacimiento.trim().isEmpty()) {
+            this.fechaNacimiento = null;
+            return;
+        }
+        Date parsed = com.us.eventum.utils.AgeUtils.parseBirthDate(fechaNacimiento);
+        if (parsed == null) {
+            this.fechaNacimiento = null;
+            return;
+        }
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTime(parsed);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        this.fechaNacimiento = new Timestamp(cal.getTime());
     }
 }

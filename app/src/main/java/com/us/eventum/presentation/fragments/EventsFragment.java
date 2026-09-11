@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ProgressBar;
@@ -24,7 +25,12 @@ import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.data.models.Event;
 import com.us.eventum.presentation.activities.EventDetailsActivity;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
+import com.us.eventum.utils.EventPrivateAccessCode;
+import com.us.eventum.utils.PrivateAccessCodeDialogHelper;
 import com.us.eventum.utils.ToastUtils;
+
+import androidx.appcompat.app.AppCompatActivity;
+import com.us.eventum.utils.WindowInsetsHelper;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +45,7 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     private List<Event> events;
     private boolean isFuture;
     private TextView noEventsText;
+    private ImageView noEventsIcon;
     private LinearLayout noEventsLayout;
     private RecyclerView eventsRecyclerView;
     private EventAdapter eventAdapter;
@@ -75,19 +82,24 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         View view = inflater.inflate(R.layout.fragment_events, container, false);
         
         noEventsText = view.findViewById(R.id.noEventsText);
+        noEventsIcon = view.findViewById(R.id.noEventsIcon);
         noEventsLayout = view.findViewById(R.id.noEventsLayout);
         eventsRecyclerView = view.findViewById(R.id.eventsRecyclerView);
         progressBar = view.findViewById(R.id.progressBar);
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        View eventsListContainer = view.findViewById(R.id.eventsListContainer);
+        if (eventsListContainer != null) {
+            WindowInsetsHelper.applyOverlayFabListPadding(eventsListContainer);
+        }
         
         // Inicializar EventViewModel
         eventViewModel = new ViewModelProvider(requireActivity()).get(EventViewModel.class);
         
         setupRecyclerView();
         setupSwipeRefresh();
-        
-        // Si ya tenemos eventos, mostrarlos inmediatamente
-        if (events != null && !events.isEmpty()) {
+
+        if (events != null) {
+            dataLoaded = true;
             updateUI();
         } else {
             showLoadingState();
@@ -144,14 +156,12 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
             noEventsLayout.setVisibility(View.VISIBLE);
             
             if (isSearchResult) {
-                noEventsText.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                        0, R.drawable.ic_search_cancelled, 0, 0);
+                noEventsIcon.setImageResource(R.drawable.ic_search_cancelled);
                 noEventsText.setText("No se encontraron eventos que coincidan con los criterios de búsqueda\n\nIntenta ajustar los filtros o limpiar la búsqueda para ver todos los eventos");
             } else {
-                noEventsText.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                        0, R.drawable.ic_calendar, 0, 0);
-                noEventsText.setText(isFuture ? 
-                    "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" : 
+                noEventsIcon.setImageResource(R.drawable.ic_calendar);
+                noEventsText.setText(isFuture ?
+                    "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" :
                     "No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí");
             }
         } else {
@@ -212,25 +222,47 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
 
     @Override
     public void onLockIconLongClick(Event event) {
-        // Invierto el estado de privacidad del evento
-        boolean newPrivateState = !event.getPrivateEvent();
-        // Actualizo el estado del evento local inmediatamente para feedback visual
-        event.setPrivateEvent(newPrivateState);
-        // Busco la posición del evento en la lista
-        int position = -1;
-        if (events != null) {
-            for (int i = 0; i < events.size(); i++) {
-                if (events.get(i).getId() != null && events.get(i).getId().equals(event.getId())) {
-                    position = i;
-                    break;
-                }
-            }
+        if (getActivity() == null || event.getId() == null) {
+            return;
         }
-        // Actualizo el adaptador para que el icono cambie de inmediato
+        boolean newPrivateState = !event.getPrivateEvent();
+        if (newPrivateState) {
+            PrivateAccessCodeDialogHelper.show((AppCompatActivity) requireActivity(),
+                    new PrivateAccessCodeDialogHelper.Callback() {
+                        @Override
+                        public void onCodeConfirmed(@NonNull String accessCode) {
+                            applyPrivacyChange(event, true, accessCode);
+                        }
+
+                        @Override
+                        public void onCancelled() {
+                            // Sin cambios
+                        }
+                    });
+            return;
+        }
+        applyPrivacyChange(event, false, null);
+    }
+
+    private void applyPrivacyChange(Event event, boolean isPrivate, @Nullable String accessCode) {
+        event.setPrivateEvent(isPrivate);
+        event.setPrivateAccessCode(isPrivate ? EventPrivateAccessCode.normalize(accessCode) : null);
+        int position = findEventPosition(event);
         if (position != -1 && eventAdapter != null) {
             eventAdapter.notifyItemChanged(position);
         }
-        // Luego actualizo en el servidor
-        eventViewModel.toggleEventPrivacy(event.getId(), newPrivateState);
+        eventViewModel.updateEventPrivacy(event.getId(), isPrivate, accessCode);
+    }
+
+    private int findEventPosition(Event event) {
+        if (events == null || event.getId() == null) {
+            return -1;
+        }
+        for (int i = 0; i < events.size(); i++) {
+            if (event.getId().equals(events.get(i).getId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 } 

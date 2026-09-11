@@ -1,331 +1,428 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    tools:ignore="MergeRootFrame">
 
-    <!-- Contenido principal con scroll -->
-    <androidx.core.widget.NestedScrollView
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/registerRoot"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="match_parent">
 
-        <LinearLayout
+        <View
+            android:id="@+id/statusBarStripe"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/login_header_bg"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <View
+            android:id="@+id/headerBackground"
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:background="@drawable/login_header_bg"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/statusBarStripe" />
+
+        <ImageView
+            android:id="@+id/logoImageView"
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:layout_marginTop="30dp"
+            android:contentDescription="@string/cd_app_logo"
+            android:elevation="4dp"
+            android:src="@drawable/ic_qr_logo"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/statusBarStripe" />
+
+        <TextView
+            android:id="@+id/titleTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="20dp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.05"
+            android:shadowColor="#40000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
+            android:text="@string/login_title"
+            android:textColor="@android:color/white"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/logoImageView" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/contentCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="4dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="24dp">
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/titleTextView">
 
-            <!-- Card principal con formulario -->
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginVertical="6dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@android:color/white"
-                app:strokeWidth="0dp">
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:letterSpacing="0.02"
+                    android:text="@string/register_card_title"
+                    android:textColor="@color/colorPrimary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginHorizontal="10dp">
 
-                    <!-- Logo/Icono dentro del formulario -->
-                    <ImageView
-                        android:layout_width="90dp"
-                        android:layout_height="90dp"
-                        android:src="@drawable/ic_qr_logo"
-                        android:layout_gravity="center"
-                        android:layout_marginBottom="20dp"
-                        android:contentDescription="@string/cd_app_logo"/>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/usernameLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:hint="@string/hint_username"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="@color/colorPrimary">
 
-                    <!-- Campo Usuario -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/usernameLayout"
-                        style="@style/Widget.Eventum.TextInputLayout"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/usernameInput"
+                        style="@style/TextAppearance.Eventum.Input"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="@string/hint_username"
-                        app:startIconDrawable="@drawable/ic_person"
-                        app:startIconTint="@color/colorPrimary">
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/usernameInput"
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/emailLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:hint="@string/hint_email"
+                    app:startIconDrawable="@drawable/ic_email"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/emailInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textEmailAddress"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/verifyEmailLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:hint="@string/hint_confirm_email"
+                    app:startIconDrawable="@drawable/ic_email"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/verifyEmailInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textEmailAddress"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/passwordLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:hint="@string/hint_password"
+                    app:endIconMode="password_toggle"
+                    app:endIconTint="@color/colorPrimary"
+                    app:startIconDrawable="@drawable/ic_lock"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/passwordInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/confirmPasswordLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:hint="@string/hint_confirm_password"
+                    app:endIconMode="password_toggle"
+                    app:endIconTint="@color/colorPrimary"
+                    app:startIconDrawable="@drawable/ic_lock"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/confirmPasswordInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/organizerBirthDateLayout"
+                    style="@style/Widget.Eventum.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:hint="@string/hint_organizer_birth_date_required"
+                    android:visibility="gone"
+                    app:startIconDrawable="@drawable/ic_calendar"
+                    app:startIconTint="@color/colorPrimary">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/organizerBirthDateInput"
+                        style="@style/TextAppearance.Eventum.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:inputType="none"
+                        android:maxLines="1"
+                        android:paddingVertical="8dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/organizerCard"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:stateListAnimator="@null"
+                        app:cardBackgroundColor="@color/colorSurface"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/colorBorder"
+                        app:strokeWidth="1.5dp">
+
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            style="@style/TextAppearance.Eventum.Input"
-                            android:inputType="text"
-                            android:maxLines="1"/>
+                            android:gravity="center"
+                            android:minHeight="48dp"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="8dp">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <ImageView
+                                android:id="@+id/organizerIcon"
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_marginBottom="2dp"
+                                android:contentDescription="@string/cd_register_organizer_icon"
+                                android:src="@drawable/ic_calendar"
+                                app:tint="@color/colorPrimary" />
 
-                    <!-- Campo Email -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/emailLayout"
-                        style="@style/Widget.Eventum.TextInputLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="@string/hint_email"
-                        app:startIconDrawable="@drawable/ic_email"
-                        app:startIconTint="@color/colorPrimary">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/emailInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/TextAppearance.Eventum.Input"
-                            android:inputType="textEmailAddress"
-                            android:maxLines="1"/>
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Campo Verificar Email -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/verifyEmailLayout"
-                        style="@style/Widget.Eventum.TextInputLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="@string/hint_confirm_email"
-                        app:startIconDrawable="@drawable/ic_email"
-                        app:startIconTint="@color/colorPrimary">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/verifyEmailInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/TextAppearance.Eventum.Input"
-                            android:inputType="textEmailAddress"
-                            android:maxLines="1"/>
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Campo Contraseña -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/passwordLayout"
-                        style="@style/Widget.Eventum.TextInputLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="@string/hint_password"
-                        app:startIconDrawable="@drawable/ic_lock"
-                        app:startIconTint="@color/colorPrimary"
-                        app:endIconMode="password_toggle"
-                        app:endIconTint="@color/colorPrimary">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/passwordInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/TextAppearance.Eventum.Input"
-                            android:inputType="textPassword"
-                            android:maxLines="1"/>
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Campo Confirmar Contraseña -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/confirmPasswordLayout"
-                        style="@style/Widget.Eventum.TextInputLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="24dp"
-                        android:hint="@string/hint_confirm_password"
-                        app:startIconDrawable="@drawable/ic_lock"
-                        app:startIconTint="@color/colorPrimary"
-                        app:endIconMode="password_toggle"
-                        app:endIconTint="@color/colorPrimary">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/confirmPasswordInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/TextAppearance.Eventum.Input"
-                            android:inputType="textPassword"
-                            android:maxLines="1"/>
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Selección de rol compacta y profesional -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="16dp">
-
-                        <!-- Botón Organizador -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/organizerCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="4dp"
-                            app:cardBackgroundColor="@color/colorSurface"
-                            app:strokeColor="@color/colorBorder"
-                            app:strokeWidth="2dp"
-                            android:stateListAnimator="@null"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:id="@+id/organizerTitle"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
                                 android:gravity="center"
-                                android:padding="12dp"
-                                android:minHeight="60dp">
+                                android:text="@string/register_role_organizer"
+                                android:textColor="@color/colorPrimaryText"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
-                                <ImageView
-                                    android:id="@+id/organizerIcon"
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:src="@drawable/ic_calendar"
-                                    app:tint="@color/colorPrimary"
-                                    android:layout_marginBottom="4dp"
-                                    android:contentDescription="@string/cd_register_organizer_icon"/>
-
-                                <TextView
-                                    android:id="@+id/organizerTitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/register_role_organizer"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/colorPrimaryText"
-                                    android:gravity="center"/>
-
-                                <TextView
-                                    android:id="@+id/organizerSubtitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/register_role_organizer_subtitle"
-                                    android:textSize="11sp"
-                                    android:textColor="@color/colorSecondaryText"
-                                    android:gravity="center"
-                                    android:layout_marginTop="2dp"/>
-
-                            </LinearLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Botón Asistente -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/attendeeCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="4dp"
-                            app:cardBackgroundColor="@color/colorSurface"
-                            app:strokeColor="@color/colorBorder"
-                            app:strokeWidth="2dp"
-                            android:stateListAnimator="@null"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <TextView
+                                android:id="@+id/organizerSubtitle"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
+                                android:layout_marginTop="1dp"
                                 android:gravity="center"
-                                android:padding="12dp"
-                                android:minHeight="60dp">
+                                android:text="@string/register_role_organizer_subtitle"
+                                android:textColor="@color/colorSecondaryText"
+                                android:textSize="11sp" />
 
-                                <ImageView
-                                    android:id="@+id/attendeeIcon"
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:src="@drawable/ic_people"
-                                    app:tint="@color/colorPrimary"
-                                    android:layout_marginBottom="4dp"
-                                    android:contentDescription="@string/cd_register_attendee_icon"/>
+                        </LinearLayout>
 
-                                <TextView
-                                    android:id="@+id/attendeeTitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/register_role_attendee"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/colorPrimaryText"
-                                    android:gravity="center"/>
+                    </com.google.android.material.card.MaterialCardView>
 
-                                <TextView
-                                    android:id="@+id/attendeeSubtitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/register_role_attendee_subtitle"
-                                    android:textSize="11sp"
-                                    android:textColor="@color/colorSecondaryText"
-                                    android:gravity="center"
-                                    android:layout_marginTop="2dp"/>
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/attendeeCard"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:stateListAnimator="@null"
+                        app:cardBackgroundColor="@color/colorSurface"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/colorBorder"
+                        app:strokeWidth="1.5dp">
 
-                            </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minHeight="48dp"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="8dp">
 
-                        </com.google.android.material.card.MaterialCardView>
+                            <ImageView
+                                android:id="@+id/attendeeIcon"
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:layout_marginBottom="2dp"
+                                android:contentDescription="@string/cd_register_attendee_icon"
+                                android:src="@drawable/ic_people"
+                                app:tint="@color/colorPrimary" />
 
-                    </LinearLayout>
+                            <TextView
+                                android:id="@+id/attendeeTitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/register_role_attendee"
+                                android:textColor="@color/colorPrimaryText"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
 
-                    <!-- Botón de registro principal -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/registerButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:text="@string/register_button"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp"
-                        app:cornerRadius="12dp"
-                        app:icon="@drawable/ic_person_add"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp"/>
+                            <TextView
+                                android:id="@+id/attendeeSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:gravity="center"
+                                android:text="@string/register_role_attendee_subtitle"
+                                android:textColor="@color/colorSecondaryText"
+                                android:textSize="11sp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Enlace de login -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="4dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/register_has_account_prompt"
-                    android:textSize="14sp"
-                    android:textColor="@color/colorSecondaryText"/>
-
-                <TextView
-                    android:id="@+id/loginLink"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/register_login_link"
-                    android:textSize="14sp"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/registerButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/register_button"
+                    android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/colorPrimary"
-                    android:background="?attr/selectableItemBackground"
-                    android:padding="4dp"/>
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_person_add"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:id="@+id/loginPromptLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/contentCard"
+            app:layout_constraintVertical_bias="0">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/register_has_account_prompt"
+                android:textColor="@color/colorSecondaryText"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/loginLink"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:padding="4dp"
+                android:text="@string/register_login_link"
+                android:textColor="@color/colorPrimary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
 
-    </androidx.core.widget.NestedScrollView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <FrameLayout
+        android:id="@+id/progressBar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/colorAccent" />
+
+    </FrameLayout>
+
+</FrameLayout>

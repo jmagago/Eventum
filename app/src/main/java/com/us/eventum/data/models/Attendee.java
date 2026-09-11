@@ -1,5 +1,7 @@
 package com.us.eventum.data.models;
 
+import androidx.annotation.NonNull;
+
 import com.google.firebase.Timestamp;
 import java.io.Serializable;
 import java.util.Date;
@@ -250,13 +252,11 @@ public class Attendee implements Serializable {
         return fechaNacimiento;
     }
 
-    public boolean isRequiresParentalAuthorization() {
-        // Verificar si el asistente es menor de edad y requiere autorización parental
-        if (fechaNacimiento != null) {
-            long ageInMillis = System.currentTimeMillis() - fechaNacimiento.toDate().getTime();
-            long ageInYears = ageInMillis / (365L * 24L * 60L * 60L * 1000L);
-            return ageInYears < 18; // Menor de 18 años requiere autorización
+    public boolean isRequiresParentalAuthorization(@NonNull java.util.Date eventDate) {
+        if (fechaNacimiento == null) {
+            return false;
         }
-        return false;
+        return com.us.eventum.utils.AgeUtils.requiresParentalAuthOnEventDay(
+                fechaNacimiento.toDate(), eventDate);
     }
 }

@@ -20,6 +20,7 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
     private static final int NUM_TABS = 2;
     private final List<Event> futureEvents;
     private final List<Event> pastEvents;
+    private final FragmentActivity hostActivity;
     private final Map<Integer, EventsFragment> fragmentsMap = new HashMap<>();
     private Context context;
     private EventsFragment.OnRefreshListener refreshListener;
@@ -32,6 +33,7 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
                            List<Event> futureEvents, 
                            List<Event> pastEvents) {
         super(fragmentActivity);
+        this.hostActivity = fragmentActivity;
         this.context = fragmentActivity;
         this.futureEvents = futureEvents;
         this.pastEvents = pastEvents;
@@ -63,6 +65,20 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         }
         
         fragmentsMap.put(position, fragment);
+
+        // Sincronizar datos actuales en cuanto el fragment tenga vista (p. ej. Archivados creado tarde)
+        fragment.getViewLifecycleOwnerLiveData().observe(
+                hostActivity,
+                owner -> {
+                    if (owner != null) {
+                        if (position == 0) {
+                            fragment.setEvents(futureEvents);
+                        } else {
+                            fragment.setEvents(pastEvents);
+                        }
+                    }
+                });
+
         return fragment;
     }
 
@@ -111,6 +127,8 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         PopupMenu popup = new PopupMenu(context, anchor);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
         
+        configurePrivateAccessCodeMenuItem(popup.getMenu(), event);
+
         // Ocultar acciones que no aplican para eventos pasados (archivados)
         try {
             if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
@@ -138,5 +156,15 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         });
         
         popup.show();
+    }
+
+    public static void configurePrivateAccessCodeMenuItem(android.view.Menu menu, Event event) {
+        if (menu == null) {
+            return;
+        }
+        android.view.MenuItem item = menu.findItem(R.id.action_view_private_access_code);
+        if (item != null) {
+            item.setVisible(event != null && event.getPrivateEvent());
+        }
     }
 }

@@ -9,7 +9,10 @@ import com.google.firebase.auth.FirebaseUser;
 import com.us.eventum.data.models.Organizer;
 import com.us.eventum.data.repositories.OrganizerRepository;
 import com.us.eventum.data.repositories.firebase.FirebaseOrganizerRepository;
+import com.us.eventum.utils.AgeUtils;
 import com.us.eventum.utils.FirebaseAuthErrorHandler;
+
+import java.util.Date;
 
 public class OrganizerViewModel extends ViewModel {
     private MutableLiveData<Organizer> currentOrganizer = new MutableLiveData<>();
@@ -73,7 +76,8 @@ public class OrganizerViewModel extends ViewModel {
     /**
      * Registrar nuevo organizador
      */
-    public void registerOrganizer(String email, String password, String username, String cif, String phone) {
+    public void registerOrganizer(String email, String password, String username, String cif, String phone,
+                                  String fechaNacimiento) {
         if (organizerRepository == null) {
             errorMessage.postValue("Repositorio no inicializado");
             isLoading.postValue(false);
@@ -94,7 +98,30 @@ public class OrganizerViewModel extends ViewModel {
             return;
         }
         if (username == null || username.trim().isEmpty()) {
-            errorMessage.postValue("El nombre de la empresa es obligatorio");
+            errorMessage.postValue("El nombre de usuario es obligatorio");
+            isLoading.postValue(false);
+            return;
+        }
+
+        if (fechaNacimiento == null || fechaNacimiento.trim().isEmpty()) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(com.us.eventum.R.string.age_birth_date_required_organizer)
+                    : "La fecha de nacimiento es obligatoria");
+            isLoading.postValue(false);
+            return;
+        }
+        Date birthDate = AgeUtils.parseBirthDate(fechaNacimiento);
+        if (birthDate == null) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(com.us.eventum.R.string.age_birth_date_invalid)
+                    : "Fecha de nacimiento inválida");
+            isLoading.postValue(false);
+            return;
+        }
+        if (!AgeUtils.isOrganizerAgeValid(birthDate)) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(com.us.eventum.R.string.age_organizer_min_error)
+                    : "Debes tener al menos 18 años");
             isLoading.postValue(false);
             return;
         }
@@ -104,22 +131,23 @@ public class OrganizerViewModel extends ViewModel {
             @Override
             public void onSuccess(Boolean isAvailable) {
                 if (isAvailable) {
-                    performOrganizerRegistration(email, password, username, cif, phone);
+                    performOrganizerRegistration(email, password, username, cif, phone, fechaNacimiento);
                 } else {
-                    errorMessage.postValue("Este nombre de empresa ya está en uso");
+                    errorMessage.postValue("Este nombre de usuario ya está en uso");
                     isLoading.postValue(false);
                 }
             }
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error al verificar nombre de empresa: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
             }
         });
     }
 
-    private void performOrganizerRegistration(String email, String password, String username, String cif, String phone) {
+    private void performOrganizerRegistration(String email, String password, String username, String cif,
+                                            String phone, String fechaNacimiento) {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -131,7 +159,8 @@ public class OrganizerViewModel extends ViewModel {
                                     if (verificationTask.isSuccessful()) {
                                         // Email de verificación enviado, continuar con la creación del perfil
                                         String uid = firebaseUser.getUid();
-                                        Organizer organizer = new Organizer(uid, username, email, cif, phone);
+                                        Organizer organizer = new Organizer(
+                                                uid, username, email, cif, phone, fechaNacimiento);
                                         
                                         organizerRepository.createOrganizer(organizer, new OrganizerRepository.RepositoryCallback<Organizer>() {
                                 @Override
@@ -166,6 +195,45 @@ public class OrganizerViewModel extends ViewModel {
                         isLoading.postValue(false);
                     }
                 });
+    }
+
+    /**
+     * Comprobar si un nombre de usuario está disponible (colección global usernames).
+     */
+    public void checkUsernameAvailability(String username, UsernameAvailabilityCallback callback) {
+        if (organizerRepository == null) {
+            if (callback != null) {
+                callback.onResult(false, "Repositorio no inicializado");
+            }
+            return;
+        }
+        if (username == null || username.trim().length() < 3) {
+            if (callback != null) {
+                callback.onResult(false, null);
+            }
+            return;
+        }
+
+        organizerRepository.checkUsernameAvailability(username.trim(),
+                new OrganizerRepository.RepositoryCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean isAvailable) {
+                        if (callback != null) {
+                            callback.onResult(Boolean.TRUE.equals(isAvailable), null);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (callback != null) {
+                            callback.onResult(false, error);
+                        }
+                    }
+                });
+    }
+
+    public interface UsernameAvailabilityCallback {
+        void onResult(boolean available, String error);
     }
 
     /**
@@ -214,7 +282,7 @@ public class OrganizerViewModel extends ViewModel {
 
             @Override
             public void onError(String error) {
-                errorMessage.postValue("Error al obtener organizador: " + error);
+                errorMessage.postValue(error);
                 isLoading.postValue(false);
             }
         });

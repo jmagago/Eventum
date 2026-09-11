@@ -27,12 +27,22 @@
             <LinearLayout
                 style="@style/ToolbarProfileContainer">
 
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/toolbarEventImageView"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="@string/cd_event_photo"
+                    android:src="@mipmap/ic_launcher"
+                    app:civ_border_color="@color/colorPrimaryLight"
+                    app:civ_border_width="1dp" />
+
                 <TextView
                     android:id="@+id/toolbarTitleTextView"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="16dp"
                     android:layout_marginEnd="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
@@ -224,7 +234,7 @@
                     android:layout_height="match_parent"
                     android:paddingHorizontal="16dp"
                     android:clipToPadding="false"
-                    android:paddingBottom="5dp"/>
+                    android:paddingBottom="0dp"/>
 
                 <TextView
                     android:id="@+id/emptyAttendeesTextView"
@@ -260,6 +270,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         app:cardCornerRadius="28dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="@color/fab_bar_background"
@@ -268,6 +280,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="10dp"
@@ -324,17 +338,28 @@
                 app:borderWidth="0dp"
                 app:elevation="4dp" />
 
-            <ImageButton
+            <FrameLayout
                 android:id="@+id/fabBarCollapse"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="@dimen/fab_bar_handle_width"
+                android:layout_height="@dimen/fab_bar_handle_height"
                 android:layout_marginStart="4dp"
-                android:background="@drawable/bg_fab_bar_collapse_btn"
+                android:background="@drawable/bg_fab_bar_handle"
+                android:clickable="true"
                 android:contentDescription="@string/fab_bar_collapse_actions"
-                android:padding="10dp"
-                android:scaleType="centerInside"
-                app:srcCompat="@drawable/ic_chevron_right"
-                app:tint="@color/colorPrimary" />
+                android:elevation="@dimen/fab_bar_handle_elevation"
+                android:focusable="true"
+                android:scaleX="-1">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:scaleX="-1"
+                    app:srcCompat="@drawable/ic_chevron_right"
+                    app:tint="@android:color/white" />
+
+            </FrameLayout>
 
         </LinearLayout>
 
@@ -351,7 +376,7 @@
         android:focusable="true"
         android:visibility="gone"
         android:contentDescription="@string/fab_bar_show_actions"
-        android:elevation="8dp">
+        android:elevation="@dimen/fab_bar_handle_elevation">
 
         <ImageView
             android:layout_width="28dp"
