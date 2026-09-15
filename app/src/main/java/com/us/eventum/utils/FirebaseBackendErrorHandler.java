@@ -106,8 +106,33 @@ public final class FirebaseBackendErrorHandler {
     }
 
     @NonNull
+    public static String getEventFullMessage(@Nullable Context context) {
+        return resolveString(context, R.string.waitlist_event_full, "El evento no tiene plazas libres");
+    }
+
+    @NonNull
+    public static String getEventCancelledMessage(@Nullable Context context) {
+        return resolveString(context, R.string.event_cancelled_cannot_join, "Este evento ha sido cancelado");
+    }
+
+    @NonNull
+    public static String getEventAlreadyCancelledMessage(@Nullable Context context) {
+        return resolveString(context, R.string.event_already_cancelled, "Este evento ya está cancelado");
+    }
+
+    @NonNull
+    public static String getWaitlistOfferInvalidMessage(@Nullable Context context) {
+        return resolveString(context, R.string.waitlist_offer_no_longer_valid, "La plaza ya no está disponible");
+    }
+
+    @NonNull
     public static String getUsernameInUseMessage(@Nullable Context context) {
         return resolveString(context, R.string.backend_error_username_in_use, null);
+    }
+
+    @NonNull
+    public static String getDniInUseMessage(@Nullable Context context) {
+        return resolveString(context, R.string.backend_error_dni_in_use, null);
     }
 
     @NonNull
@@ -282,6 +307,12 @@ public final class FirebaseBackendErrorHandler {
         }
         if (resId == R.string.backend_error_not_found) {
             return "No se encontraron los datos solicitados";
+        }
+        if (resId == R.string.waitlist_event_full) {
+            return "El evento no tiene plazas libres";
+        }
+        if (resId == R.string.waitlist_offer_no_longer_valid) {
+            return "La plaza ya no está disponible";
         }
         return "No se pudo completar la operación. Inténtalo de nuevo";
     }

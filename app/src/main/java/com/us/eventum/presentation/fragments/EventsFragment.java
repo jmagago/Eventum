@@ -225,6 +225,11 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
         if (getActivity() == null || event.getId() == null) {
             return;
         }
+        if (event.isCancelled()) {
+            ToastUtils.showCustomToast(requireActivity(),
+                    getString(R.string.event_cancelled_cannot_edit), ToastUtils.ToastType.INFO);
+            return;
+        }
         boolean newPrivateState = !event.getPrivateEvent();
         if (newPrivateState) {
             PrivateAccessCodeDialogHelper.show((AppCompatActivity) requireActivity(),
@@ -247,6 +252,8 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
     private void applyPrivacyChange(Event event, boolean isPrivate, @Nullable String accessCode) {
         event.setPrivateEvent(isPrivate);
         event.setPrivateAccessCode(isPrivate ? EventPrivateAccessCode.normalize(accessCode) : null);
+        event.setPrivateAccessCodeHash(isPrivate
+                ? EventPrivateAccessCode.hash(EventPrivateAccessCode.normalize(accessCode)) : null);
         int position = findEventPosition(event);
         if (position != -1 && eventAdapter != null) {
             eventAdapter.notifyItemChanged(position);

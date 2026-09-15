@@ -43,6 +43,10 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
         void onEventQrClick(Event event);
 
         void onRefreshRequested();
+
+        default boolean hasActiveAttendeeFilters(@NonNull TabType tabType) {
+            return false;
+        }
     }
 
     private static final String ARG_TAB_TYPE = "tab_type";
@@ -177,17 +181,21 @@ public class AttendeeEventsFragment extends Fragment implements EventAdapter.OnE
                         ? R.drawable.ic_search
                         : R.drawable.ic_calendar);
             }
-            switch (tabType) {
-                case MY_EVENTS:
-                    noEventsText.setText(R.string.attendee_empty_my_events);
-                    break;
-                case HISTORY:
-                    noEventsText.setText(R.string.attendee_empty_history);
-                    break;
-                case DISCOVER:
-                default:
-                    noEventsText.setText(R.string.attendee_empty_discover);
-                    break;
+            if (eventListener != null && eventListener.hasActiveAttendeeFilters(tabType)) {
+                noEventsText.setText(R.string.attendee_empty_filters);
+            } else {
+                switch (tabType) {
+                    case MY_EVENTS:
+                        noEventsText.setText(R.string.attendee_empty_my_events);
+                        break;
+                    case HISTORY:
+                        noEventsText.setText(R.string.attendee_empty_history);
+                        break;
+                    case DISCOVER:
+                    default:
+                        noEventsText.setText(R.string.attendee_empty_discover);
+                        break;
+                }
             }
         } else {
             eventsRecyclerView.setVisibility(View.VISIBLE);

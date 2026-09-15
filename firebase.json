@@ -5,5 +5,8 @@
   },
   "storage": {
     "rules": "firestore/storage.rules"
+  },
+  "database": {
+    "rules": "firestore/database.rules.json"
   }
 }

@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel;
 import java.util.function.Consumer;
 import com.google.firebase.auth.FirebaseAuth;
 import com.us.eventum.data.models.Event;
+import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.models.WaitlistToEvent;
 import com.us.eventum.data.repositories.WaitlistRepository;
@@ -21,8 +22,14 @@ import com.us.eventum.data.repositories.firebase.FirebaseEventRepository;
 import com.us.eventum.data.repositories.AttendeesToEventRepository;
 import com.us.eventum.data.repositories.firebase.FirebaseAttendeesToEventRepository;
 import com.us.eventum.presentation.viewmodels.SharedViewModel;
+import com.us.eventum.data.repositories.AttendeeNotificationRepository;
+import com.us.eventum.data.repositories.firebase.FirebaseAttendeeNotificationRepository;
 import com.us.eventum.utils.EventActivityLogHelper;
+import com.us.eventum.utils.EventChangeNotifier;
 import com.us.eventum.utils.EventPrivateAccessCode;
+import com.us.eventum.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.utils.EventUiMerger;
+import com.us.eventum.utils.WaitlistService;
 
 import java.util.Date;
 import java.util.List;
@@ -46,6 +53,7 @@ public class EventViewModel extends ViewModel {
     private EventRepository eventRepository;
     private AttendeesToEventRepository attendeesToEventRepository;
     private WaitlistRepository waitlistRepository;
+    private AttendeeNotificationRepository attendeeNotificationRepository;
     private SharedViewModel sharedViewModel;
     private boolean listeningAllEvents;
     private boolean listeningUserEvents;
@@ -87,6 +95,9 @@ public class EventViewModel extends ViewModel {
         }
         if (waitlistRepository == null) {
             waitlistRepository = new FirebaseWaitlistRepository();
+        }
+        if (attendeeNotificationRepository == null) {
+            attendeeNotificationRepository = new FirebaseAttendeeNotificationRepository();
         }
         if (sharedViewModel == null) {
             sharedViewModel = SharedViewModel.getInstance();
@@ -284,7 +295,6 @@ public class EventViewModel extends ViewModel {
         stopListeningEvent();
         stopListeningRegistrations();
         stopListeningWaitlist();
-        super.onCleared();
     }
 
     private void syncRegistrationsListener() {
@@ -341,6 +351,7 @@ public class EventViewModel extends ViewModel {
                 latestWaitlist = entries != null ? entries : new ArrayList<>();
                 waitlistDataReady = true;
                 publishAllEventsWithRegistrations(true);
+                publishUserEventsWithRegistrations(true);
             }
 
             @Override
@@ -485,6 +496,14 @@ public class EventViewModel extends ViewModel {
                 continue;
             }
             List<WaitlistToEvent> entries = byEventId.get(event.getId());
+            if (event.isCancelled()) {
+                event.setWaitlistCount(0);
+                event.setCurrentUserWaitlisted(false);
+                event.setCurrentUserWaitlistOffered(false);
+                event.setCurrentUserWaitlistPosition(0);
+                event.setWaitlistOfferExpiresAt(null);
+                continue;
+            }
             event.setWaitlistCount(WaitlistUtils.countActiveWaitlist(entries));
             event.setCurrentUserWaitlisted(false);
             event.setCurrentUserWaitlistOffered(false);
@@ -654,6 +673,24 @@ public class EventViewModel extends ViewModel {
         event.setRequiresParentalAuth(requiresParentalAuth);
         event.setPrivateAccessCode(normalizedAccessCode);
 
+        eventRepository.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+            @Override
+            public void onSuccess(Event previous) {
+                persistUpdatedEvent(eventId, event, previous);
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w("EventViewModel", "No se pudo leer el evento previo: " + error);
+                persistUpdatedEvent(eventId, event, null);
+            }
+        });
+    }
+
+    private void persistUpdatedEvent(String eventId, Event event, @Nullable Event previous) {
+        boolean notifyAttendees = previous == null
+                || EventUiMerger.hasAttendeeVisibleDetailsChanged(previous, event);
+
         eventRepository.updateEvent(eventId, event, new EventRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
@@ -661,6 +698,20 @@ public class EventViewModel extends ViewModel {
                 eventUpdated.postValue(true);
                 isLoading.postValue(false);
                 EventActivityLogHelper.logEventUpdated(eventId);
+                WaitlistService.promoteIfNeeded(
+                        eventId,
+                        attendeesToEventRepository,
+                        waitlistRepository,
+                        eventRepository,
+                        null);
+                if (notifyAttendees) {
+                    EventChangeNotifier.notifyAttendees(
+                            eventId,
+                            event.getTitle(),
+                            attendeesToEventRepository,
+                            waitlistRepository,
+                            attendeeNotificationRepository);
+                }
 
                 if (sharedViewModel != null) {
                     sharedViewModel.notifyEventsUpdated();
@@ -718,6 +769,8 @@ public class EventViewModel extends ViewModel {
                 if (event.getId() != null && event.getId().equals(eventId)) {
                     event.setPrivateEvent(isPrivate);
                     event.setPrivateAccessCode(isPrivate ? privateAccessCode : null);
+                    event.setPrivateAccessCodeHash(isPrivate
+                            ? EventPrivateAccessCode.hash(privateAccessCode) : null);
                     break;
                 }
             }
@@ -730,6 +783,8 @@ public class EventViewModel extends ViewModel {
                 if (event.getId() != null && event.getId().equals(eventId)) {
                     event.setPrivateEvent(isPrivate);
                     event.setPrivateAccessCode(isPrivate ? privateAccessCode : null);
+                    event.setPrivateAccessCodeHash(isPrivate
+                            ? EventPrivateAccessCode.hash(privateAccessCode) : null);
                     break;
                 }
             }
@@ -759,6 +814,109 @@ public class EventViewModel extends ViewModel {
                 }
             }
             
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                isLoading.postValue(false);
+            }
+        });
+    }
+
+    /**
+     * Cancela un evento (sigue visible, con aviso a inscritos y waitlist).
+     */
+    public void cancelEvent(String eventId) {
+        if (eventRepository == null) {
+            errorMessage.postValue("Repositorio no inicializado");
+            return;
+        }
+        if (eventId == null || eventId.isEmpty()) {
+            errorMessage.postValue(FirebaseBackendErrorHandler.getInvalidEventIdMessage(null));
+            return;
+        }
+
+        isLoading.postValue(true);
+        eventRepository.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                if (event != null && event.isCancelled()) {
+                    errorMessage.postValue(FirebaseBackendErrorHandler.getEventAlreadyCancelledMessage(null));
+                    isLoading.postValue(false);
+                    return;
+                }
+                persistCancelledEvent(eventId, event != null ? event.getTitle() : null);
+            }
+
+            @Override
+            public void onError(String error) {
+                persistCancelledEvent(eventId, null);
+            }
+        });
+    }
+
+    private void persistCancelledEvent(String eventId, @Nullable String eventTitle) {
+        notifyThenCancelEvent(eventId, eventTitle);
+    }
+
+    private void notifyThenCancelEvent(String eventId, @Nullable String eventTitle) {
+        if (attendeesToEventRepository == null) {
+            persistCancelledFlag(eventId, eventTitle);
+            return;
+        }
+        attendeesToEventRepository.loadAttendeesToEvent(eventId,
+                new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
+                    @Override
+                    public void onSuccess(List<AttendeesToEvent> registrations) {
+                        if (waitlistRepository == null) {
+                            EventChangeNotifier.notifyFromLists(
+                                    eventId, eventTitle, registrations, null,
+                                    attendeeNotificationRepository,
+                                    AttendeeNotification.TYPE_EVENT_CANCELLED);
+                            persistCancelledFlag(eventId, eventTitle);
+                            return;
+                        }
+                        waitlistRepository.loadWaitlistForEvent(eventId,
+                                new WaitlistRepository.RepositoryCallback<List<WaitlistToEvent>>() {
+                                    @Override
+                                    public void onSuccess(List<WaitlistToEvent> entries) {
+                                        EventChangeNotifier.notifyFromLists(
+                                                eventId, eventTitle, registrations, entries,
+                                                attendeeNotificationRepository,
+                                                AttendeeNotification.TYPE_EVENT_CANCELLED);
+                                        persistCancelledFlag(eventId, eventTitle);
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        EventChangeNotifier.notifyFromLists(
+                                                eventId, eventTitle, registrations, null,
+                                                attendeeNotificationRepository,
+                                                AttendeeNotification.TYPE_EVENT_CANCELLED);
+                                        persistCancelledFlag(eventId, eventTitle);
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        persistCancelledFlag(eventId, eventTitle);
+                    }
+                });
+    }
+
+    private void persistCancelledFlag(String eventId, @Nullable String eventTitle) {
+        eventRepository.cancelEvent(eventId, new EventRepository.RepositoryCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                eventUpdateMessage.postValue("Evento cancelado");
+                eventUpdated.postValue(true);
+                isLoading.postValue(false);
+                EventActivityLogHelper.logEventCancelled(eventId);
+                if (sharedViewModel != null) {
+                    sharedViewModel.notifyEventsUpdated();
+                }
+            }
+
             @Override
             public void onError(String error) {
                 errorMessage.postValue(error);

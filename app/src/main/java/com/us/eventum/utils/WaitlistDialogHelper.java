@@ -6,6 +6,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -47,7 +48,7 @@ public final class WaitlistDialogHelper {
         closeButton.setOnClickListener(v -> dialog.dismiss());
 
         attendeeViewModel.loadEventWaitlist(eventId);
-        attendeeViewModel.getEventWaitlist().observe(activity, entries -> {
+        Observer<List<WaitlistToEvent>> waitlistObserver = entries -> {
             List<WaitlistToEvent> active = new ArrayList<>();
             if (entries != null) {
                 for (WaitlistToEvent entry : entries) {
@@ -64,7 +65,10 @@ public final class WaitlistDialogHelper {
                 return;
             }
             loadRows(activity, active, adapter);
-        });
+        };
+        attendeeViewModel.getEventWaitlist().observeForever(waitlistObserver);
+        dialog.setOnDismissListener(d ->
+                attendeeViewModel.getEventWaitlist().removeObserver(waitlistObserver));
 
         adapter.setListener((entry, displayName) ->
                 attendeeViewModel.removeFromWaitlistByOrganizer(

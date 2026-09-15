@@ -12,6 +12,21 @@ service cloud.firestore {
       return isAuthed() && request.auth.token.email_verified == true;
     }
 
+    function isEventOrganizer(eventId) {
+      return isAuthed()
+        && get(/databases/$(database)/documents/events/$(eventId)).data.userId == request.auth.uid;
+    }
+
+    // El código en texto plano no puede vivir en el documento público del evento.
+    function hasNoPlaintextAccessCode() {
+      return !('privateAccessCode' in request.resource.data);
+    }
+
+    function plaintextAccessCodeUnchangedOrRemoved() {
+      return hasNoPlaintextAccessCode()
+        || request.resource.data.privateAccessCode == resource.data.privateAccessCode;
+    }
+
     // PERFILES DE ASISTENTES - Reglas permisivas para datos de prueba
     match /attendees/{userId} {
       // Permitir crear, leer, actualizar y eliminar para cualquier usuario autenticado
@@ -25,19 +40,24 @@ service cloud.firestore {
       allow read, write: if isAuthed();
     }
 
-    // EVENTOS - Reglas permisivas para datos de prueba
+    // EVENTOS - El catálogo es público; el código privado no va en este documento
     match /events/{eventId} {
-      // Lectura pública para que todos puedan ver los eventos
       allow read: if true;
 
-      // Crear, actualizar y eliminar para cualquier usuario autenticado
-      // Esto permite que el TestDataLoader cree eventos sin problemas
-      allow create, update, delete: if isAuthed();
+      allow create: if isAuthed() && hasNoPlaintextAccessCode();
+      allow update: if isAuthed() && plaintextAccessCodeUnchangedOrRemoved();
+      allow delete: if isAuthed();
+
+      // Texto plano del código: solo el organizador del evento
+      match /secrets/{secretId} {
+        allow read, write: if isEventOrganizer(eventId);
+      }
 
       // Log de actividad del evento
       match /activityLog/{logId} {
         allow read, create: if isAuthed();
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isEventOrganizer(eventId);
       }
     }
 
@@ -69,15 +89,16 @@ service cloud.firestore {
       allow create: if isAuthed();
       // El organizador (u otro autenticado) puede leer las suyas vía query where organizerId ==
       allow read: if isAuthed();
-      // No hace falta editar ni borrar desde la app
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAuthed();
     }
 
     // Notificaciones al asistente (check-in verificado, plaza en lista de espera, etc.)
     match /attendeeNotifications/{notificationId} {
       allow create: if isAuthed();
       allow read: if isAuthed();
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAuthed();
     }
   }
 }

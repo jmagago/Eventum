@@ -1,6 +1,7 @@
 package com.us.eventum.utils;
 
 import android.content.Context;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
@@ -16,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.widget.NestedScrollView;
 
 import com.google.android.material.textfield.TextInputLayout;
+import com.us.eventum.R;
 
 public final class KeyboardUtils {
 
@@ -61,20 +63,24 @@ public final class KeyboardUtils {
 
     public static void bindExposedDropdown(@NonNull AutoCompleteTextView dropdown) {
         dropdown.setKeyListener(null);
+        dropdown.setDropDownBackgroundResource(R.drawable.bg_dropdown_popup);
         final boolean[] opening = {false};
+        TextInputLayout layout = findTextInputLayout(dropdown);
 
-        Runnable openDropdown = () -> {
+        Runnable showOnce = () -> {
+            showDropdownOnce(dropdown);
+            opening[0] = false;
+        };
+
+        Runnable toggleDropdown = () -> {
             if (opening[0]) {
                 return;
             }
+            if (dropdown.isPopupShowing()) {
+                dismissDropdown(dropdown);
+                return;
+            }
             opening[0] = true;
-            dismissDropdown(dropdown);
-
-            Runnable showOnce = () -> {
-                showDropdownOnce(dropdown);
-                opening[0] = false;
-            };
-
             if (isImeVisible(dropdown)) {
                 hide(dropdown);
                 runAfterPanelSettles(dropdown, showOnce);
@@ -83,12 +89,15 @@ public final class KeyboardUtils {
             }
         };
 
-        dropdown.setOnClickListener(v -> openDropdown.run());
-
-        ViewParent parent = dropdown.getParent();
-        if (parent instanceof TextInputLayout) {
-            TextInputLayout layout = (TextInputLayout) parent;
-            layout.setEndIconOnClickListener(v -> openDropdown.run());
+        dropdown.setOnClickListener(v -> toggleDropdown.run());
+        dropdown.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
+            return true;
+        });
+        if (layout != null) {
+            layout.setEndIconOnClickListener(v -> toggleDropdown.run());
         }
     }
 
@@ -110,6 +119,12 @@ public final class KeyboardUtils {
         if (dropdown.isPopupShowing()) {
             dropdown.dismissDropDown();
         }
+    }
+
+    @Nullable
+    private static TextInputLayout findTextInputLayout(@NonNull View view) {
+        ViewParent parent = view.getParent();
+        return parent instanceof TextInputLayout ? (TextInputLayout) parent : null;
     }
 
     private static void runAfterPanelSettles(@NonNull View anchor, @NonNull Runnable action) {

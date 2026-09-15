@@ -100,6 +100,32 @@ public final class WaitlistUtils {
         return offered != null ? offered : waiting;
     }
 
+    @NonNull
+    public static List<WaitlistToEvent> findNewestValidOffers(@Nullable List<WaitlistToEvent> entries,
+                                                              int limit) {
+        List<WaitlistToEvent> offered = new ArrayList<>();
+        if (limit <= 0) {
+            return offered;
+        }
+        long now = System.currentTimeMillis();
+        if (entries != null) {
+            for (WaitlistToEvent entry : entries) {
+                if (isValidOffer(entry, now)) {
+                    offered.add(entry);
+                }
+            }
+        }
+        Collections.sort(offered, (a, b) -> {
+            long aTime = a.getOfferedAt() != null ? a.getOfferedAt().toDate().getTime() : 0L;
+            long bTime = b.getOfferedAt() != null ? b.getOfferedAt().toDate().getTime() : 0L;
+            return Long.compare(bTime, aTime);
+        });
+        if (offered.size() > limit) {
+            return new ArrayList<>(offered.subList(0, limit));
+        }
+        return offered;
+    }
+
     @Nullable
     public static WaitlistToEvent findFirstWaiting(@Nullable List<WaitlistToEvent> entries) {
         for (WaitlistToEvent entry : sortByJoinedAt(entries)) {

@@ -52,7 +52,8 @@
             android:layout_height="wrap_content"
             android:hint="@string/hint_event_type"
             android:inputType="none"
-            android:maxLines="1" />
+            android:maxLines="1"
+            android:popupBackground="@drawable/bg_dropdown_popup" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

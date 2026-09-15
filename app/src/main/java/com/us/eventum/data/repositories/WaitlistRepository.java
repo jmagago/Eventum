@@ -1,5 +1,6 @@
 package com.us.eventum.data.repositories;
 
+import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.models.WaitlistToEvent;
 
 import java.util.List;
@@ -31,6 +32,19 @@ public interface WaitlistRepository {
     void updateWaitlistEntry(WaitlistToEvent entry, RepositoryCallback<WaitlistToEvent> callback);
 
     void deleteWaitlistEntry(String entryId, RepositoryCallback<Void> callback);
+
+    void offerNextSpot(String eventId, String entryId, int knownRegistered, int knownOffered,
+                       long offerDurationMs, RepositoryCallback<WaitlistToEvent> callback);
+
+    void expireOffer(String eventId, String entryId, RepositoryCallback<WaitlistToEvent> callback);
+
+    void revertOfferToWaiting(String eventId, String entryId, RepositoryCallback<WaitlistToEvent> callback);
+
+    void cancelEntry(String eventId, String entryId, RepositoryCallback<WaitlistToEvent> callback);
+
+    void confirmOfferAndRegister(WaitlistToEvent offer, AttendeesToEvent registration,
+                                 int knownRegistered, int knownOffered,
+                                 RepositoryCallback<AttendeesToEvent> callback);
 
     void startEventWaitlistListener(String eventId, EventWaitlistListener listener);
 

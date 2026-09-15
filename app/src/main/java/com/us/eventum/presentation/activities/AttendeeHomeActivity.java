@@ -7,8 +7,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import com.google.android.material.button.MaterialButton;
+import android.widget.BaseAdapter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import androidx.appcompat.widget.ListPopupWindow;
+import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -33,7 +37,9 @@ import com.us.eventum.presentation.fragments.AttendeeEventsFragment;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.AgeUtils;
+import com.us.eventum.utils.AttendeeEventFilter;
 import com.us.eventum.utils.AttendeeEventPanelController;
+import com.us.eventum.utils.FilterAttendeeEventsPanelController;
 import com.us.eventum.utils.EventUiMerger;
 import com.us.eventum.utils.AttendeeQrPanelController;
 import com.us.eventum.utils.EventPrivateAccessCode;
@@ -85,6 +91,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
     private boolean pendingSubscribeAction;
     private boolean pendingWaitlistAction;
     private boolean pendingConfirmWaitlistAction;
+    private boolean decliningWaitlistOffer;
     private boolean waitingProfileForSubscribe;
     private boolean profileSaveSubmitted;
     private Event pendingSubscribeEvent;
@@ -94,14 +101,25 @@ public class AttendeeHomeActivity extends AppCompatActivity
 
     private final ActivityResultLauncher<String[]> parentalAuthPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), this::onParentalAuthFilePicked);
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
 
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
     private AttendeeEventsPagerAdapter pagerAdapter;
     private TabLayoutMediator tabLayoutMediator;
+    private final List<Event> myEventsRaw = new ArrayList<>();
+    private final List<Event> discoverEventsRaw = new ArrayList<>();
+    private final List<Event> historyEventsRaw = new ArrayList<>();
     private final List<Event> myEventsList = new ArrayList<>();
     private final List<Event> discoverEventsList = new ArrayList<>();
     private final List<Event> historyEventsList = new ArrayList<>();
+    private final AttendeeEventFilter attendeeEventFilter = new AttendeeEventFilter();
+    private FilterAttendeeEventsPanelController filterEventsPanelController;
+    private ImageButton sortAttendeeEventsButton;
+    private ImageButton filterAttendeeEventsButton;
+    private LinearLayout filterIndicatorLayout;
+    private TextView filterIndicatorText;
     private AttendeeNotificationWatcher attendeeNotificationWatcher;
 
     private static final class EventDialogContext {
@@ -165,6 +183,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         // Configurar botón de settings
         setupSettingsButton();
         setupViewPager();
+        setupAttendeeFilters();
         eventPanelController = new AttendeeEventPanelController(this);
         eventPanelController.setOnHideListener(() -> {
             if (attendeeViewModel != null) {
@@ -172,13 +191,22 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 attendeeViewModel.stopListeningEventWaitlist();
             }
         });
+        eventPanelController.setOnOfferExpiredListener(() -> {
+            Event current = eventPanelController.getCurrentEvent();
+            if (current != null && current.getId() != null && attendeeViewModel != null) {
+                attendeeViewModel.promoteWaitlistIfNeeded(current.getId());
+            }
+            eventPanelController.showPanelToast(
+                    getString(R.string.waitlist_offer_no_longer_valid),
+                    ToastUtils.ToastType.WARNING);
+        });
         qrPanelController = new AttendeeQrPanelController(this);
         setupPanelBackHandler();
         observeViewModel();
         loadAvailableEvents();
 
         attendeeNotificationWatcher = new AttendeeNotificationWatcher(this);
-        NotificationPermissionHelper.requestIfNeeded(this);
+        NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher);
         AttendeeNotificationDispatcher.getLatestNotification().observe(this, notification -> {
             if (notification == null) {
                 return;
@@ -226,6 +254,14 @@ public class AttendeeHomeActivity extends AppCompatActivity
             }
         });
         tabLayoutMediator.attach();
+        applyUniformTabTextSize();
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                updateFilterIndicator();
+                updateAttendeeActionButtons();
+            }
+        });
     }
 
     @Override
@@ -268,6 +304,8 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     qrPanelController.hide();
                 } else if (eventPanelController != null && eventPanelController.isVisible()) {
                     eventPanelController.hide();
+                } else if (filterEventsPanelController != null && filterEventsPanelController.isVisible()) {
+                    filterEventsPanelController.hide();
                 } else {
                     setEnabled(false);
                     getOnBackPressedDispatcher().onBackPressed();
@@ -337,9 +375,13 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 return;
             }
             VibrationUtils.vibrateWarning(this);
-            showEventPanelToast(getString(R.string.waitlist_left_success), ToastUtils.ToastType.WARNING);
-            dismissEventDialogIfOpen();
-            switchAttendeeTab(TAB_DISCOVER);
+            if (decliningWaitlistOffer) {
+                decliningWaitlistOffer = false;
+                showEventPanelToast(getString(R.string.waitlist_offer_declined), ToastUtils.ToastType.WARNING);
+            } else {
+                showEventPanelToast(getString(R.string.waitlist_left_success), ToastUtils.ToastType.WARNING);
+                switchAttendeeTab(TAB_DISCOVER);
+            }
             attendeeViewModel.clearOperationStates();
         });
 
@@ -349,6 +391,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 pendingSubscribeAction = false;
                 pendingWaitlistAction = false;
                 pendingConfirmWaitlistAction = false;
+                decliningWaitlistOffer = false;
                 waitingProfileForSubscribe = false;
                 profileSaveSubmitted = false;
                 pendingSubscribeEvent = null;
@@ -404,39 +447,200 @@ public class AttendeeHomeActivity extends AppCompatActivity
     /**
      * Mis eventos: asistente inscrito (independiente de QR), excepto los que van a Historial.
      * Descubrir: no inscrito y fecha de hoy o futura.
-     * Historial: fecha pasada (ayer o antes) e inscrito (asistió o no).
+     * Historial: inscrito y fecha pasada, o inscrito y evento cancelado.
      */
     private void partitionAndUpdateTabs(List<Event> allEvents) {
-        myEventsList.clear();
-        discoverEventsList.clear();
-        historyEventsList.clear();
+        myEventsRaw.clear();
+        discoverEventsRaw.clear();
+        historyEventsRaw.clear();
 
         Date now = new Date();
         for (Event event : allEvents) {
             if (event == null || event.getDate() == null) {
                 continue;
             }
+            if (event.isCancelled()) {
+                if (event.isCurrentUserJoined()) {
+                    historyEventsRaw.add(event);
+                }
+                continue;
+            }
             if (event.isCurrentUserJoined()) {
                 if (isBeforeToday(event.getDate())) {
-                    historyEventsList.add(event);
+                    historyEventsRaw.add(event);
                 } else {
-                    myEventsList.add(event);
+                    myEventsRaw.add(event);
                 }
             } else if (event.isCurrentUserOnWaitlist()) {
-                myEventsList.add(event);
+                myEventsRaw.add(event);
             } else if (!event.getDate().before(now)) {
-                discoverEventsList.add(event);
+                discoverEventsRaw.add(event);
             }
         }
 
-        myEventsList.sort((a, b) -> a.getDate().compareTo(b.getDate()));
-        discoverEventsList.sort((a, b) -> a.getDate().compareTo(b.getDate()));
-        historyEventsList.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+        publishFilteredEvents();
+    }
+
+    private void setupAttendeeFilters() {
+        filterIndicatorLayout = findViewById(R.id.filterIndicatorLayout);
+        filterIndicatorText = findViewById(R.id.filterIndicatorText);
+        sortAttendeeEventsButton = findViewById(R.id.sortAttendeeEventsButton);
+        filterAttendeeEventsButton = findViewById(R.id.filterAttendeeEventsButton);
+        View clearFiltersButton = findViewById(R.id.clearFiltersButton);
+
+        filterEventsPanelController = new FilterAttendeeEventsPanelController(
+                this,
+                filter -> publishFilteredEvents(),
+                () -> attendeeEventFilter,
+                this::currentAttendeeTab);
+
+        if (sortAttendeeEventsButton != null) {
+            sortAttendeeEventsButton.setOnClickListener(v -> showAttendeeSortMenu());
+        }
+        if (filterAttendeeEventsButton != null) {
+            filterAttendeeEventsButton.setOnClickListener(v -> {
+                if (filterEventsPanelController != null) {
+                    filterEventsPanelController.show();
+                }
+            });
+        }
+        if (clearFiltersButton != null) {
+            clearFiltersButton.setOnClickListener(v -> {
+                attendeeEventFilter.clearSharedCriteria();
+                attendeeEventFilter.setMyStatus(AttendeeEventFilter.Status.ALL);
+                attendeeEventFilter.setDiscoverStatus(AttendeeEventFilter.Status.ALL);
+                publishFilteredEvents();
+            });
+        }
+        updateAttendeeActionButtons();
+    }
+
+    private int currentAttendeeTab() {
+        return viewPager != null ? viewPager.getCurrentItem() : AttendeeEventFilter.TAB_MY_EVENTS;
+    }
+
+    private void publishFilteredEvents() {
+        replaceList(myEventsList, attendeeEventFilter.apply(myEventsRaw, AttendeeEventFilter.TAB_MY_EVENTS));
+        replaceList(discoverEventsList, attendeeEventFilter.apply(discoverEventsRaw, AttendeeEventFilter.TAB_DISCOVER));
+        replaceList(historyEventsList, attendeeEventFilter.apply(historyEventsRaw, AttendeeEventFilter.TAB_HISTORY));
 
         if (pagerAdapter != null) {
             pagerAdapter.updateEvents(myEventsList, discoverEventsList, historyEventsList);
         }
         updateTabLabels();
+        updateFilterIndicator();
+        updateAttendeeActionButtons();
+    }
+
+    private static void replaceList(List<Event> target, List<Event> source) {
+        target.clear();
+        target.addAll(source);
+    }
+
+    private void updateFilterIndicator() {
+        if (filterIndicatorLayout == null || filterIndicatorText == null) {
+            return;
+        }
+        int tab = currentAttendeeTab();
+        if (attendeeEventFilter.hasActiveFilters(tab)) {
+            filterIndicatorLayout.setVisibility(View.VISIBLE);
+            filterIndicatorText.setText(getString(
+                    R.string.filters_summary,
+                    attendeeEventFilter.getActiveFiltersSummary(this, tab)));
+        } else {
+            filterIndicatorLayout.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateAttendeeActionButtons() {
+        int tab = currentAttendeeTab();
+        int rawCount = rawCountForTab(tab);
+        boolean sortEnabled = tab != AttendeeEventFilter.TAB_HISTORY && rawCount > 1;
+        boolean filterEnabled = rawCount > 0 || attendeeEventFilter.hasActiveFilters(tab);
+
+        if (sortAttendeeEventsButton != null) {
+            sortAttendeeEventsButton.setEnabled(sortEnabled);
+            sortAttendeeEventsButton.setAlpha(sortEnabled ? 1f : 0.38f);
+        }
+        if (filterAttendeeEventsButton != null) {
+            filterAttendeeEventsButton.setEnabled(filterEnabled);
+            filterAttendeeEventsButton.setAlpha(filterEnabled ? 1f : 0.38f);
+        }
+    }
+
+    private int rawCountForTab(int tab) {
+        if (tab == AttendeeEventFilter.TAB_DISCOVER) {
+            return discoverEventsRaw.size();
+        }
+        if (tab == AttendeeEventFilter.TAB_HISTORY) {
+            return historyEventsRaw.size();
+        }
+        return myEventsRaw.size();
+    }
+
+    private void showAttendeeSortMenu() {
+        if (sortAttendeeEventsButton == null || !sortAttendeeEventsButton.isEnabled()) {
+            return;
+        }
+        int tab = currentAttendeeTab();
+        final AttendeeEventFilter.Sort[] options = tab == AttendeeEventFilter.TAB_DISCOVER
+                ? new AttendeeEventFilter.Sort[] {
+                    AttendeeEventFilter.Sort.DATE_ASC,
+                    AttendeeEventFilter.Sort.DATE_DESC,
+                    AttendeeEventFilter.Sort.FREE_SPOTS_DESC
+                }
+                : new AttendeeEventFilter.Sort[] {
+                    AttendeeEventFilter.Sort.DATE_ASC,
+                    AttendeeEventFilter.Sort.DATE_DESC
+                };
+        final AttendeeEventFilter.Sort activeSort = attendeeEventFilter.sortForTab(tab);
+        ListPopupWindow popup = new ListPopupWindow(this);
+        popup.setAnchorView(sortAttendeeEventsButton);
+        popup.setModal(true);
+        popup.setBackgroundDrawable(ContextCompat.getDrawable(this, R.drawable.bg_sort_popup));
+        float density = getResources().getDisplayMetrics().density;
+        popup.setWidth((int) (240 * density));
+        popup.setVerticalOffset((int) (4 * density));
+        popup.setAdapter(new BaseAdapter() {
+            @Override
+            public int getCount() {
+                return options.length;
+            }
+
+            @Override
+            public AttendeeEventFilter.Sort getItem(int position) {
+                return options[position];
+            }
+
+            @Override
+            public long getItemId(int position) {
+                return position;
+            }
+
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                View optionView = convertView;
+                if (optionView == null) {
+                    optionView = getLayoutInflater().inflate(R.layout.item_sort_option, parent, false);
+                }
+                AttendeeEventFilter.Sort sort = options[position];
+                TextView titleView = optionView.findViewById(R.id.sortOptionTitle);
+                ImageView checkView = optionView.findViewById(R.id.sortOptionCheck);
+                titleView.setText(attendeeEventFilter.sortLabelRes(sort));
+                boolean selected = sort == activeSort;
+                checkView.setVisibility(selected ? View.VISIBLE : View.GONE);
+                titleView.setTypeface(null, selected
+                        ? android.graphics.Typeface.BOLD
+                        : android.graphics.Typeface.NORMAL);
+                return optionView;
+            }
+        });
+        popup.setOnItemClickListener((parent, view, position, id) -> {
+            attendeeEventFilter.setSortForTab(tab, options[position]);
+            publishFilteredEvents();
+            popup.dismiss();
+        });
+        popup.show();
     }
 
     private boolean isBeforeToday(Date date) {
@@ -464,6 +668,34 @@ public class AttendeeHomeActivity extends AppCompatActivity
         if (historyTab != null) {
             historyTab.setText(getString(R.string.attendee_tab_history_count, historyEventsList.size()));
         }
+        applyUniformTabTextSize();
+    }
+
+    private void applyUniformTabTextSize() {
+        if (tabLayout == null) {
+            return;
+        }
+        tabLayout.post(() -> {
+            for (int i = 0; i < tabLayout.getTabCount(); i++) {
+                TabLayout.Tab tab = tabLayout.getTabAt(i);
+                if (tab == null) {
+                    continue;
+                }
+                for (int c = 0; c < tab.view.getChildCount(); c++) {
+                    View child = tab.view.getChildAt(c);
+                    if (!(child instanceof TextView)) {
+                        continue;
+                    }
+                    TextView label = (TextView) child;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        label.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE);
+                    }
+                    label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+                    label.setMaxLines(1);
+                    label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                }
+            }
+        });
     }
 
     private boolean isHistoryEvent(Event event) {
@@ -525,6 +757,17 @@ public class AttendeeHomeActivity extends AppCompatActivity
         ToastUtils.showCustomToast(this,
                 "Solo el organizador puede cambiar la privacidad del evento",
                 ToastUtils.ToastType.INFO);
+    }
+
+    @Override
+    public boolean hasActiveAttendeeFilters(AttendeeEventsFragment.TabType tabType) {
+        int tab = AttendeeEventFilter.TAB_MY_EVENTS;
+        if (tabType == AttendeeEventsFragment.TabType.DISCOVER) {
+            tab = AttendeeEventFilter.TAB_DISCOVER;
+        } else if (tabType == AttendeeEventsFragment.TabType.HISTORY) {
+            tab = AttendeeEventFilter.TAB_HISTORY;
+        }
+        return attendeeEventFilter.hasActiveFilters(tab);
     }
 
     @Override
@@ -761,19 +1004,16 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 event.getMaxParticipants(),
                 event.getCurrentParticipants(),
                 event.getMaxParticipants());
-        if (isEventFull && event.getWaitlistCount() > 0) {
-            participantsLabel = participantsLabel + " · "
-                    + getString(R.string.waitlist_count_suffix, event.getWaitlistCount());
-        }
         participantsText.setText(participantsLabel);
         participantsText.setTextColor(getResources().getColor(
                 isEventFull ? android.R.color.holo_red_dark : R.color.colorSecondaryText,
                 getTheme()));
 
-        if (historyMode) {
+        if (historyMode || event.isCancelled()) {
             joinButton.setEnabled(false);
             joinButton.setAlpha(0.5f);
             eventPanelController.setQrButtonVisible(false);
+            eventPanelController.setDeclineOfferVisible(false);
             eventPanelController.updateWaitlistStatus(null, 0, null);
             eventPanelController.updatePrivateCodeVisibility(false);
             joinButton.setText(event.isCurrentUserJoined()
@@ -787,6 +1027,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             joinButton.setEnabled(true);
             joinButton.setAlpha(1f);
             eventPanelController.setQrButtonVisible(true);
+            eventPanelController.setDeclineOfferVisible(false);
             eventPanelController.updatePrivateCodeVisibility(false);
             eventPanelController.updateWaitlistStatus(null, 0, null);
             joinButton.setOnClickListener(v -> unsubscribeFromEvent(event, userEmail));
@@ -794,6 +1035,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         }
 
         eventPanelController.setQrButtonVisible(false);
+        eventPanelController.setDeclineOfferVisible(false);
         com.us.eventum.data.models.WaitlistToEvent entry =
                 attendeeViewModel.getCurrentUserWaitlistEntry().getValue();
         boolean hasOffer = event.isCurrentUserWaitlistOffered()
@@ -811,6 +1053,11 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     0,
                     expiresAt);
             eventPanelController.updatePrivateCodeVisibility(false);
+            eventPanelController.setDeclineOfferVisible(true);
+            MaterialButton declineButton = eventPanelController.getDeclineOfferButton();
+            if (declineButton != null) {
+                declineButton.setOnClickListener(v -> declineWaitlistOffer(event));
+            }
             joinButton.setText(R.string.waitlist_confirm_spot);
             joinButton.setEnabled(true);
             joinButton.setAlpha(1f);
@@ -849,14 +1096,21 @@ public class AttendeeHomeActivity extends AppCompatActivity
         joinButton.setOnClickListener(v -> subscribeToEvent(userEmail));
     }
 
+    private void declineWaitlistOffer(Event event) {
+        decliningWaitlistOffer = true;
+        leaveWaitlist(event);
+    }
+
     private void leaveWaitlist(Event event) {
         String userId = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
         if (userId == null || event == null) {
+            decliningWaitlistOffer = false;
             return;
         }
         if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            decliningWaitlistOffer = false;
             return;
         }
         attendeeViewModel.leaveWaitlist(event.getId(), userId, resolveAttendeeDisplayName());
@@ -1007,12 +1261,11 @@ public class AttendeeHomeActivity extends AppCompatActivity
             eventPanelController.showAccessCodeFormatError();
             return false;
         }
-        String expectedCode = currentEvent.getPrivateAccessCode();
-        if (expectedCode == null || expectedCode.trim().isEmpty()) {
+        if (!EventPrivateAccessCode.isConfigured(currentEvent)) {
             showEventPanelToast(getString(R.string.private_access_code_not_set), ToastUtils.ToastType.ERROR);
             return false;
         }
-        if (!EventPrivateAccessCode.matches(enteredCode, expectedCode)) {
+        if (!EventPrivateAccessCode.matchesEvent(enteredCode, currentEvent)) {
             eventPanelController.showWrongAccessCodeError();
             return false;
         }
@@ -1089,14 +1342,13 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 eventPanelController.showAccessCodeFormatError();
                 return;
             }
-            String expectedCode = currentEvent.getPrivateAccessCode();
-            if (expectedCode == null || expectedCode.trim().isEmpty()) {
+            if (!EventPrivateAccessCode.isConfigured(currentEvent)) {
                 showEventPanelToast(
                         getString(R.string.private_access_code_not_set),
                         ToastUtils.ToastType.ERROR);
                 return;
             }
-            if (!EventPrivateAccessCode.matches(enteredCode, expectedCode)) {
+            if (!EventPrivateAccessCode.matchesEvent(enteredCode, currentEvent)) {
                 eventPanelController.showWrongAccessCodeError();
                 return;
             }
@@ -1266,6 +1518,9 @@ public class AttendeeHomeActivity extends AppCompatActivity
             ToastUtils.showCustomToast(this, getString(R.string.attendee_qr_error), ToastUtils.ToastType.ERROR);
             return;
         }
+        if (!event.isCurrentUserJoined() || event.isCancelled()) {
+            return;
+        }
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             ToastUtils.showCustomToast(this, getString(R.string.attendee_qr_error), ToastUtils.ToastType.ERROR);
             return;
@@ -1367,17 +1622,19 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 return;
             }
 
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                    .setTitle("Importante")
-                    .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) no se podrán modificar posteriormente. ¿Deseas continuar?")
-                    .setPositiveButton("Aceptar", (d, w) -> {
+            com.us.eventum.utils.AttendeeProfileDialogHelper.ensureDniUniqueThen(
+                    this,
+                    attendeeViewModel,
+                    dniLayout,
+                    dialogView.findViewById(R.id.saveButton),
+                    dni,
+                    attendee.getUid(),
+                    () -> com.us.eventum.utils.AttendeeProfileDialogHelper.showSaveConfirm(this, () -> {
                         profileSaveSubmitted = true;
                         attendeeViewModel.updateAttendee(
                                 attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                         dialog.dismiss();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+                    }));
         });
 
         activeCompleteProfileDialog = dialog;

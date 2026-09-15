@@ -3,6 +3,11 @@ package com.us.eventum.utils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.us.eventum.data.models.Event;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
@@ -51,5 +56,47 @@ public final class EventPrivateAccessCode {
         }
         String trimmedEntered = normalize(entered);
         return trimmedExpected.equals(trimmedEntered);
+    }
+
+    @NonNull
+    public static String hash(@Nullable String code) {
+        String normalized = normalize(code);
+        if (normalized == null) {
+            return "";
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no disponible", e);
+        }
+    }
+
+    public static boolean hasHash(@Nullable String hash) {
+        return hash != null && !hash.trim().isEmpty();
+    }
+
+    public static boolean isConfigured(@Nullable Event event) {
+        if (event == null) {
+            return false;
+        }
+        return normalize(event.getPrivateAccessCode()) != null
+                || hasHash(event.getPrivateAccessCodeHash());
+    }
+
+    public static boolean matchesEvent(@Nullable String entered, @Nullable Event event) {
+        if (event == null || !isValidFormat(entered)) {
+            return false;
+        }
+        if (matches(entered, event.getPrivateAccessCode())) {
+            return true;
+        }
+        String expectedHash = event.getPrivateAccessCodeHash();
+        return hasHash(expectedHash) && expectedHash.equalsIgnoreCase(hash(entered));
     }
 }

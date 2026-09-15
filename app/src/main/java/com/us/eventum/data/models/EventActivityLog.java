@@ -15,6 +15,7 @@ public class EventActivityLog {
     public static final String TYPE_REMOVED = "REMOVED";
     public static final String TYPE_LIST_CLEARED = "LIST_CLEARED";
     public static final String TYPE_EVENT_UPDATED = "EVENT_UPDATED";
+    public static final String TYPE_EVENT_CANCELLED = "EVENT_CANCELLED";
     public static final String TYPE_WAITLIST_JOINED = "WAITLIST_JOINED";
     public static final String TYPE_WAITLIST_LEFT = "WAITLIST_LEFT";
     public static final String TYPE_WAITLIST_OFFERED = "WAITLIST_OFFERED";

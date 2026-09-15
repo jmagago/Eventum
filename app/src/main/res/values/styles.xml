@@ -96,7 +96,10 @@
     <!-- Estilo para diálogos de alerta -->
     <style name="AlertDialogTheme" parent="ThemeOverlay.Material3.Dialog.Alert">
         <item name="materialAlertDialogTitleTextStyle">@style/DialogTitleStyle</item>
-        <item name="android:background">@android:color/white</item>
+        <item name="android:background">@color/colorWhite</item>
+        <item name="backgroundTint">@color/colorWhite</item>
+        <item name="colorSurface">@color/colorWhite</item>
+        <item name="colorSurfaceContainerHigh">@color/colorWhite</item>
         <item name="buttonBarPositiveButtonStyle">@style/DialogButtonStyle</item>
         <item name="buttonBarNegativeButtonStyle">@style/DialogButtonStyle</item>
     </style>
@@ -207,9 +210,10 @@
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <style name="TextAppearance.Eventum.Helper" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:textSize">12sp</item>
-        <item name="android:textColor">@color/colorSecondaryText</item>
+    <style name="TextAppearance.Eventum.AttendeeTab" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="textAllCaps">false</item>
     </style>
 
     <!-- Estilo para hacer el FAB perfectamente circular (Material 3) -->

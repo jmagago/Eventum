@@ -15,10 +15,12 @@ import android.widget.TextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.us.eventum.R;
 import com.us.eventum.config.AppConfig;
 import com.us.eventum.data.models.Attendee;
+import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -53,12 +55,47 @@ public final class AttendeeProfileDialogHelper {
         overlay.setClickable(true);
         overlay.setFocusable(true);
 
-        FrameLayout.LayoutParams contentLp = new FrameLayout.LayoutParams(
+        overlay.addView(content, modalContentParams(true));
+        return overlay;
+    }
+
+    public static View wrapWithCenteredScrim(@NonNull Activity activity, @NonNull View content) {
+        FrameLayout overlay = new FrameLayout(activity);
+        overlay.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        overlay.setBackgroundColor(0x99000000);
+        overlay.setClickable(true);
+        overlay.setFocusable(true);
+        int widthPx = Math.round(350 * activity.getResources().getDisplayMetrics().density);
+        FrameLayout.LayoutParams contentLp = new FrameLayout.LayoutParams(
+                widthPx,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER);
         overlay.addView(content, contentLp);
         return overlay;
+    }
+
+    @NonNull
+    private static FrameLayout.LayoutParams modalContentParams(boolean fullWidth) {
+        return new FrameLayout.LayoutParams(
+                fullWidth ? ViewGroup.LayoutParams.MATCH_PARENT : ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER);
+    }
+
+    public static void showSaveConfirm(@NonNull Activity activity, @NonNull Runnable onConfirm) {
+        View content = activity.getLayoutInflater().inflate(R.layout.dialog_profile_save_confirm, null);
+        Dialog confirm = new Dialog(activity);
+        confirm.setContentView(wrapWithCenteredScrim(activity, content));
+        confirm.setCancelable(true);
+        applyModalDialogWindow(confirm);
+        content.findViewById(R.id.profileSaveConfirmCancel).setOnClickListener(v -> confirm.dismiss());
+        content.findViewById(R.id.profileSaveConfirmSave).setOnClickListener(v -> {
+            confirm.dismiss();
+            onConfirm.run();
+        });
+        confirm.show();
     }
 
     public static void applyModalDialogWindow(@NonNull Dialog dialog) {
@@ -88,6 +125,29 @@ public final class AttendeeProfileDialogHelper {
         }
         AnimationUtils.clearErrorWithAnimation(dniLayout);
         return true;
+    }
+
+    public static void ensureDniUniqueThen(@NonNull Context context,
+                                           @NonNull AttendeeViewModel viewModel,
+                                           @NonNull TextInputLayout dniLayout,
+                                           @NonNull View saveButton,
+                                           @NonNull String dni,
+                                           @Nullable String excludeUid,
+                                           @NonNull Runnable onAvailable) {
+        saveButton.setEnabled(false);
+        viewModel.checkDniAvailability(dni, excludeUid, (available, error) -> {
+            saveButton.setEnabled(true);
+            if (error != null && !error.isEmpty()) {
+                AnimationUtils.showErrorWithAnimation(dniLayout, error);
+                return;
+            }
+            if (!available) {
+                AnimationUtils.showErrorWithAnimation(dniLayout, context.getString(R.string.dni_already_in_use));
+                return;
+            }
+            AnimationUtils.clearErrorWithAnimation(dniLayout);
+            onAvailable.run();
+        });
     }
 
     public static void setupBirthDatePicker(Activity activity, TextInputEditText birthDateInput) {
@@ -135,7 +195,7 @@ public final class AttendeeProfileDialogHelper {
     }
 
     public static void populateFields(View dialogView, Attendee attendee) {
-        TextInputEditText usernameInput = dialogView.findViewById(R.id.usernameInput);
+        TextView usernameValue = dialogView.findViewById(R.id.usernameValue);
         TextInputEditText nameInput = dialogView.findViewById(R.id.nameInput);
         TextInputEditText firstSurnameInput = dialogView.findViewById(R.id.firstSurnameInput);
         TextInputEditText secondSurnameInput = dialogView.findViewById(R.id.secondSurnameInput);
@@ -143,8 +203,18 @@ public final class AttendeeProfileDialogHelper {
         TextInputEditText phoneInput = dialogView.findViewById(R.id.phoneInput);
         TextInputEditText birthDateInput = dialogView.findViewById(R.id.birthDateInput);
 
-        if (attendee.getUsername() != null) {
-            usernameInput.setText(attendee.getUsername());
+        View usernameRow = dialogView.findViewById(R.id.usernameRow);
+        if (usernameValue != null) {
+            String username = attendee.getUsername();
+            boolean hasUsername = username != null && !username.trim().isEmpty();
+            if (hasUsername) {
+                usernameValue.setText(username.trim());
+            }
+            if (usernameRow != null) {
+                usernameRow.setVisibility(hasUsername ? View.VISIBLE : View.GONE);
+            } else {
+                usernameValue.setVisibility(hasUsername ? View.VISIBLE : View.GONE);
+            }
         }
         if (attendee.getNombre() != null) {
             nameInput.setText(attendee.getNombre());

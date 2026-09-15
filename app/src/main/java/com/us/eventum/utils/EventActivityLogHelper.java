@@ -54,6 +54,10 @@ public final class EventActivityLogHelper {
         append(eventId, EventActivityLog.TYPE_EVENT_UPDATED, null, null);
     }
 
+    public static void logEventCancelled(String eventId) {
+        append(eventId, EventActivityLog.TYPE_EVENT_CANCELLED, null, null);
+    }
+
     public static void logWaitlistJoined(String eventId, @Nullable String attendeeName) {
         append(eventId, EventActivityLog.TYPE_WAITLIST_JOINED, attendeeName, null);
     }

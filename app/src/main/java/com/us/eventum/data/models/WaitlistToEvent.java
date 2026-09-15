@@ -109,6 +109,15 @@ public class WaitlistToEvent {
     }
 
     public boolean isActiveForUser() {
-        return STATUS_WAITING.equals(status) || STATUS_OFFERED.equals(status);
+        if (STATUS_WAITING.equals(status)) {
+            return true;
+        }
+        if (!STATUS_OFFERED.equals(status)) {
+            return false;
+        }
+        if (offerExpiresAt == null || offerExpiresAt.toDate() == null) {
+            return false;
+        }
+        return offerExpiresAt.toDate().getTime() > System.currentTimeMillis();
     }
 }

@@ -108,7 +108,7 @@ public final class EditEventPanelController {
         if (sheet == null) {
             return;
         }
-        currentEvent = event;
+        currentEvent = EventUiMerger.copyForEdit(event);
         saveListener = listener;
         pendingImageUri = null;
         populateForm(event);
@@ -596,6 +596,8 @@ public final class EditEventPanelController {
             currentEvent.setRequiresParentalAuth(newRequiresParentalAuth);
             currentEvent.setPrivateAccessCode(EventPrivateAccessCode.normalize(
                     newPrivateState ? accessCode : null));
+            currentEvent.setPrivateAccessCodeHash(newPrivateState
+                    ? EventPrivateAccessCode.hash(accessCode) : null);
 
             if (dataChanged) {
                 eventViewModel.updateEvent(eventId, title, description, newDate,

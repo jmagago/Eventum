@@ -43,7 +43,10 @@ import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 import com.us.eventum.R;
+import com.us.eventum.data.models.Event;
+import com.us.eventum.data.repositories.EventRepository;
 import com.us.eventum.data.repositories.FirebaseManager;
+import com.us.eventum.data.repositories.firebase.FirebaseEventRepository;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
 import com.us.eventum.utils.AttendeeQrToken;
 import com.us.eventum.utils.VibrationUtils;
@@ -104,6 +107,22 @@ public class QRScannerActivity extends AppCompatActivity {
         attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
         attendeeViewModel.initializeRepository(this);
         attendeeViewModel.clearOperationStates();
+
+        new FirebaseEventRepository()
+                .getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
+                    @Override
+                    public void onSuccess(Event event) {
+                        if (event != null && event.isCancelled()) {
+                            finishingEarly = true;
+                            showMessageAndFinish(getString(R.string.qr_scanner_event_cancelled));
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        // Si no se puede leer el evento, el escáner sigue; el check-in fallará después.
+                    }
+                });
 
         previewView = findViewById(R.id.preview_view);
         scanStatusCard = findViewById(R.id.scanStatusCard);

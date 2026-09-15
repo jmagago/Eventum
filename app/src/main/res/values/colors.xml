@@ -34,10 +34,11 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- Colores para el estado de verificación de asistentes -->
-    <color name="attendee_verified_stroke">#A5D6A7</color>
+    <color name="attendee_verified_stroke">#43A047</color>
     <color name="attendee_not_attended_stroke">#E57373</color>
-    <color name="attendee_waitlist_stroke">#FFB74D</color>
+    <color name="attendee_waitlist_stroke">#D4AF37</color>
     <color name="waitlist_accent">#F57C00</color>
+    <color name="event_cancelled_stroke">#212121</color>
     
     <!-- Colores para los toasts personalizados -->
     <color name="error">#F44336</color>

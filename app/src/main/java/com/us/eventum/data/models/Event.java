@@ -17,8 +17,14 @@ public class Event implements Parcelable {
     private String eventType;
     private int currentParticipants;
     private boolean privateEvent;
+    /** Solo en memoria (organizador). El texto plano vive en events/{id}/secrets/access. */
     private String privateAccessCode;
+    /** SHA-256 del código; es lo único que se persiste en el documento público. */
+    private String privateAccessCodeHash;
     private boolean requiresParentalAuth;
+    /** Anulado por el organizador; el documento sigue existiendo. */
+    private boolean cancelled;
+    private Date cancelledAt;
     /** Solo UI (lista de asistente): inscripción del usuario actual; no se persiste en Firestore. */
     private boolean currentUserJoined;
     /** Solo UI (lista de asistente): check-in QR validado; no se persiste en Firestore. */
@@ -175,14 +181,49 @@ public class Event implements Parcelable {
         this.requiresParentalAuth = requiresParentalAuth;
     }
 
-    @PropertyName("privateAccessCode")
+    @PropertyName("cancelled")
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @PropertyName("cancelled")
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+
+    @PropertyName("cancelledAt")
+    public Date getCancelledAt() {
+        return cancelledAt;
+    }
+
+    @PropertyName("cancelledAt")
+    public void setCancelledAt(Date cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    @Exclude
+    public boolean isUpcoming(@androidx.annotation.Nullable Date now) {
+        return !cancelled && date != null && now != null && date.after(now);
+    }
+
+    @Exclude
     public String getPrivateAccessCode() {
         return privateAccessCode;
     }
 
-    @PropertyName("privateAccessCode")
+    @Exclude
     public void setPrivateAccessCode(String privateAccessCode) {
         this.privateAccessCode = privateAccessCode;
+    }
+
+    @PropertyName("privateAccessCodeHash")
+    public String getPrivateAccessCodeHash() {
+        return privateAccessCodeHash;
+    }
+
+    @PropertyName("privateAccessCodeHash")
+    public void setPrivateAccessCodeHash(String privateAccessCodeHash) {
+        this.privateAccessCodeHash = privateAccessCodeHash;
     }
 
     @Exclude
@@ -260,6 +301,24 @@ public class Event implements Parcelable {
         return currentUserWaitlisted || currentUserWaitlistOffered;
     }
 
+    @Exclude
+    public boolean hasFreeSpot() {
+        return currentParticipants >= 0 && currentParticipants < maxParticipants;
+    }
+
+    @Exclude
+    public boolean isAtCapacity() {
+        return currentParticipants >= 0 && currentParticipants >= maxParticipants;
+    }
+
+    @Exclude
+    public int getFreeSpots() {
+        if (currentParticipants < 0) {
+            return 0;
+        }
+        return Math.max(0, maxParticipants - currentParticipants);
+    }
+
     // Constructor para Parcelable
     protected Event(Parcel in) {
         id = in.readString();
@@ -274,6 +333,7 @@ public class Event implements Parcelable {
         currentParticipants = in.readInt();
         privateEvent = in.readByte() != 0;
         privateAccessCode = in.readString();
+        privateAccessCodeHash = in.readString();
         requiresParentalAuth = in.readByte() != 0;
         currentUserJoined = in.readByte() != 0;
         currentUserScannedQR = in.readByte() != 0;
@@ -283,6 +343,9 @@ public class Event implements Parcelable {
         long offerExpiry = in.readLong();
         waitlistOfferExpiresAt = offerExpiry != -1 ? new Date(offerExpiry) : null;
         waitlistCount = in.readInt();
+        cancelled = in.readByte() != 0;
+        long cancelledAtMillis = in.readLong();
+        cancelledAt = cancelledAtMillis != -1 ? new Date(cancelledAtMillis) : null;
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -315,6 +378,7 @@ public class Event implements Parcelable {
         dest.writeInt(currentParticipants);
         dest.writeByte((byte) (privateEvent ? 1 : 0));
         dest.writeString(privateAccessCode);
+        dest.writeString(privateAccessCodeHash);
         dest.writeByte((byte) (requiresParentalAuth ? 1 : 0));
         dest.writeByte((byte) (currentUserJoined ? 1 : 0));
         dest.writeByte((byte) (currentUserScannedQR ? 1 : 0));
@@ -323,6 +387,8 @@ public class Event implements Parcelable {
         dest.writeInt(currentUserWaitlistPosition);
         dest.writeLong(waitlistOfferExpiresAt != null ? waitlistOfferExpiresAt.getTime() : -1);
         dest.writeInt(waitlistCount);
+        dest.writeByte((byte) (cancelled ? 1 : 0));
+        dest.writeLong(cancelledAt != null ? cancelledAt.getTime() : -1);
     }
 }
 

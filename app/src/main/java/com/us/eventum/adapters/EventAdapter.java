@@ -15,6 +15,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Event;
+import com.us.eventum.utils.EventCapacityFormatter;
 import com.us.eventum.utils.EventImageManager;
 import com.us.eventum.utils.LocaleUtils;
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -102,6 +103,10 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 || oldEvent.getId() == null || newEvent.getId() == null
                 || !oldEvent.getId().equals(newEvent.getId())) {
             notifyItemChanged(position);
+            return;
+        }
+        if (oldEvent == newEvent) {
+            notifyItemChanged(position, new EventChangePayload(EventChangePayload.FLAG_STATS));
             return;
         }
         int flags = EventChangePayload.computeFlags(oldEvent, newEvent);
@@ -203,6 +208,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         private TextView participantsText;
         private TextView timeText;
         private ImageView privateIcon;
+        private TextView cancelledBadge;
         private ImageButton qrButton;
         private SimpleDateFormat displayDateFormat;
 
@@ -216,6 +222,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             participantsText = itemView.findViewById(R.id.eventParticipantsTextView);
             timeText = itemView.findViewById(R.id.eventTimeTextView);
             privateIcon = itemView.findViewById(R.id.eventPrivateIcon);
+            cancelledBadge = itemView.findViewById(R.id.eventCancelledBadge);
             qrButton = itemView.findViewById(R.id.eventQrButton);
             displayDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", com.us.eventum.utils.LocaleUtils.spanish());
 
@@ -272,6 +279,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         void bindMetadata(Event event) {
             titleText.setText(event.getTitle());
 
+            bindStatusBadge(event);
+
             boolean historyMode = cardDisplayMode == CardDisplayMode.HISTORY;
             itemView.setAlpha(historyMode ? 0.72f : 1f);
 
@@ -307,39 +316,95 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 participantsText.setText(itemView.getContext().getString(R.string.event_participants_load_error));
                 participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorError, itemView.getContext().getTheme()));
             } else {
-                participantsText.setText(itemView.getContext().getResources().getQuantityString(
-                        R.plurals.event_participants_count,
-                        event.getMaxParticipants(),
+                participantsText.setText(EventCapacityFormatter.participantsWithWaitlist(
+                        itemView.getContext(),
                         event.getCurrentParticipants(),
-                        event.getMaxParticipants()));
+                        event.getMaxParticipants(),
+                        event.isCancelled() ? 0 : event.getWaitlistCount()));
                 participantsText.setTextColor(itemView.getContext().getResources().getColor(R.color.colorSecondaryText, itemView.getContext().getTheme()));
             }
 
             applyEnrolledCardStyle(event);
             bindQrQuickAction(event);
+            bindStatusBadge(event);
+        }
+
+        private void bindStatusBadge(Event event) {
+            if (cancelledBadge == null) {
+                return;
+            }
+            if (event.isCancelled()) {
+                cancelledBadge.setText(R.string.event_cancelled_badge);
+                cancelledBadge.setBackgroundResource(R.drawable.bg_event_cancelled_badge);
+                cancelledBadge.setContentDescription(itemView.getContext().getString(R.string.cd_event_cancelled));
+                cancelledBadge.setVisibility(View.VISIBLE);
+                return;
+            }
+            if (cardDisplayMode == CardDisplayMode.HISTORY) {
+                if (event.isCurrentUserScannedQR()) {
+                    cancelledBadge.setText(R.string.event_attended_badge);
+                    cancelledBadge.setBackgroundResource(R.drawable.bg_event_attended_badge);
+                    cancelledBadge.setContentDescription(
+                            itemView.getContext().getString(R.string.cd_event_attended));
+                } else {
+                    cancelledBadge.setText(R.string.event_missed_badge);
+                    cancelledBadge.setBackgroundResource(R.drawable.bg_event_missed_badge);
+                    cancelledBadge.setContentDescription(
+                            itemView.getContext().getString(R.string.cd_event_missed));
+                }
+                cancelledBadge.setVisibility(View.VISIBLE);
+                return;
+            }
+            cancelledBadge.setVisibility(View.GONE);
         }
 
         private void bindQrQuickAction(Event event) {
             if (!showQrQuickAction || qrButton == null
-                    || cardDisplayMode == CardDisplayMode.HISTORY) {
+                    || cardDisplayMode == CardDisplayMode.HISTORY
+                    || event.isCancelled()) {
                 if (qrButton != null) {
                     qrButton.setVisibility(View.GONE);
                 }
                 return;
             }
+            boolean enrolled = event.isCurrentUserJoined();
+            boolean waitlisted = event.isCurrentUserOnWaitlist();
+            if (!enrolled && !waitlisted) {
+                qrButton.setVisibility(View.GONE);
+                return;
+            }
             qrButton.setVisibility(View.VISIBLE);
-            qrButton.setOnClickListener(v -> {
-                int position = getBindingAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null
-                        && position < events.size()) {
-                    EventAdapter.this.listener.onEventQrClick(events.get(position));
-                }
-            });
+            int accent = ContextCompat.getColor(itemView.getContext(), R.color.colorAccent);
+            qrButton.setImageTintList(ColorStateList.valueOf(accent));
+            if (enrolled) {
+                qrButton.setEnabled(true);
+                qrButton.setAlpha(1f);
+                qrButton.setOnClickListener(v -> {
+                    int position = getBindingAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION && EventAdapter.this.listener != null
+                            && position < events.size()) {
+                        EventAdapter.this.listener.onEventQrClick(events.get(position));
+                    }
+                });
+            } else {
+                qrButton.setEnabled(false);
+                qrButton.setClickable(false);
+                qrButton.setAlpha(0.4f);
+                qrButton.setOnClickListener(null);
+            }
         }
 
         private void applyEnrolledCardStyle(Event event) {
             Resources res = itemView.getContext().getResources();
             int strokePx = Math.round(3f * res.getDisplayMetrics().density);
+            if (event.isCancelled()) {
+                eventCard.setStrokeWidth(strokePx);
+                eventCard.setStrokeColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(itemView.getContext(), R.color.event_cancelled_stroke)));
+                eventCard.setCardBackgroundColor(
+                        ContextCompat.getColor(itemView.getContext(), android.R.color.white));
+                return;
+            }
             if (cardDisplayMode == CardDisplayMode.HISTORY) {
                 eventCard.setStrokeWidth(strokePx);
                 if (event.isCurrentUserScannedQR()) {
@@ -354,7 +419,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 return;
             }
             if (event.isCurrentUserWaitlistOffered()) {
-                eventCard.setStrokeWidth(strokePx);
+                eventCard.setStrokeWidth(Math.round(4f * res.getDisplayMetrics().density));
                 eventCard.setStrokeColor(ColorStateList.valueOf(
                         ContextCompat.getColor(itemView.getContext(), R.color.waitlist_accent)));
             } else if (event.isCurrentUserOnWaitlist()) {

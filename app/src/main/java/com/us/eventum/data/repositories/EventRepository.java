@@ -94,6 +94,11 @@ public interface EventRepository {
     void deleteEvent(String eventId, RepositoryCallback<Void> callback);
 
     /**
+     * Marca el evento como cancelado sin borrar el documento ni las inscripciones.
+     */
+    void cancelEvent(String eventId, RepositoryCallback<Void> callback);
+
+    /**
      * Obtiene un evento por su identificador.
      */
     void getEventById(String eventId, RepositoryCallback<Event> callback);

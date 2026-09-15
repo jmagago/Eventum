@@ -15,6 +15,16 @@ public final class EventUiMerger {
     private EventUiMerger() {
     }
 
+    /** Copia para editar sin mutar el evento de la lista. */
+    @NonNull
+    public static Event copyForEdit(@NonNull Event source) {
+        Event copy = new Event();
+        copy.setId(source.getId());
+        copyDocumentFields(copy, source);
+        copyRegistrationUiState(copy, source);
+        return copy;
+    }
+
     /** Campos persistidos en Firestore (documento {@code events}). */
     public static void copyDocumentFields(@NonNull Event target, @NonNull Event source) {
         target.setTitle(source.getTitle());
@@ -26,7 +36,10 @@ public final class EventUiMerger {
         target.setEventType(source.getEventType());
         target.setPrivateEvent(source.getPrivateEvent());
         target.setPrivateAccessCode(source.getPrivateAccessCode());
+        target.setPrivateAccessCodeHash(source.getPrivateAccessCodeHash());
         target.setRequiresParentalAuth(source.getRequiresParentalAuth());
+        target.setCancelled(source.isCancelled());
+        target.setCancelledAt(source.getCancelledAt());
     }
 
     /** Estado derivado de inscripciones y lista de espera (no persistido en {@code events}). */
@@ -64,7 +77,23 @@ public final class EventUiMerger {
                 || before.getMaxParticipants() != after.getMaxParticipants()
                 || !Objects.equals(before.getEventType(), after.getEventType())
                 || before.getPrivateEvent() != after.getPrivateEvent()
-                || before.getRequiresParentalAuth() != after.getRequiresParentalAuth();
+                || !Objects.equals(before.getPrivateAccessCodeHash(), after.getPrivateAccessCodeHash())
+                || before.getRequiresParentalAuth() != after.getRequiresParentalAuth()
+                || before.isCancelled() != after.isCancelled()
+                || !datesEqual(before.getCancelledAt(), after.getCancelledAt());
+    }
+
+    /** Título, descripción, fecha, lugar o tipo: lo que un asistente debe enterarse. */
+    public static boolean hasAttendeeVisibleDetailsChanged(@NonNull Event before, @NonNull Event after) {
+        return !Objects.equals(nullToEmpty(before.getTitle()), nullToEmpty(after.getTitle()))
+                || !Objects.equals(nullToEmpty(before.getDescription()), nullToEmpty(after.getDescription()))
+                || !datesEqual(before.getDate(), after.getDate())
+                || !Objects.equals(nullToEmpty(before.getLocation()), nullToEmpty(after.getLocation()))
+                || !Objects.equals(nullToEmpty(before.getEventType()), nullToEmpty(after.getEventType()));
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     public static boolean hasRegistrationUiChanged(@NonNull Event before, @NonNull Event after) {

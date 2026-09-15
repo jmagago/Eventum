@@ -43,7 +43,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/search_events_type_hint"
-            android:inputType="none" />
+            android:inputType="none"
+            android:popupBackground="@drawable/bg_dropdown_popup" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

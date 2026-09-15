@@ -163,6 +163,8 @@ public class EventActivityLogAdapter extends RecyclerView.Adapter<EventActivityL
                     return ContextCompat.getColor(context, R.color.colorError);
                 case EventActivityLog.TYPE_EVENT_UPDATED:
                     return ContextCompat.getColor(context, R.color.colorPrimary);
+                case EventActivityLog.TYPE_EVENT_CANCELLED:
+                    return ContextCompat.getColor(context, R.color.event_cancelled_stroke);
                 case EventActivityLog.TYPE_WAITLIST_JOINED:
                 case EventActivityLog.TYPE_WAITLIST_OFFERED:
                 case EventActivityLog.TYPE_WAITLIST_PROMOTED:
@@ -194,6 +196,8 @@ public class EventActivityLogAdapter extends RecyclerView.Adapter<EventActivityL
                     return R.drawable.ic_clear_all;
                 case EventActivityLog.TYPE_EVENT_UPDATED:
                     return R.drawable.ic_edit;
+                case EventActivityLog.TYPE_EVENT_CANCELLED:
+                    return R.drawable.ic_warning;
                 case EventActivityLog.TYPE_WAITLIST_JOINED:
                 case EventActivityLog.TYPE_WAITLIST_PROMOTED:
                     return R.drawable.ic_person_add;
@@ -226,6 +230,8 @@ public class EventActivityLogAdapter extends RecyclerView.Adapter<EventActivityL
                     return context.getString(R.string.event_log_action_list_cleared);
                 case EventActivityLog.TYPE_EVENT_UPDATED:
                     return context.getString(R.string.event_log_action_event_updated);
+                case EventActivityLog.TYPE_EVENT_CANCELLED:
+                    return context.getString(R.string.event_log_action_event_cancelled);
                 case EventActivityLog.TYPE_WAITLIST_JOINED:
                     return context.getString(R.string.event_log_action_waitlist_joined);
                 case EventActivityLog.TYPE_WAITLIST_LEFT:

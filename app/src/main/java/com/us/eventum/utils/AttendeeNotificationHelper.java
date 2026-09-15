@@ -56,6 +56,12 @@ public final class AttendeeNotificationHelper {
         if (AttendeeNotification.TYPE_WAITLIST_SPOT_AVAILABLE.equals(notification.getType())) {
             return context.getString(R.string.notification_waitlist_spot_available, eventTitle);
         }
+        if (AttendeeNotification.TYPE_EVENT_CHANGED.equals(notification.getType())) {
+            return context.getString(R.string.notification_attendee_event_changed, eventTitle);
+        }
+        if (AttendeeNotification.TYPE_EVENT_CANCELLED.equals(notification.getType())) {
+            return context.getString(R.string.notification_attendee_event_cancelled, eventTitle);
+        }
         return context.getString(R.string.notification_attendee_generic, eventTitle);
     }
 

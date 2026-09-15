@@ -1,6 +1,9 @@
 package com.us.eventum.data.repositories.firebase;
 
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.R;
 import com.us.eventum.data.models.AttendeesToEvent;
@@ -21,6 +24,10 @@ public class FirebaseAttendeesToEventRepository implements AttendeesToEventRepos
 
     @Override
     public void createAttendeeToEvent(AttendeesToEvent attendeeToEvent, RepositoryCallback<AttendeesToEvent> callback) {
+        if (attendeeToEvent.getEventId() == null || attendeeToEvent.getUserId() == null) {
+            callback.onError(FirebaseBackendErrorHandler.getIncompleteActivityMessage(null));
+            return;
+        }
         db.collection("attendeesToEvent")
                 .whereEqualTo("eventId", attendeeToEvent.getEventId())
                 .whereEqualTo("userId", attendeeToEvent.getUserId())
@@ -31,18 +38,51 @@ public class FirebaseAttendeesToEventRepository implements AttendeesToEventRepos
                         callback.onError(FirebaseBackendErrorHandler.getAlreadyRegisteredMessage(null));
                         return;
                     }
-
                     db.collection("attendeesToEvent")
-                            .add(attendeeToEvent)
-                            .addOnSuccessListener(documentReference -> {
-                                attendeeToEvent.setId(documentReference.getId());
-                                callback.onSuccess(attendeeToEvent);
-                            })
+                            .whereEqualTo("eventId", attendeeToEvent.getEventId())
+                            .get()
+                            .addOnSuccessListener(allRegs ->
+                                    createRegistrationInTransaction(
+                                            attendeeToEvent,
+                                            allRegs.size(),
+                                            callback))
                             .addOnFailureListener(e -> callback.onError(
-                                    FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_create_registration)));
+                                    FirebaseBackendErrorHandler.getErrorMessage(
+                                            e, R.string.backend_op_verify_registration)));
                 })
                 .addOnFailureListener(e -> callback.onError(
-                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_verify_registration)));
+                        FirebaseBackendErrorHandler.getErrorMessage(
+                                e, R.string.backend_op_verify_registration)));
+    }
+
+    private void createRegistrationInTransaction(AttendeesToEvent attendeeToEvent,
+                                                 int knownRegistered,
+                                                 RepositoryCallback<AttendeesToEvent> callback) {
+        DocumentReference eventRef = EventCapacityTransactions.eventRef(db, attendeeToEvent.getEventId());
+        DocumentReference registrationRef = db.collection("attendeesToEvent").document();
+        db.runTransaction(transaction -> {
+                    DocumentSnapshot eventSnap = transaction.get(eventRef);
+                    if (!eventSnap.exists()) {
+                        throw new FirebaseFirestoreException(
+                                "NOT_FOUND", FirebaseFirestoreException.Code.NOT_FOUND);
+                    }
+                    EventCapacityTransactions.applyCapacityUpdate(
+                            transaction, eventRef, eventSnap, knownRegistered, 0, 1, 0);
+                    transaction.set(registrationRef, attendeeToEvent);
+                    attendeeToEvent.setId(registrationRef.getId());
+                    return attendeeToEvent;
+                })
+                .addOnSuccessListener(callback::onSuccess)
+                .addOnFailureListener(e -> {
+                    if (EventCapacityTransactions.isEventCancelled(e)) {
+                        callback.onError(FirebaseBackendErrorHandler.getEventCancelledMessage(null));
+                    } else if (EventCapacityTransactions.isEventFull(e)) {
+                        callback.onError(FirebaseBackendErrorHandler.getEventFullMessage(null));
+                    } else {
+                        callback.onError(FirebaseBackendErrorHandler.getErrorMessage(
+                                e, R.string.backend_op_create_registration));
+                    }
+                });
     }
 
     @Override
@@ -134,12 +174,34 @@ public class FirebaseAttendeesToEventRepository implements AttendeesToEventRepos
 
     @Override
     public void deleteAttendeeToEvent(String attendeeToEventId, RepositoryCallback<Void> callback) {
-        db.collection("attendeesToEvent")
-                .document(attendeeToEventId)
-                .delete()
-                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
+        if (attendeeToEventId == null || attendeeToEventId.isEmpty()) {
+            callback.onError(FirebaseBackendErrorHandler.getIncompleteActivityMessage(null));
+            return;
+        }
+        DocumentReference registrationRef = db.collection("attendeesToEvent").document(attendeeToEventId);
+        db.runTransaction(transaction -> {
+                    DocumentSnapshot registrationSnap = transaction.get(registrationRef);
+                    if (!registrationSnap.exists()) {
+                        return null;
+                    }
+                    String eventId = registrationSnap.getString("eventId");
+                    DocumentSnapshot eventSnap = null;
+                    DocumentReference eventRef = null;
+                    if (eventId != null && !eventId.isEmpty()) {
+                        eventRef = EventCapacityTransactions.eventRef(db, eventId);
+                        eventSnap = transaction.get(eventRef);
+                    }
+                    transaction.delete(registrationRef);
+                    if (eventRef != null && eventSnap != null && eventSnap.exists()) {
+                        EventCapacityTransactions.applyCapacityUpdate(
+                                transaction, eventRef, eventSnap, 1, 0, -1, 0);
+                    }
+                    return null;
+                })
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
                 .addOnFailureListener(e -> callback.onError(
-                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_delete_registration)));
+                        FirebaseBackendErrorHandler.getErrorMessage(
+                                e, R.string.backend_op_delete_registration)));
     }
 
     @Override

@@ -11,6 +11,8 @@ public class AttendeeNotification {
     public static final String TYPE_ATTENDANCE_VERIFIED = "ATTENDANCE_VERIFIED";
     public static final String TYPE_REMOVED_BY_ORGANIZER = "REMOVED_BY_ORGANIZER";
     public static final String TYPE_WAITLIST_SPOT_AVAILABLE = "WAITLIST_SPOT_AVAILABLE";
+    public static final String TYPE_EVENT_CHANGED = "EVENT_CHANGED";
+    public static final String TYPE_EVENT_CANCELLED = "EVENT_CANCELLED";
 
     private String id;
     private String attendeeId;

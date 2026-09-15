@@ -72,6 +72,7 @@
 
         <!-- Información fija del evento -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/eventInfoCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
@@ -109,6 +110,22 @@
                     android:orientation="vertical"
                     android:layout_toStartOf="@id/eventPrivateIconDetails"
                     android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/eventCancelledBanner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_event_cancelled_badge"
+                    android:gravity="center"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp"
+                    android:text="@string/event_cancelled_banner"
+                    android:textAllCaps="true"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/eventDateTextView"
@@ -299,24 +316,6 @@
                 app:tint="@color/white"
                 app:fabSize="normal"
                 app:maxImageSize="44dp"
-                app:borderWidth="0dp"
-                app:elevation="4dp" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/addAttendeeButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription="@string/cd_fab_add_attendee"
-                android:src="@drawable/ic_add"
-                app:backgroundTint="@color/colorPrimary"
-                app:tint="@color/colorWhite"
-                app:fabSize="normal"
-                app:maxImageSize="32dp"
                 app:borderWidth="0dp"
                 app:elevation="4dp" />
 

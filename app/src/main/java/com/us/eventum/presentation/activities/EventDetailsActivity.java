@@ -47,9 +47,6 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.adapters.AttendeeAdapter;
 import com.us.eventum.adapters.EventsPagerAdapter;
 import com.us.eventum.utils.ActivityLogPanelController;
-import com.us.eventum.utils.AddAttendeePanelController;
-import com.us.eventum.utils.EditEventPanelController;
-import com.us.eventum.utils.SearchAttendeePanelController;
 import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.repositories.AttendeeRepository;
@@ -72,8 +69,10 @@ import java.util.Map;
 import android.widget.PopupMenu;
 
 import android.widget.ImageView;
+import com.us.eventum.utils.EventCapacityFormatter;
 import com.us.eventum.utils.EventImageManager;
 import com.us.eventum.utils.EventPrivateAccessCode;
+import com.us.eventum.utils.EventUiMerger;
 import com.us.eventum.utils.LocaleUtils;
 import com.us.eventum.utils.PrivateAccessCodeDialogHelper;
 import com.us.eventum.utils.ToastUtils;
@@ -88,7 +87,6 @@ import com.us.eventum.utils.WindowInsetsHelper;
 import com.us.eventum.data.models.OrganizerNotification;
 import com.us.eventum.utils.AttendeeCsvExportHelper;
 import com.us.eventum.utils.AttendeeSearchFilter;
-import com.us.eventum.utils.AddAttendeePanelController;
 import com.us.eventum.utils.EditEventPanelController;
 import com.us.eventum.utils.SearchAttendeePanelController;
 import com.us.eventum.utils.QrCheckInResult;
@@ -107,10 +105,11 @@ public class EventDetailsActivity extends AppCompatActivity {
     
     private ActivityResultLauncher<Intent> qrScannerLauncher;
     private ActivityResultLauncher<String> pickEventImageLauncher;
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
     private AttendeeCsvExportHelper csvExportHelper;
     private EditEventPanelController editEventPanelController;
     private SearchAttendeePanelController searchAttendeePanelController;
-    private AddAttendeePanelController addAttendeePanelController;
     private ActivityLogPanelController activityLogPanelController;
     private Consumer<Uri> eventImagePickHandler;
     private FirebaseFirestore db;
@@ -122,7 +121,8 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
     private ImageView eventPrivateIconDetails;
-    private FloatingActionButton addAttendeeButton;
+    private TextView eventCancelledBanner;
+    private MaterialCardView eventInfoCard;
     private FloatingActionButton searchAttendeeFab;
     private FloatingActionButton verifyQrFab;
     private MaterialCardView fabContainer;
@@ -167,7 +167,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             eventViewModel.initializeRepository(this);
 
         notificationWatcher = new OrganizerNotificationWatcher(this);
-        NotificationPermissionHelper.requestIfNeeded(this);
+        NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher);
         
         // Inicializar ActivityResultLauncher
         qrScannerLauncher = registerForActivityResult(
@@ -247,7 +247,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         displayEventDetails();
         observeViewModels();
         startRealtimeSync();
-        updateAddAttendeeButtonState();
 
         if (getIntent().getBooleanExtra("show_clear_dialog", false)) {
             showClearAttendeeListConfirmation();
@@ -265,8 +264,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
         emptyAttendeesTextView = findViewById(R.id.emptyAttendeesTextView);
         eventPrivateIconDetails = findViewById(R.id.eventPrivateIconDetails);
+        eventCancelledBanner = findViewById(R.id.eventCancelledBanner);
+        eventInfoCard = findViewById(R.id.eventInfoCard);
         Log.d("EventDetailsActivity", "emptyAttendeesTextView inicializado: " + (emptyAttendeesTextView != null ? "OK" : "NULL"));
-        addAttendeeButton = findViewById(R.id.addAttendeeButton);
         searchAttendeeFab = findViewById(R.id.searchAttendeeFab);
         verifyQrFab = findViewById(R.id.verifyQrFab);
         View fabDock = findViewById(R.id.fabDock);
@@ -287,21 +287,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         filterIndicatorText = findViewById(R.id.filterIndicatorText);
         clearFiltersButton = findViewById(R.id.clearFiltersButton);
 
-        addAttendeeButton.setOnClickListener(v -> {
-            // Validación defensiva: un evento pasado no admite altas manuales.
-            if (isEventPast()) {
-                ToastUtils.showCustomToast(this, "Este evento ya ha finalizado. No es posible añadir asistentes.", ToastUtils.ToastType.INFO);
-                return;
-            }
-            // Verificar si ya se alcanzó el máximo de asistentes
-            if (attendees.size() >= event.getMaxParticipants()) {
-                ToastUtils.showCustomToast(this, "Capacidad máxima alcanzada (" + event.getMaxParticipants() + "). Edite el evento para aumentar el límite.", ToastUtils.ToastType.WARNING);
-                return;
-            }
-            if (addAttendeePanelController != null) {
-                addAttendeePanelController.show();
-            }
-        });
         eventMenuButton.setOnClickListener(v -> showEventMenu());
 
         // Abrir búsqueda de asistente
@@ -326,6 +311,11 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Configurar clic largo en el icono del candado para cambiar privacidad
         if (eventPrivateIconDetails != null) {
             eventPrivateIconDetails.setOnLongClickListener(v -> {
+                if (event != null && event.isCancelled()) {
+                    ToastUtils.showCustomToast(this, getString(R.string.event_cancelled_cannot_edit),
+                            ToastUtils.ToastType.INFO);
+                    return true;
+                }
                 if (event != null && event.getId() != null) {
                     boolean newPrivateState = !event.getPrivateEvent();
                     if (newPrivateState) {
@@ -356,6 +346,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
         event.setPrivateEvent(isPrivate);
         event.setPrivateAccessCode(isPrivate ? EventPrivateAccessCode.normalize(accessCode) : null);
+        event.setPrivateAccessCodeHash(isPrivate
+                ? EventPrivateAccessCode.hash(EventPrivateAccessCode.normalize(accessCode)) : null);
         updateLockIcon(isPrivate);
         displayEventDetails();
         eventViewModel.updateEventPrivacy(event.getId(), isPrivate, accessCode);
@@ -387,7 +379,6 @@ public class EventDetailsActivity extends AppCompatActivity {
                 toolbarTitleTextView.setText(updated.getTitle());
             }
             displayEventDetails();
-            updateAddAttendeeButtonState();
         });
 
         attendeeViewModel.getScannedAttendeesMap().observe(this, map -> {
@@ -426,7 +417,6 @@ public class EventDetailsActivity extends AppCompatActivity {
                 updateAttendeesCount();
                 updateSearchButtonState();
                 updateQRButtonState();
-                updateAddAttendeeButtonState();
                 
                 // Mostrar/ocultar mensaje cuando no hay asistentes
                 if (attendeesList.isEmpty()) {
@@ -465,6 +455,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (event != null) {
                 event.setWaitlistCount(count);
             }
+            bindCapacityText();
         });
 
         // Observar estado de carga
@@ -500,14 +491,6 @@ public class EventDetailsActivity extends AppCompatActivity {
                 return;
             }
             ToastUtils.showCustomToast(this, error, ToastUtils.ToastType.ERROR);
-        });
-
-        // Observar operaciones exitosas
-        attendeeViewModel.getAttendeeAdded().observe(this, added -> {
-            if (added != null && added) {
-                ToastUtils.showCustomToast(this, "Asistente añadido con éxito", ToastUtils.ToastType.SUCCESS);
-                attendeeViewModel.clearOperationStates();
-            }
         });
 
         attendeeViewModel.getAttendeeUpdated().observe(this, updated -> {
@@ -671,6 +654,21 @@ public class EventDetailsActivity extends AppCompatActivity {
         datePicker.show();
     }
 
+    private void bindCapacityText() {
+        TextView capacityTextView = findViewById(R.id.eventCapacityTextView);
+        if (capacityTextView == null || event == null) {
+            return;
+        }
+        String capacityText = getResources().getQuantityString(
+                R.plurals.event_capacity_detail,
+                event.getMaxParticipants(),
+                attendees.size(),
+                event.getMaxParticipants());
+        capacityTextView.setText(EventCapacityFormatter.appendWaitlist(
+                this, capacityText, event.isCancelled() ? 0 : activeWaitlistCount));
+        capacityTextView.setVisibility(View.VISIBLE);
+    }
+
     private void displayEventDetails() {
         if (event == null) return;
         
@@ -681,11 +679,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         
         // Formato más profesional para fecha, capacidad y ubicación
         String dateText = LocaleUtils.format("📅  %s", formattedDate);
-        String capacityText = getResources().getQuantityString(
-                R.plurals.event_capacity_detail,
-                event.getMaxParticipants(),
-                attendees.size(),
-                event.getMaxParticipants());
         String locationText = LocaleUtils.format("📍  %s", event.getLocation());
         
         dateTextView.setText(dateText);
@@ -698,12 +691,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         } catch (Exception ignore) {}
         locationTextView.setText(locationText);
         
-        // Actualizar el TextView para la capacidad
-        TextView capacityTextView = findViewById(R.id.eventCapacityTextView);
-        if (capacityTextView != null) {
-            capacityTextView.setText(capacityText);
-            capacityTextView.setVisibility(View.VISIBLE);
-        }
+        bindCapacityText();
 
         // Mostrar el número de asistentes verificados
         TextView verifiedTextView = findViewById(R.id.verifiedTextView);
@@ -763,6 +751,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Mostrar icono del candado según el estado de privacidad
         updateLockIcon(event.getPrivateEvent());
+        bindCancelledState();
 
         // Mostrar descripción si existe
         View descriptionSpacer = findViewById(R.id.descriptionSpacer);
@@ -853,7 +842,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         parentalAuthTextView.setText(authStatus);
 
         boolean attendanceVerified = Boolean.TRUE.equals(scannedAttendeesMap.get(attendee.getUid()));
-        boolean allowManualVerify = !isEventPast();
+        boolean allowManualVerify = !isEventInactive();
         updateVerifyAttendanceButton(verifyAttendanceButton, attendanceVerified, allowManualVerify);
 
         if (allowManualVerify && !attendanceVerified) {
@@ -1000,7 +989,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
         MaterialButton verifyButton = attendeeDetailsDialog.findViewById(R.id.dialog_verify_attendance_button);
         boolean verified = Boolean.TRUE.equals(scannedAttendeesMap.get(attendeeId));
-        updateVerifyAttendanceButton(verifyButton, verified, !isEventPast());
+        updateVerifyAttendanceButton(verifyButton, verified, !isEventInactive());
     }
 
     private void deleteAttendee(Attendee attendee, AlertDialog detailsDialog) {
@@ -1054,6 +1043,36 @@ public class EventDetailsActivity extends AppCompatActivity {
         confirmDialog.show();
     }
 
+    private void showCancelEventDialog() {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+        View confirmDialogView = getLayoutInflater().inflate(R.layout.dialog_confirm_delete, null);
+        TextView confirmMessageTextView = confirmDialogView.findViewById(R.id.confirm_message);
+        MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
+        MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
+        TextView titleTextView = confirmDialogView.findViewById(R.id.confirm_title);
+        ImageView confirmIcon = confirmDialogView.findViewById(R.id.confirm_icon);
+        if (titleTextView != null) {
+            titleTextView.setText(R.string.cancel_event_title);
+        }
+        if (confirmIcon != null) {
+            confirmIcon.setImageResource(R.drawable.ic_warning);
+        }
+        confirmMessageTextView.setText(R.string.cancel_event_message);
+        confirmDeleteButton.setText(R.string.cancel_event_confirm);
+
+        AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        confirmBuilder.setView(confirmDialogView);
+        AlertDialog confirmDialog = confirmBuilder.create();
+        confirmCancelButton.setOnClickListener(cv -> confirmDialog.dismiss());
+        confirmDeleteButton.setOnClickListener(cv -> {
+            eventViewModel.cancelEvent(event.getId());
+            confirmDialog.dismiss();
+        });
+        confirmDialog.show();
+    }
+
 
     private void setupEditEventPanel() {
         editEventPanelController = new EditEventPanelController(this,
@@ -1073,21 +1092,25 @@ public class EventDetailsActivity extends AppCompatActivity {
                 },
                 () -> currentSearchFilter,
                 () -> isSearchActive);
-
-        addAttendeePanelController = new AddAttendeePanelController(
-                this,
-                attendeeViewModel,
-                () -> event,
-                () -> allAttendees);
     }
 
     private void openEditEventPanel() {
         if (event == null || editEventPanelController == null) {
             return;
         }
+        if (event.isCancelled()) {
+            ToastUtils.showCustomToast(this, getString(R.string.event_cancelled_cannot_edit),
+                    ToastUtils.ToastType.INFO);
+            return;
+        }
         editEventPanelController.show(event, new EditEventPanelController.SaveListener() {
             @Override
             public void onEventSaved(@NonNull Event savedEvent, @Nullable Uri newImageUri) {
+                EventUiMerger.copyDocumentFields(event, savedEvent);
+                sharedViewModel.notifyEventsUpdated();
+                if (savedEvent.getId() != null && attendeeViewModel != null) {
+                    attendeeViewModel.promoteWaitlistIfNeeded(savedEvent.getId());
+                }
                 TextView toolbarTitleTextView = findViewById(R.id.toolbarTitleTextView);
                 if (toolbarTitleTextView != null) {
                     toolbarTitleTextView.setText(savedEvent.getTitle());
@@ -1129,30 +1152,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         PopupMenu popup = new PopupMenu(this, eventMenuButton);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
         
-        EventsPagerAdapter.configurePrivateAccessCodeMenuItem(popup.getMenu(), event);
-        MenuItem waitlistItem = popup.getMenu().findItem(R.id.action_view_waitlist);
-        if (waitlistItem != null) {
-            waitlistItem.setTitle(getString(R.string.menu_view_waitlist, activeWaitlistCount));
-            boolean hideForPast = event != null && event.getDate() != null
-                    && event.getDate().before(new Date());
-            waitlistItem.setVisible(!hideForPast);
-        }
+        EventsPagerAdapter.configureEventMenu(popup.getMenu(), event, this, activeWaitlistCount);
 
-        // Ocultar acciones que no aplican para eventos pasados
-        try {
-            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
-                if (popup.getMenu().findItem(R.id.action_send_invitations) != null) {
-                    popup.getMenu().findItem(R.id.action_send_invitations).setVisible(false);
-                }
-                if (popup.getMenu().findItem(R.id.action_verify_attendees) != null) {
-                    popup.getMenu().findItem(R.id.action_verify_attendees).setVisible(false);
-                }
-                if (popup.getMenu().findItem(R.id.action_clear_list) != null) {
-                    popup.getMenu().findItem(R.id.action_clear_list).setVisible(false);
-                }
-            }
-        } catch (Exception ignore) {}
-        
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             popup.setForceShowIcon(true);
         }
@@ -1161,9 +1162,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             int id = item.getItemId();
             if (id == R.id.action_edit_event) {
                 openEditEventPanel();
-                return true;
-            } else if (id == R.id.action_send_invitations) {
-                ToastUtils.showCustomToast(this, "Enviar invitaciones", ToastUtils.ToastType.INFO);
                 return true;
             } else if (id == R.id.action_view_waitlist) {
                 if (event != null && event.getId() != null) {
@@ -1185,6 +1183,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                 return true;
             } else if (id == R.id.action_export_attendees_csv) {
                 exportAttendeesCsv();
+                return true;
+            } else if (id == R.id.action_cancel_event) {
+                showCancelEventDialog();
                 return true;
             } else if (id == R.id.action_delete_event) {
                 showDeleteEventDialog();
@@ -1226,8 +1227,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     
 
     private void startQRScanner() {
-        if (isEventPast()) {
-            ToastUtils.showCustomToast(this, "Este evento ya ha finalizado. No es posible verificar asistentes por QR.", ToastUtils.ToastType.INFO);
+        if (isEventInactive()) {
+            ToastUtils.showCustomToast(this,
+                    event != null && event.isCancelled()
+                            ? getString(R.string.qr_scanner_event_cancelled)
+                            : "Este evento ya ha finalizado. No es posible verificar asistentes por QR.",
+                    ToastUtils.ToastType.INFO);
             return;
         }
         if (event == null || event.getId() == null) {
@@ -1340,7 +1345,7 @@ public class EventDetailsActivity extends AppCompatActivity {
      */
     private void updateQRButtonState() {
         if (verifyQrFab != null) {
-            if (isEventPast()) {
+            if (isEventInactive()) {
                 verifyQrFab.setEnabled(false);
                 verifyQrFab.setAlpha(0.5f);
                 return;
@@ -1352,27 +1357,29 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Actualizar el estado del botón de añadir asistente
-     */
-    private void updateAddAttendeeButtonState() {
-        if (addAttendeeButton != null && event != null) {
-            if (isEventPast()) {
-                addAttendeeButton.setEnabled(false);
-                addAttendeeButton.setAlpha(0.5f);
-                return;
-            }
-            // Verificar si el evento está completo
-            boolean isEventFull = event.getCurrentParticipants() >= event.getMaxParticipants();
-            
-            // Deshabilitar si el evento está completo
-            addAttendeeButton.setEnabled(!isEventFull);
-            addAttendeeButton.setAlpha(isEventFull ? 0.5f : 1.0f);
-        }
-    }
-
     private boolean isEventPast() {
         return event != null && event.getDate() != null && event.getDate().before(new Date());
+    }
+
+    private boolean isEventInactive() {
+        return isEventPast() || (event != null && event.isCancelled());
+    }
+
+    private void bindCancelledState() {
+        boolean cancelled = event != null && event.isCancelled();
+        if (eventCancelledBanner != null) {
+            eventCancelledBanner.setVisibility(cancelled ? View.VISIBLE : View.GONE);
+        }
+        if (eventInfoCard != null) {
+            int strokePx = cancelled
+                    ? Math.round(3f * getResources().getDisplayMetrics().density)
+                    : 0;
+            eventInfoCard.setStrokeWidth(strokePx);
+            eventInfoCard.setStrokeColor(cancelled
+                    ? getColor(R.color.event_cancelled_stroke)
+                    : getColor(android.R.color.transparent));
+        }
+        updateQRButtonState();
     }
 
     private void setupActivityLogPanel() {
@@ -1383,9 +1390,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (addAttendeePanelController != null && addAttendeePanelController.isVisible()) {
-                    addAttendeePanelController.hide();
-                } else if (searchAttendeePanelController != null && searchAttendeePanelController.isVisible()) {
+                if (searchAttendeePanelController != null && searchAttendeePanelController.isVisible()) {
                     searchAttendeePanelController.hide();
                 } else if (editEventPanelController != null && editEventPanelController.isVisible()) {
                     editEventPanelController.hide();

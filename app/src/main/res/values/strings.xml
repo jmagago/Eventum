@@ -3,8 +3,6 @@
     
     <!-- Información de la app -->
     <string name="app_info_title">Información de la app</string>
-    <string name="app_info_header_tagline">Proyecto Fin de Grado · US</string>
-    <string name="app_info_got_it">Entendido</string>
     <string name="app_info_description"><b>Eventum</b> es una aplicación desarrollada por Juan Manuel Gago Poyatos como parte de su Proyecto de Fin de Grado (PfG), en el Departamento de Lenguajes y Sistemas Informáticos (LSI) de la Escuela Técnica Superior de Ingeniería Informática de la Universidad de Sevilla.</string>
     <string name="app_info_contact">Información de Contacto</string>
     <string name="app_info_technical">Información Técnica</string>
@@ -20,7 +18,7 @@
     <string name="change_password_title">Cambiar contraseña</string>
     <string name="create_event_title">Crear evento</string>
     <string name="profile_photo_dialog_title">Cambiar foto de perfil</string>
-    <string name="profile_photo_dialog_subtitle">Elige cómo quieres actualizar tu imagen. Se mostrará en tu perfil y en las listas de eventos.</string>
+    <string name="profile_photo_dialog_subtitle">Haz una foto ahora o elige una de la galería.</string>
     <string name="profile_photo_option_camera">Tomar foto</string>
     <string name="profile_photo_option_camera_hint">Usa la cámara del dispositivo</string>
     <string name="profile_photo_option_gallery">Elegir de la galería</string>
@@ -124,6 +122,7 @@
     <string name="backend_error_read_event">No se pudo leer el evento</string>
     <string name="backend_error_already_registered">Ya estás inscrito en este evento</string>
     <string name="backend_error_username_in_use">Este nombre de usuario ya está en uso</string>
+    <string name="backend_error_dni_in_use">Este DNI ya está registrado</string>
     <string name="backend_error_incomplete_notification">Datos de notificación incompletos</string>
     <string name="backend_error_incomplete_activity">Datos de actividad incompletos</string>
     <string name="backend_error_invalid_event_for_activity">Evento no válido</string>
@@ -136,12 +135,14 @@
     <string name="backend_op_update_event">No se pudo actualizar el evento</string>
     <string name="backend_op_update_event_privacy">No se pudo cambiar la privacidad del evento</string>
     <string name="backend_op_delete_event">No se pudo eliminar el evento</string>
+    <string name="backend_op_cancel_event">No se pudo cancelar el evento</string>
     <string name="backend_op_load_event">No se pudo cargar el evento</string>
     <string name="backend_op_create_attendee">No se pudo crear el perfil de asistente</string>
     <string name="backend_op_load_attendee">No se pudo obtener el perfil de asistente</string>
     <string name="backend_op_update_attendee">No se pudo actualizar el perfil de asistente</string>
     <string name="backend_op_delete_attendee">No se pudo eliminar el perfil de asistente</string>
     <string name="backend_op_check_username">No se pudo verificar el nombre de usuario</string>
+    <string name="backend_op_check_dni">No se pudo verificar el DNI</string>
     <string name="backend_op_create_organizer">No se pudo crear el perfil de organizador</string>
     <string name="backend_op_load_organizer">No se pudo obtener el perfil de organizador</string>
     <string name="backend_op_update_organizer">No se pudo actualizar el perfil de organizador</string>
@@ -162,12 +163,13 @@
     <string name="waitlist_join">Unirme a la lista de espera</string>
     <string name="waitlist_leave">Salir de la lista</string>
     <string name="waitlist_confirm_spot">Confirmar plaza</string>
+    <string name="waitlist_decline_spot">Cancelar</string>
+    <string name="waitlist_offer_declined">Has cancelado la reserva. La plaza pasa al siguiente.</string>
     <string name="waitlist_joined_success">Te has unido a la lista de espera</string>
     <string name="waitlist_left_success">Has salido de la lista de espera</string>
     <string name="waitlist_waiting_status">En lista de espera · Posición %1$d</string>
     <string name="waitlist_offer_status">¡Hay una plaza para ti!</string>
-    <string name="waitlist_offer_deadline">%1$s Confirma antes de las %2$s.</string>
-    <string name="waitlist_count_suffix">%1$d en espera</string>
+    <string name="waitlist_offer_deadline">%1$s Quedan %2$s</string>
     <string name="menu_view_waitlist">Lista de espera (%1$d)</string>
     <string name="waitlist_dialog_title">Lista de espera</string>
     <string name="waitlist_dialog_empty">Nadie está en la lista de espera.</string>
@@ -175,6 +177,8 @@
     <string name="waitlist_status_offered">Plaza ofrecida</string>
     <string name="waitlist_remove">Quitar</string>
     <string name="notification_waitlist_spot_available">Hay una plaza disponible en %1$s. Confírmala en los próximos 60 minutos.</string>
+    <string name="notification_attendee_event_changed">Han cambiado datos del evento «%1$s». Revisa fecha, lugar o detalles.</string>
+    <string name="notification_attendee_event_cancelled">El evento «%1$s» ha sido cancelado.</string>
     <string name="backend_op_create_notification">No se pudo enviar la notificación</string>
     <string name="backend_op_append_activity">No se pudo registrar la actividad</string>
     <string name="backend_op_listen_activity">No se pudo sincronizar el historial de actividad</string>
@@ -203,6 +207,7 @@
     <string name="attendee_empty_my_events">Aún no te has apuntado a ningún evento.\n\nExplora la pestaña Descubrir para inscribirte.</string>
     <string name="attendee_empty_discover">No hay eventos disponibles para inscribirte en este momento.</string>
     <string name="attendee_empty_history">Aún no tienes eventos pasados en tu historial.\n\nLos eventos a los que te apuntaste y ya han finalizado aparecerán aquí.</string>
+    <string name="attendee_empty_filters">Ningún evento coincide con los filtros.</string>
     <string name="attendee_history_no_unsubscribe">Ya consta tu asistencia en este evento; no puedes darte de baja desde el historial.</string>
     <!-- Pantalla Home Organizador -->
     <string name="organizer_sort_events">Ordenar eventos próximos</string>
@@ -213,6 +218,23 @@
     <string name="sort_attendees_desc">Asistentes ↓</string>
     <string name="sort_occupancy_asc">Ocupación ↑</string>
     <string name="sort_occupancy_desc">Ocupación ↓</string>
+    <string name="sort_date_desc">Fecha (más lejano)</string>
+    <string name="sort_free_spots_desc">Más plazas libres</string>
+    <string name="attendee_sort_events">Ordenar eventos</string>
+    <string name="filter_attendee_title">Filtrar eventos</string>
+    <string name="filter_attendee_status">Estado</string>
+    <string name="filter_attendee_status_all">Todos</string>
+    <string name="filter_attendee_status_joined">Inscrito</string>
+    <string name="filter_attendee_status_waitlist">En espera</string>
+    <string name="filter_attendee_status_has_spots">Con plaza</string>
+    <string name="filter_attendee_status_full">Sin plaza</string>
+    <string name="filter_attendee_apply">Aplicar</string>
+    <string name="filter_attendee_summary_type">Tipo: %1$s</string>
+    <string name="filter_attendee_summary_location">Lugar: %1$s</string>
+    <string name="filter_attendee_summary_from">Desde: %1$s</string>
+    <string name="filter_attendee_summary_to">Hasta: %1$s</string>
+    <string name="cd_filter_attendee_events">Filtrar eventos</string>
+    <string name="cd_close_filter_attendee_events">Cerrar filtros de eventos</string>
     <string name="attendee_card_qr">Ver código QR del evento</string>
     
     <!-- Filtros -->
@@ -301,7 +323,6 @@
     <string name="cd_fab_create_event">Crear evento</string>
     <string name="cd_fab_search">Buscar</string>
     <string name="cd_fab_scan_qr">Escanear código QR</string>
-    <string name="cd_fab_add_attendee">Añadir asistente</string>
     <string name="cd_fab_search_attendees">Buscar asistentes</string>
     <string name="cd_fab_settings">Ajustes</string>
 
@@ -335,7 +356,6 @@
     <string name="hint_first_surname">Primer Apellido</string>
     <string name="hint_second_surname">Segundo Apellido</string>
     <string name="hint_phone">Teléfono</string>
-    <string name="hint_birth_date">Fecha de nacimiento</string>
     <string name="hint_current_password">Contraseña actual</string>
     <string name="hint_new_password">Nueva contraseña</string>
     <string name="hint_confirm_new_password">Confirmar nueva contraseña</string>
@@ -351,8 +371,6 @@
     <string name="label_email">Email</string>
     <string name="label_birth_date">Fecha de nacimiento</string>
     <string name="label_parental_auth_status">Estado de autorización</string>
-    <string name="section_personal_info">Información Personal</string>
-    <string name="section_contact_info">Datos de Contacto</string>
     <string name="section_basic_info">Información Básica</string>
     <string name="section_event_details">Detalles del Evento</string>
 
@@ -364,13 +382,13 @@
 
     <!-- Menú detalle evento -->
     <string name="menu_edit_event">Editar evento</string>
-    <string name="menu_send_invitations">Enviar invitaciones</string>
     <string name="menu_view_private_access_code">Ver código de acceso</string>
     <string name="menu_verify_attendees">Verificar asistentes</string>
     <string name="menu_clear_list">Vaciar lista</string>
     <string name="menu_event_activity_log">Actividad del evento</string>
     <string name="menu_export_attendees_csv">Exportar asistentes (CSV)</string>
     <string name="menu_delete_event">Eliminar evento</string>
+    <string name="menu_cancel_event">Cancelar evento</string>
     <string name="hint_private_access_code">Código de acceso</string>
     <string name="helper_private_access_code">Alfanumérico, 4–20 caracteres</string>
     <string name="cd_generate_private_access_code">Generar código de acceso aleatorio</string>
@@ -392,7 +410,6 @@
     <string name="export_attendees_csv_loading">Cargando asistentes…</string>
     <string name="cd_close_search_events">Cerrar búsqueda de eventos</string>
     <string name="cd_close_search_attendee">Cerrar búsqueda de asistentes</string>
-    <string name="cd_close_add_attendee">Cerrar registro de asistente</string>
     <string name="cd_close_create_event">Cerrar formulario de crear evento</string>
     <string name="cd_close_edit_event">Cerrar formulario de editar evento</string>
 
@@ -409,6 +426,7 @@
     <string name="event_log_action_verified_manual">Asistencia verificada (manual)</string>
     <string name="event_log_action_list_cleared">Lista de asistentes vaciada</string>
     <string name="event_log_action_event_updated">Evento actualizado</string>
+    <string name="event_log_action_event_cancelled">Evento cancelado</string>
     <string name="event_log_action_waitlist_joined">Se unió a la lista de espera</string>
     <string name="event_log_action_waitlist_left">Salió de la lista de espera</string>
     <string name="event_log_action_waitlist_offered">Plaza ofrecida desde la lista de espera</string>
@@ -429,6 +447,20 @@
     <string name="delete_attendee_message">¿Estás seguro de que deseas eliminar a este asistente?</string>
     <string name="delete_event_title">Eliminar evento</string>
     <string name="delete_event_message">¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.</string>
+    <string name="cancel_event_title">Cancelar evento</string>
+    <string name="cancel_event_message">El evento se marcará como cancelado. Los inscritos y la lista de espera serán avisados. Esta acción no se puede deshacer.</string>
+    <string name="cancel_event_confirm">Cancelar evento</string>
+    <string name="event_cancelled_badge">Cancelado</string>
+    <string name="event_attended_badge">Asististe</string>
+    <string name="event_missed_badge">No asististe</string>
+    <string name="cd_event_cancelled">Evento cancelado</string>
+    <string name="cd_event_attended">Asististe a este evento</string>
+    <string name="cd_event_missed">No asististe a este evento</string>
+    <string name="event_cancelled_banner">Este evento ha sido cancelado</string>
+    <string name="event_cancelled_cannot_join">Este evento ha sido cancelado</string>
+    <string name="event_already_cancelled">Este evento ya está cancelado</string>
+    <string name="event_cancelled_cannot_edit">No se puede modificar un evento cancelado</string>
+    <string name="qr_scanner_event_cancelled">Este evento está cancelado. No se pueden verificar asistentes.</string>
     <string name="clear_attendees_title">Vaciar lista de asistentes</string>
     <string name="clear_attendees_message">¿Estás seguro de que deseas eliminar todos los asistentes? Esta acción no se puede deshacer.</string>
     <string name="filters_summary">Filtros: %1$s</string>
@@ -437,8 +469,8 @@
     <string name="complete_profile_join_title">Completar perfil para inscribirte</string>
     <string name="attendee_unsubscribe_short">Darme de baja</string>
     <string name="date_format_dmy">%1$s/%2$s/%3$d</string>
-    <string name="add_attendee_title">Registrar asistente</string>
-    <string name="add_attendee_button">Registrar Asistente</string>
+    <string name="waitlist_event_full">El evento no tiene plazas libres</string>
+    <string name="waitlist_offer_no_longer_valid">La plaza ya no está disponible</string>
     <string name="attendee_join_event_short">Apuntarse</string>
     <string name="create_event_button">Crear Evento</string>
     <string name="complete_profile_title">Completar perfil</string>
@@ -473,6 +505,7 @@
     <string name="hint_dni_required">DNI/NIE *</string>
     <string name="dni_required">El DNI es requerido</string>
     <string name="dni_invalid_letter">DNI inválido. La letra no coincide con el número</string>
+    <string name="dni_already_in_use">Este DNI ya está registrado</string>
     <string name="hint_phone_required">Teléfono *</string>
     <string name="hint_birth_date_compact">Nacim. (dd/MM/yyyy) *</string>
     <string name="helper_date_format">Formato: dd/MM/yyyy</string>
@@ -496,8 +529,14 @@
     <string name="cd_change_password_icon">Icono de cambiar contraseña</string>
     <string name="cd_register_organizer_icon">Icono de organizador</string>
     <string name="cd_register_attendee_icon">Icono de asistente</string>
-    <string name="complete_profile_message_long">Completa tus datos personales para poder inscribirte en eventos. Estos datos no se podrán modificar.</string>
+    <string name="complete_profile_message_long">Estos datos son obligatorios para inscribirte y no se podrán cambiar después.</string>
+    <string name="profile_username_caption">Usuario</string>
+    <string name="hint_birth_date_short">Fecha de nac. (dd/MM/yyyy) *</string>
     <string name="profile_complete_all_required">Por favor, completa todos los campos obligatorios</string>
+    <string name="cd_save_profile_icon">Icono de guardar</string>
+    <string name="profile_save_confirm_title">Antes de guardar</string>
+    <string name="profile_save_confirm_body">Nombre, apellidos, DNI y fecha de nacimiento quedarán fijos. No podrás cambiarlos después.</string>
+    <string name="profile_save_confirm_phone">El teléfono sí se podrá editar más adelante en Ajustes.</string>
     <string name="age_attendee_min_error">Debes tener al menos 16 años</string>
     <string name="age_organizer_min_error">Debes tener al menos 18 años para registrarte como organizador</string>
     <string name="age_birth_date_invalid">Formato de fecha inválido (usa dd/MM/yyyy)</string>

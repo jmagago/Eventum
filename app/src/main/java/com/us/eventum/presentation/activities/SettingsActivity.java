@@ -346,7 +346,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void showImagePickerDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_profile_photo, null);
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this, R.style.AlertDialogTheme)
                 .setView(dialogView)
                 .setNegativeButton(R.string.cancel, null)
                 .create();
@@ -639,21 +639,31 @@ public class SettingsActivity extends AppCompatActivity {
                 return;
             }
 
-            if (!attendee.isProfileComplete()) {
-                new MaterialAlertDialogBuilder(this)
-                        .setTitle("Importante")
-                        .setMessage("Los datos personales (nombre, apellidos, DNI y fecha de nacimiento) no se podrán modificar posteriormente.")
-                        .setPositiveButton("Aceptar", (d, w) -> {
-                            attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
-                            dialog.dismiss();
-                            ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
-                        })
-                        .setNegativeButton("Cancelar", null)
-                        .show();
+            Runnable persistProfile = () -> {
+                if (!attendee.isProfileComplete()) {
+                    com.us.eventum.utils.AttendeeProfileDialogHelper.showSaveConfirm(this, () -> {
+                        attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
+                        dialog.dismiss();
+                        ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                    });
+                } else {
+                    attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
+                    dialog.dismiss();
+                    ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                }
+            };
+
+            if (dniInput.isEnabled()) {
+                com.us.eventum.utils.AttendeeProfileDialogHelper.ensureDniUniqueThen(
+                        this,
+                        attendeeViewModel,
+                        dniLayout,
+                        dialogView.findViewById(R.id.saveButton),
+                        dni,
+                        attendee.getUid(),
+                        persistProfile);
             } else {
-                attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
-                dialog.dismiss();
-                ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                persistProfile.run();
             }
         });
 

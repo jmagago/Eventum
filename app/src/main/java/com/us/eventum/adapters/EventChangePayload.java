@@ -37,7 +37,11 @@ public final class EventChangePayload {
         if (EventUiMerger.hasDocumentFieldsChanged(before, after)) {
             flags |= FLAG_METADATA;
         }
-        if (EventUiMerger.hasRegistrationUiChanged(before, after)) {
+        if (before.isCancelled() != after.isCancelled()) {
+            flags |= FLAG_STATS;
+        }
+        if (EventUiMerger.hasRegistrationUiChanged(before, after)
+                || before.getMaxParticipants() != after.getMaxParticipants()) {
             flags |= FLAG_STATS;
         }
         return flags;

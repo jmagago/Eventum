@@ -39,8 +39,7 @@ android {
         val patchVersion = appVersion.getProperty("patch", "0").trim().toInt()
 
         versionCode = majorVersion * 10_000 + minorVersion * 100 + patchVersion
-        // Quitar -alpha cuando publiquemos en Play Store
-        versionName = "$majorVersion.$minorVersion.$patchVersion-alpha"
+        versionName = "$majorVersion.$minorVersion.$patchVersion"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -100,10 +99,6 @@ dependencies {
     implementation(libs.firebaseFirestore)
     implementation(libs.firebaseDatabase)
     implementation(libs.firebaseStorage)
-    
-    // Google Play Services
-    implementation(libs.playServicesBase)
-    implementation(libs.playServicesAuth)
     
     // CameraX (vista previa y análisis de frames para QR)
     implementation(libs.camerax.core)

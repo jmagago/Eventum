@@ -4,7 +4,6 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.google.firebase.Timestamp;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.data.models.Event;
@@ -15,7 +14,6 @@ import com.us.eventum.data.repositories.EventRepository;
 import com.us.eventum.data.repositories.WaitlistRepository;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -41,7 +39,7 @@ public final class WaitlistService {
         eventRepo.getEventById(eventId, new EventRepository.RepositoryCallback<Event>() {
             @Override
             public void onSuccess(Event event) {
-                if (event == null) {
+                if (event == null || event.isCancelled()) {
                     return;
                 }
                 loadAndPromote(event, attendeesRepo, waitlistRepo, notificationRepo, 0);
@@ -117,34 +115,76 @@ public final class WaitlistService {
         }
         int registered = registrations.size();
         int validOffers = WaitlistUtils.countValidOffers(waitlist);
+        int overflow = registered + validOffers - event.getMaxParticipants();
+        if (overflow > 0) {
+            List<WaitlistToEvent> excess = WaitlistUtils.findNewestValidOffers(waitlist, overflow);
+            if (!excess.isEmpty()) {
+                revertOffersToWaiting(event.getId(), excess, waitlistRepo, 0, () ->
+                        loadAndPromote(event, attendeesRepo, waitlistRepo, notificationRepo, depth + 1));
+                return;
+            }
+        }
         int available = event.getMaxParticipants() - registered - validOffers;
         if (available <= 0) {
             return;
         }
         WaitlistToEvent next = WaitlistUtils.findFirstWaiting(waitlist);
-        if (next == null) {
+        if (next == null || next.getId() == null) {
             return;
         }
-        Timestamp offeredAt = Timestamp.now();
-        Timestamp expiresAt = new Timestamp(new Date(now + WaitlistUtils.OFFER_DURATION_MS));
-        next.setStatus(WaitlistToEvent.STATUS_OFFERED);
-        next.setOfferedAt(offeredAt);
-        next.setOfferExpiresAt(expiresAt);
-        waitlistRepo.updateWaitlistEntry(next, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
-            @Override
-            public void onSuccess(WaitlistToEvent result) {
-                notifySpotAvailable(notificationRepo, next.getUserId(), event);
-                EventActivityLogHelper.logWaitlistOffered(event.getId(), null);
-                if (available > 1) {
-                    loadAndPromote(event, attendeesRepo, waitlistRepo, notificationRepo, depth);
-                }
-            }
+        waitlistRepo.offerNextSpot(
+                event.getId(),
+                next.getId(),
+                registered,
+                validOffers,
+                WaitlistUtils.OFFER_DURATION_MS,
+                new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        notifySpotAvailable(notificationRepo, result != null ? result.getUserId() : next.getUserId(), event);
+                        EventActivityLogHelper.logWaitlistOffered(event.getId(), null);
+                        loadAndPromote(event, attendeesRepo, waitlistRepo, notificationRepo, depth + 1);
+                    }
 
-            @Override
-            public void onError(String error) {
-                Log.w(TAG, "No se pudo ofrecer plaza: " + error);
-            }
-        });
+                    @Override
+                    public void onError(String error) {
+                        Log.w(TAG, "No se pudo ofrecer plaza: " + error);
+                        if (error != null && error.contains(
+                                FirebaseBackendErrorHandler.getWaitlistOfferInvalidMessage(null))) {
+                            loadAndPromote(event, attendeesRepo, waitlistRepo, notificationRepo, depth + 1);
+                        }
+                    }
+                });
+    }
+
+    private static void revertOffersToWaiting(
+            String eventId,
+            List<WaitlistToEvent> excess,
+            WaitlistRepository waitlistRepo,
+            int index,
+            Runnable onComplete) {
+        if (index >= excess.size()) {
+            onComplete.run();
+            return;
+        }
+        WaitlistToEvent entry = excess.get(index);
+        if (entry.getId() == null) {
+            revertOffersToWaiting(eventId, excess, waitlistRepo, index + 1, onComplete);
+            return;
+        }
+        waitlistRepo.revertOfferToWaiting(eventId, entry.getId(),
+                new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        revertOffersToWaiting(eventId, excess, waitlistRepo, index + 1, onComplete);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.w(TAG, "No se pudo devolver la oferta a espera: " + error);
+                        revertOffersToWaiting(eventId, excess, waitlistRepo, index + 1, onComplete);
+                    }
+                });
     }
 
     private static void expireOffers(
@@ -158,22 +198,24 @@ public final class WaitlistService {
             return;
         }
         WaitlistToEvent entry = expired.get(index);
-        entry.setStatus(WaitlistToEvent.STATUS_EXPIRED);
-        entry.setOfferedAt(null);
-        entry.setOfferExpiresAt(null);
-        waitlistRepo.updateWaitlistEntry(entry, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
-            @Override
-            public void onSuccess(WaitlistToEvent result) {
-                EventActivityLogHelper.logWaitlistOfferExpired(eventId, null);
-                expireOffers(eventId, expired, waitlistRepo, index + 1, onComplete);
-            }
+        if (entry.getId() == null) {
+            expireOffers(eventId, expired, waitlistRepo, index + 1, onComplete);
+            return;
+        }
+        waitlistRepo.expireOffer(eventId, entry.getId(),
+                new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        EventActivityLogHelper.logWaitlistOfferExpired(eventId, null);
+                        expireOffers(eventId, expired, waitlistRepo, index + 1, onComplete);
+                    }
 
-            @Override
-            public void onError(String error) {
-                Log.w(TAG, "No se pudo expirar oferta: " + error);
-                expireOffers(eventId, expired, waitlistRepo, index + 1, onComplete);
-            }
-        });
+                    @Override
+                    public void onError(String error) {
+                        Log.w(TAG, "No se pudo expirar oferta: " + error);
+                        expireOffers(eventId, expired, waitlistRepo, index + 1, onComplete);
+                    }
+                });
     }
 
     private static void notifySpotAvailable(

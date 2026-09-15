@@ -126,23 +126,7 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
     public void showEventContextMenu(View anchor, Event event, EventContextMenuListener listener) {
         PopupMenu popup = new PopupMenu(context, anchor);
         popup.getMenuInflater().inflate(R.menu.menu_event_details, popup.getMenu());
-        
-        configurePrivateAccessCodeMenuItem(popup.getMenu(), event);
-
-        // Ocultar acciones que no aplican para eventos pasados (archivados)
-        try {
-            if (event != null && event.getDate() != null && event.getDate().before(new Date())) {
-                if (popup.getMenu().findItem(R.id.action_send_invitations) != null) {
-                    popup.getMenu().findItem(R.id.action_send_invitations).setVisible(false);
-                }
-                if (popup.getMenu().findItem(R.id.action_verify_attendees) != null) {
-                    popup.getMenu().findItem(R.id.action_verify_attendees).setVisible(false);
-                }
-                if (popup.getMenu().findItem(R.id.action_clear_list) != null) {
-                    popup.getMenu().findItem(R.id.action_clear_list).setVisible(false);
-                }
-            }
-        } catch (Exception ignore) {}
+        configureEventMenu(popup.getMenu(), event, context);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             popup.setForceShowIcon(true);
@@ -156,6 +140,38 @@ public class EventsPagerAdapter extends FragmentStateAdapter {
         });
         
         popup.show();
+    }
+
+    public static void configureEventMenu(android.view.Menu menu, Event event, Context context) {
+        configureEventMenu(menu, event, context, event != null ? event.getWaitlistCount() : 0);
+    }
+
+    public static void configureEventMenu(android.view.Menu menu, Event event, Context context,
+                                          int waitlistCount) {
+        if (menu == null || context == null) {
+            return;
+        }
+        configurePrivateAccessCodeMenuItem(menu, event);
+        boolean cancelled = event != null && event.isCancelled();
+        boolean past = event != null && event.getDate() != null && event.getDate().before(new Date());
+        boolean inactive = cancelled || past;
+
+        android.view.MenuItem waitlistItem = menu.findItem(R.id.action_view_waitlist);
+        if (waitlistItem != null) {
+            waitlistItem.setTitle(context.getString(R.string.menu_view_waitlist, Math.max(0, waitlistCount)));
+            waitlistItem.setVisible(!inactive);
+        }
+        setMenuVisible(menu, R.id.action_verify_attendees, !inactive);
+        setMenuVisible(menu, R.id.action_edit_event, !cancelled);
+        setMenuVisible(menu, R.id.action_clear_list, !inactive);
+        setMenuVisible(menu, R.id.action_cancel_event, !cancelled && !past);
+    }
+
+    private static void setMenuVisible(android.view.Menu menu, int itemId, boolean visible) {
+        android.view.MenuItem item = menu.findItem(itemId);
+        if (item != null) {
+            item.setVisible(visible);
+        }
     }
 
     public static void configurePrivateAccessCodeMenuItem(android.view.Menu menu, Event event) {

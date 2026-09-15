@@ -25,6 +25,6 @@ public class AnimationUtils {
     }
 
     public static void clearErrorWithAnimation(TextInputLayout layout) {
-        layout.setErrorEnabled(false);
+        layout.setError(null);
     }
 } 

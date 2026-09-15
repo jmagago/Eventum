@@ -1,5 +1,7 @@
 package com.us.eventum.utils;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
@@ -8,6 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -16,6 +19,7 @@ import com.us.eventum.R;
 import com.us.eventum.data.models.Event;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 public final class AttendeeEventPanelController {
@@ -35,21 +39,36 @@ public final class AttendeeEventPanelController {
     private TextView participantsText;
     private TextView eventTypeText;
     private View privateBadge;
+    private View cancelledBadge;
     private TextInputLayout privateAccessCodeLayout;
     private TextInputEditText privateAccessCodeInput;
     private MaterialButton joinButton;
     private MaterialButton cancelButton;
+    private MaterialButton declineOfferButton;
     private MaterialButton showQrButton;
     private TextView waitlistStatusText;
 
     private Event currentEvent;
     private boolean historyMode;
     private Runnable onHideListener;
+    private Runnable onOfferExpiredListener;
     @Nullable
     private String boundImageEventId;
+    private final Handler countdownHandler = new Handler(Looper.getMainLooper());
+    @Nullable
+    private Runnable countdownTick;
+    @Nullable
+    private Date offerExpiresAt;
+    @Nullable
+    private String offerStatusMessage;
+    private boolean offerExpiryNotified;
 
     public void setOnHideListener(@Nullable Runnable listener) {
         onHideListener = listener;
+    }
+
+    public void setOnOfferExpiredListener(@Nullable Runnable listener) {
+        onOfferExpiredListener = listener;
     }
 
     public AttendeeEventPanelController(@NonNull AppCompatActivity activity) {
@@ -80,6 +99,11 @@ public final class AttendeeEventPanelController {
     }
 
     @Nullable
+    public MaterialButton getDeclineOfferButton() {
+        return declineOfferButton;
+    }
+
+    @Nullable
     public TextView getParticipantsText() {
         return participantsText;
     }
@@ -102,6 +126,7 @@ public final class AttendeeEventPanelController {
         bindEvent(event);
 
         sheet.dialog.setOnDismissListener(d -> {
+            stopOfferCountdown();
             currentEvent = null;
             boundImageEventId = null;
             if (onHideListener != null) {
@@ -148,6 +173,7 @@ public final class AttendeeEventPanelController {
     }
 
     public void hide() {
+        stopOfferCountdown();
         if (sheet != null && sheet.dialog.isShowing()) {
             sheet.dialog.dismiss();
         }
@@ -177,10 +203,12 @@ public final class AttendeeEventPanelController {
         participantsText = root.findViewById(R.id.eventParticipants);
         eventTypeText = root.findViewById(R.id.eventType);
         privateBadge = root.findViewById(R.id.eventPrivateBadge);
+        cancelledBadge = root.findViewById(R.id.eventCancelledBadge);
         privateAccessCodeLayout = root.findViewById(R.id.attendeePrivateAccessCodeLayout);
         privateAccessCodeInput = root.findViewById(R.id.attendeePrivateAccessCodeInput);
         joinButton = root.findViewById(R.id.joinEventButton);
         cancelButton = root.findViewById(R.id.cancelEventPanelButton);
+        declineOfferButton = root.findViewById(R.id.declineWaitlistOfferButton);
         showQrButton = root.findViewById(R.id.showQrButton);
         waitlistStatusText = root.findViewById(R.id.waitlistStatusText);
 
@@ -231,6 +259,12 @@ public final class AttendeeEventPanelController {
         }
     }
 
+    public void setDeclineOfferVisible(boolean visible) {
+        if (declineOfferButton != null) {
+            declineOfferButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
     public void setQrButtonVisible(boolean visible) {
         if (showQrButton != null) {
             showQrButton.setVisibility(visible ? View.VISIBLE : View.GONE);
@@ -241,30 +275,85 @@ public final class AttendeeEventPanelController {
         }
     }
 
-    public void updateWaitlistStatus(@Nullable String message, int position, @Nullable java.util.Date expiresAt) {
+    public void updateWaitlistStatus(@Nullable String message, int position, @Nullable Date expiresAt) {
         if (waitlistStatusText == null) {
             return;
         }
         if (message == null || message.trim().isEmpty()) {
+            stopOfferCountdown();
             waitlistStatusText.setVisibility(View.GONE);
             waitlistStatusText.setText("");
             return;
         }
         waitlistStatusText.setVisibility(View.VISIBLE);
-        if (expiresAt != null) {
-            java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
-            String deadline = format.format(expiresAt);
-            waitlistStatusText.setText(activity.getString(
-                    R.string.waitlist_offer_deadline, message, deadline));
-        } else {
+        if (expiresAt == null) {
+            stopOfferCountdown();
+            waitlistStatusText.setTextColor(ContextCompat.getColor(activity, R.color.attendee_waitlist_stroke));
             waitlistStatusText.setText(message);
+            return;
         }
+        waitlistStatusText.setTextColor(ContextCompat.getColor(activity, R.color.waitlist_accent));
+        if (offerExpiresAt != null
+                && offerExpiresAt.getTime() == expiresAt.getTime()
+                && message.equals(offerStatusMessage)
+                && countdownTick != null) {
+            return;
+        }
+        stopOfferCountdown();
+        offerExpiresAt = expiresAt;
+        offerStatusMessage = message;
+        offerExpiryNotified = false;
+        tickOfferCountdown();
+    }
+
+    private void tickOfferCountdown() {
+        if (waitlistStatusText == null || offerExpiresAt == null || offerStatusMessage == null) {
+            return;
+        }
+        long remainingMs = offerExpiresAt.getTime() - System.currentTimeMillis();
+        waitlistStatusText.setText(activity.getString(
+                R.string.waitlist_offer_deadline,
+                offerStatusMessage,
+                formatRemaining(remainingMs)));
+        if (remainingMs <= 0) {
+            notifyOfferExpired();
+            return;
+        }
+        countdownTick = this::tickOfferCountdown;
+        countdownHandler.postDelayed(countdownTick, 1000);
+    }
+
+    private void notifyOfferExpired() {
+        if (offerExpiryNotified) {
+            return;
+        }
+        offerExpiryNotified = true;
+        if (onOfferExpiredListener != null) {
+            onOfferExpiredListener.run();
+        }
+    }
+
+    private void stopOfferCountdown() {
+        if (countdownTick != null) {
+            countdownHandler.removeCallbacks(countdownTick);
+            countdownTick = null;
+        }
+        offerExpiresAt = null;
+        offerStatusMessage = null;
+    }
+
+    private static String formatRemaining(long remainingMs) {
+        long totalSeconds = Math.max(0, remainingMs / 1000);
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds);
     }
 
     private void bindEvent(@NonNull Event event) {
         bindEventMetadata(event);
         bindEventImage(event);
         updateWaitlistStatus(null, 0, null);
+        setDeclineOfferVisible(false);
         setQrButtonVisible(false);
         if (joinButton != null) {
             joinButton.setEnabled(false);
@@ -319,7 +408,10 @@ public final class AttendeeEventPanelController {
         if (privateBadge != null) {
             privateBadge.setVisibility(event.getPrivateEvent() ? View.VISIBLE : View.GONE);
         }
-        updatePrivateCodeVisibility(!historyMode && event.getPrivateEvent());
+        if (cancelledBadge != null) {
+            cancelledBadge.setVisibility(event.isCancelled() ? View.VISIBLE : View.GONE);
+        }
+        updatePrivateCodeVisibility(!historyMode && !event.isCancelled() && event.getPrivateEvent());
     }
 
     private void bindEventImage(@NonNull Event event) {

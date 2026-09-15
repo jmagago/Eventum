@@ -4,19 +4,11 @@
 
     <item
         android:id="@+id/action_verify_attendees"
-        android:icon="@drawable/ic_check"
+        android:icon="@drawable/ic_qr_code"
         android:title="@string/menu_verify_attendees"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
         android:orderInCategory="1"/>
-
-    <item
-        android:id="@+id/action_send_invitations"
-        android:icon="@drawable/ic_email"
-        android:title="@string/menu_send_invitations"
-        android:iconTint="@color/colorPrimary"
-        app:showAsAction="never"
-        android:orderInCategory="2"/>
 
     <item
         android:id="@+id/action_view_waitlist"
@@ -59,7 +51,7 @@
         app:showAsAction="never"
         android:orderInCategory="7"/>
 
-    <item
+        <item
         android:id="@+id/action_clear_list"
         android:icon="@drawable/ic_clear_all"
         android:title="@string/menu_clear_list"
@@ -68,10 +60,18 @@
         android:orderInCategory="8"/>
 
     <item
+        android:id="@+id/action_cancel_event"
+        android:icon="@drawable/ic_warning"
+        android:title="@string/menu_cancel_event"
+        android:iconTint="@color/colorPrimary"
+        app:showAsAction="never"
+        android:orderInCategory="9"/>
+
+    <item
         android:id="@+id/action_delete_event"
         android:icon="@drawable/ic_delete"
         android:title="@string/menu_delete_event"
         android:iconTint="@color/colorPrimary"
         app:showAsAction="never"
-        android:orderInCategory="9"/>
+        android:orderInCategory="10"/>
 </menu>

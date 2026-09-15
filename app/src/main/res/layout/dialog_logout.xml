@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="@string/logout_dialog_title"
-            android:textColor="@color/colorPrimaryText"
+            android:textColor="@color/colorPrimary"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp" />
@@ -54,6 +54,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/cancel"
                 android:textAllCaps="false"
+                android:textColor="@color/colorError"
                 android:textSize="14sp"
                 android:layout_marginEnd="16dp" />
 

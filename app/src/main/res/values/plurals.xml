@@ -10,6 +10,11 @@
         <item quantity="other">👥  %1$d de %2$d plazas ocupadas</item>
     </plurals>
 
+    <plurals name="event_waitlist_inline">
+        <item quantity="one">[1 en espera]</item>
+        <item quantity="other">[%d en espera]</item>
+    </plurals>
+
     <plurals name="event_verified_attendees">
         <item quantity="one">%d asistente verificado</item>
         <item quantity="other">%d asistentes verificados</item>

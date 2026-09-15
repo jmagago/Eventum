@@ -1,6 +1,7 @@
 package com.us.eventum.utils;
 
 import android.content.Context;
+import android.util.Log;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
@@ -14,6 +15,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 public final class ParentalAuthManager {
+
+    private static final String TAG = "ParentalAuthManager";
 
     public interface UploadCallback {
         void onSuccess(@NonNull String downloadUrl);
@@ -68,5 +71,22 @@ public final class ParentalAuthManager {
             return ".pdf";
         }
         return ".jpg";
+    }
+
+    public static void deleteForEvent(@NonNull String eventId) {
+        if (eventId.trim().isEmpty()) {
+            return;
+        }
+        FirebaseStorage.getInstance().getReference()
+                .child("parental_auth/" + eventId.trim())
+                .listAll()
+                .addOnSuccessListener(listResult -> {
+                    for (StorageReference item : listResult.getItems()) {
+                        item.delete().addOnFailureListener(e ->
+                                Log.w(TAG, "No se pudo borrar autorización parental", e));
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "No se pudo listar autorizaciones parentales", e));
     }
 }

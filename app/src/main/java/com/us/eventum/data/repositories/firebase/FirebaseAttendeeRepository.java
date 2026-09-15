@@ -13,6 +13,7 @@ import com.us.eventum.data.repositories.AttendeeRepository;
 import com.us.eventum.utils.FirebaseBackendErrorHandler;
 
 import java.util.HashMap;
+import java.util.Locale;
 
 public class FirebaseAttendeeRepository implements AttendeeRepository {
     private final FirebaseFirestore db;
@@ -87,12 +88,12 @@ public class FirebaseAttendeeRepository implements AttendeeRepository {
 
         String uid = mAuth.getCurrentUser().getUid();
         attendee.setUid(uid);
+        String newDni = normalizeDni(attendee.getDni());
+        if (!newDni.isEmpty()) {
+            attendee.setDni(newDni);
+        }
 
-        db.collection("attendees").document(uid)
-                .set(attendee)
-                .addOnSuccessListener(aVoid -> callback.onSuccess(attendee))
-                .addOnFailureListener(e -> callback.onError(
-                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_update_attendee)));
+        persistAttendeeIfDniAvailable(uid, newDni, attendee, callback);
     }
 
     @Override
@@ -139,5 +140,82 @@ public class FirebaseAttendeeRepository implements AttendeeRepository {
                 })
                 .addOnFailureListener(e -> callback.onError(
                         FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_check_username)));
+    }
+
+    @Override
+    public void checkDniAvailability(String dni, String excludeUid, RepositoryCallback<Boolean> callback) {
+        String normalized = normalizeDni(dni);
+        if (normalized.isEmpty()) {
+            callback.onSuccess(false);
+            return;
+        }
+
+        findConflictingAttendeeUid(normalized, excludeUid, new RepositoryCallback<String>() {
+            @Override
+            public void onSuccess(String conflictUid) {
+                callback.onSuccess(conflictUid == null);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private void persistAttendeeIfDniAvailable(String uid,
+                                               String dni,
+                                               Attendee attendee,
+                                               RepositoryCallback<Attendee> callback) {
+        if (dni.isEmpty()) {
+            writeAttendee(uid, attendee, callback);
+            return;
+        }
+        findConflictingAttendeeUid(dni, uid, new RepositoryCallback<String>() {
+            @Override
+            public void onSuccess(String conflictUid) {
+                if (conflictUid != null) {
+                    callback.onError(FirebaseBackendErrorHandler.getDniInUseMessage(null));
+                    return;
+                }
+                writeAttendee(uid, attendee, callback);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private void writeAttendee(String uid, Attendee attendee, RepositoryCallback<Attendee> callback) {
+        db.collection("attendees").document(uid)
+                .set(attendee)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(attendee))
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_update_attendee)));
+    }
+
+    private void findConflictingAttendeeUid(String dni, String excludeUid, RepositoryCallback<String> callback) {
+        db.collection("attendees")
+                .whereEqualTo("dni", dni)
+                .limit(5)
+                .get(Source.SERVER)
+                .addOnSuccessListener(query -> {
+                    String conflictUid = null;
+                    for (DocumentSnapshot doc : query.getDocuments()) {
+                        if (excludeUid == null || !excludeUid.equals(doc.getId())) {
+                            conflictUid = doc.getId();
+                            break;
+                        }
+                    }
+                    callback.onSuccess(conflictUid);
+                })
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_check_dni)));
+    }
+
+    private static String normalizeDni(String dni) {
+        return dni == null ? "" : dni.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
     }
 }

@@ -62,21 +62,6 @@
                     android:textSize="32sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.chip.Chip
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:text="@string/app_info_header_tagline"
-                    android:textColor="@color/white"
-                    android:textSize="11sp"
-                    app:chipBackgroundColor="#33FFFFFF"
-                    app:chipCornerRadius="12dp"
-                    app:chipMinHeight="28dp"
-                    app:chipStrokeColor="#66FFFFFF"
-                    app:chipStrokeWidth="1dp" />
-
             </LinearLayout>
 
         </FrameLayout>
@@ -362,9 +347,16 @@
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="20dp"
-            android:text="@string/app_info_got_it"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp" />
+            android:contentDescription="@string/cd_close"
+            android:gravity="center"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:text=""
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_check"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="@android:color/white" />
 
     </LinearLayout>
 

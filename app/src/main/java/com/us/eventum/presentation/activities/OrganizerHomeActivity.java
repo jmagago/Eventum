@@ -2,7 +2,6 @@ package com.us.eventum.presentation.activities;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -40,8 +39,8 @@ import com.us.eventum.presentation.viewmodels.SharedViewModel;
 import com.us.eventum.presentation.viewmodels.EventViewModel;
 import com.us.eventum.presentation.viewmodels.OrganizerViewModel;
 import com.us.eventum.presentation.viewmodels.AttendeeViewModel;
-import com.us.eventum.utils.PermissionUtils;
 import com.us.eventum.utils.PrivateAccessCodeDialogHelper;
+import com.us.eventum.utils.WaitlistDialogHelper;
 import com.us.eventum.utils.ProfileImageManager;
 import com.us.eventum.utils.ToastUtils;
 import com.us.eventum.utils.NotificationPermissionHelper;
@@ -126,6 +125,8 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private EditEventPanelController editEventPanelController;
     private SearchEventsPanelController searchEventsPanelController;
     private AttendeeCsvExportHelper csvExportHelper;
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -198,7 +199,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         setupPanelBackHandler();
 
         notificationWatcher = new OrganizerNotificationWatcher(this);
-        NotificationPermissionHelper.requestIfNeeded(this);
+        NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher);
 
         // Configurar observador de actualización de imagen de perfil
         setupProfileImageObserver();
@@ -232,7 +233,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 pastEvents.clear();
                 
                 for (Event event : events) {
-                    if (event.getDate().after(now)) {
+                    if (event.isUpcoming(now)) {
                         futureEvents.add(event);
                     } else {
                         pastEvents.add(event);
@@ -606,7 +607,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     }
 
     private void addEventToList(Event event, Date now) {
-        if (event.getDate().after(now)) {
+        if (event.isUpcoming(now)) {
             futureEvents.add(event);
         } else {
             pastEvents.add(event);
@@ -663,26 +664,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PermissionUtils.PERMISSION_REQUEST_CODE) {
-            boolean allPermissionsGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allPermissionsGranted = false;
-                    break;
-                }
-            }
-            
-            if (!allPermissionsGranted) {
-                ToastUtils.showCustomToast(this, 
-                    "Se requieren permisos para el funcionamiento completo de la aplicación", 
-                    ToastUtils.ToastType.WARNING);
-            }
-        }
-    }
-
-    @Override
     public boolean onMenuItemClick(MenuItem item, Event event) {
         int id = item.getItemId();
         Intent intent;
@@ -692,13 +673,23 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         } else if (id == R.id.action_delete_event) {
             showDeleteEventDialog(event);
             return true;
-        } else if (id == R.id.action_send_invitations) {
-            ToastUtils.showCustomToast(this, "Próximamente: Enviar invitaciones", ToastUtils.ToastType.INFO);
+        } else if (id == R.id.action_cancel_event) {
+            showCancelEventDialog(event);
+            return true;
+        } else if (id == R.id.action_view_waitlist) {
+            if (event != null && event.getId() != null && attendeeViewModel != null) {
+                WaitlistDialogHelper.show(this, event.getId(), attendeeViewModel);
+            }
             return true;
         } else if (id == R.id.action_view_private_access_code) {
             PrivateAccessCodeDialogHelper.showViewCode(this, event.getPrivateAccessCode());
             return true;
         } else if (id == R.id.action_verify_attendees) {
+            if (event != null && event.isCancelled()) {
+                ToastUtils.showCustomToast(this, getString(R.string.qr_scanner_event_cancelled),
+                        ToastUtils.ToastType.INFO);
+                return true;
+            }
             if (event.getId() == null || event.getId().isEmpty()) {
                 ToastUtils.showCustomToast(this, "Error: evento sin identificador", ToastUtils.ToastType.ERROR);
                 return true;
@@ -731,11 +722,19 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         if (editEventPanelController == null || event == null) {
             return;
         }
+        if (event.isCancelled()) {
+            ToastUtils.showCustomToast(this, getString(R.string.event_cancelled_cannot_edit),
+                    ToastUtils.ToastType.INFO);
+            return;
+        }
         int currentParticipants = Math.max(0, event.getCurrentParticipants());
         editEventPanelController.show(event, new EditEventPanelController.SaveListener() {
             @Override
             public void onEventSaved(@NonNull Event savedEvent, @Nullable Uri newImageUri) {
                 sharedViewModel.notifyEventsUpdated();
+                if (savedEvent.getId() != null && attendeeViewModel != null) {
+                    attendeeViewModel.promoteWaitlistIfNeeded(savedEvent.getId());
+                }
             }
 
             @Override
@@ -773,6 +772,34 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             confirmDialog.dismiss();
         });
         
+        confirmDialog.show();
+    }
+
+    private void showCancelEventDialog(Event event) {
+        if (event == null || event.getId() == null) {
+            return;
+        }
+        View confirmDialogView = getLayoutInflater().inflate(R.layout.dialog_confirm_delete, null);
+        TextView confirmTitleTextView = confirmDialogView.findViewById(R.id.confirm_title);
+        TextView confirmMessageTextView = confirmDialogView.findViewById(R.id.confirm_message);
+        MaterialButton confirmCancelButton = confirmDialogView.findViewById(R.id.confirm_cancel_button);
+        MaterialButton confirmDeleteButton = confirmDialogView.findViewById(R.id.confirm_delete_button);
+        ImageView confirmIcon = confirmDialogView.findViewById(R.id.confirm_icon);
+        confirmTitleTextView.setText(R.string.cancel_event_title);
+        confirmMessageTextView.setText(R.string.cancel_event_message);
+        confirmDeleteButton.setText(R.string.cancel_event_confirm);
+        if (confirmIcon != null) {
+            confirmIcon.setImageResource(R.drawable.ic_warning);
+        }
+
+        AlertDialog.Builder confirmBuilder = new AlertDialog.Builder(this, R.style.CustomTransparentDialog);
+        confirmBuilder.setView(confirmDialogView);
+        AlertDialog confirmDialog = confirmBuilder.create();
+        confirmCancelButton.setOnClickListener(cv -> confirmDialog.dismiss());
+        confirmDeleteButton.setOnClickListener(cv -> {
+            eventViewModel.cancelEvent(event.getId());
+            confirmDialog.dismiss();
+        });
         confirmDialog.show();
     }
 

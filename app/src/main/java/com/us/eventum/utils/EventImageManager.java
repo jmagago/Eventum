@@ -85,6 +85,16 @@ public final class EventImageManager {
         loadEventImage(context, target, eventId, null);
     }
 
+    public static void deleteEventImage(@Nullable String eventId) {
+        if (eventId == null || eventId.trim().isEmpty()) {
+            return;
+        }
+        FirebaseStorage.getInstance().getReference()
+                .child("event_images/" + eventId.trim() + ".jpg")
+                .delete()
+                .addOnFailureListener(e -> Log.w(TAG, "No se pudo borrar la imagen del evento", e));
+    }
+
     public static void loadEventImage(Context context, ImageView target, @Nullable String eventId,
                                       @Nullable ImageAvailabilityCallback callback) {
         if (eventId == null || eventId.trim().isEmpty()) {

@@ -337,6 +337,36 @@ public class AttendeeViewModel extends ViewModel {
                 });
     }
 
+    public interface DniAvailabilityCallback {
+        void onResult(boolean available, @Nullable String error);
+    }
+
+    public void checkDniAvailability(String dni, String excludeUid, DniAvailabilityCallback callback) {
+        if (attendeeRepository == null) {
+            if (callback != null) {
+                callback.onResult(false, appContext != null
+                        ? appContext.getString(com.us.eventum.R.string.backend_op_check_dni)
+                        : "No se pudo verificar el DNI");
+            }
+            return;
+        }
+        attendeeRepository.checkDniAvailability(dni, excludeUid, new AttendeeRepository.RepositoryCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean isAvailable) {
+                if (callback != null) {
+                    callback.onResult(Boolean.TRUE.equals(isAvailable), null);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (callback != null) {
+                    callback.onResult(false, error);
+                }
+            }
+        });
+    }
+
     /**
      * Actualizar asistente
      */
@@ -1109,7 +1139,6 @@ public class AttendeeViewModel extends ViewModel {
     protected void onCleared() {
         stopListeningEventAttendees();
         stopListeningEventWaitlist();
-        super.onCleared();
     }
 
     private void tryPromoteFromWaitlist(String eventId) {
@@ -1219,27 +1248,26 @@ public class AttendeeViewModel extends ViewModel {
                     isLoading.postValue(false);
                     return;
                 }
-                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(active.getStatus());
-                active.setStatus(WaitlistToEvent.STATUS_CANCELLED);
-                active.setOfferedAt(null);
-                active.setOfferExpiresAt(null);
-                waitlistRepository.updateWaitlistEntry(active, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
-                    @Override
-                    public void onSuccess(WaitlistToEvent result) {
-                        waitlistLeft.postValue(true);
-                        isLoading.postValue(false);
-                        EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
-                        if (wasOffered) {
-                            tryPromoteFromWaitlist(eventId);
-                        }
-                    }
+                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(active.getStatus())
+                        && WaitlistUtils.isValidOffer(active, System.currentTimeMillis());
+                waitlistRepository.cancelEntry(eventId, active.getId(),
+                        new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                            @Override
+                            public void onSuccess(WaitlistToEvent result) {
+                                waitlistLeft.postValue(true);
+                                isLoading.postValue(false);
+                                EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
+                                if (wasOffered) {
+                                    tryPromoteFromWaitlist(eventId);
+                                }
+                            }
 
-                    @Override
-                    public void onError(String error) {
-                        errorMessage.postValue(error);
-                        isLoading.postValue(false);
-                    }
-                });
+                            @Override
+                            public void onError(String error) {
+                                errorMessage.postValue(error);
+                                isLoading.postValue(false);
+                            }
+                        });
             }
 
             @Override
@@ -1285,36 +1313,25 @@ public class AttendeeViewModel extends ViewModel {
                 if (parentalAuthUrl != null && !parentalAuthUrl.trim().isEmpty()) {
                     attendeeToEvent.setParentalAuthUrl(parentalAuthUrl.trim());
                 }
-                attendeesToEventRepository.createAttendeeToEvent(attendeeToEvent,
-                        new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
+                int knownOffered = WaitlistUtils.countValidOffers(entries);
+                waitlistRepository.confirmOfferAndRegister(
+                        offer,
+                        attendeeToEvent,
+                        0,
+                        knownOffered,
+                        new WaitlistRepository.RepositoryCallback<AttendeesToEvent>() {
                             @Override
                             public void onSuccess(AttendeesToEvent result) {
-                                offer.setStatus(WaitlistToEvent.STATUS_PROMOTED);
-                                offer.setOfferedAt(null);
-                                offer.setOfferExpiresAt(null);
-                                waitlistRepository.updateWaitlistEntry(offer,
-                                        new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
-                                            @Override
-                                            public void onSuccess(WaitlistToEvent updated) {
-                                                attendeeAdded.postValue(true);
-                                                isLoading.postValue(false);
-                                                notifyOrganizerAfterRegistrationChange(
-                                                        eventId,
-                                                        attendeeDisplayName,
-                                                        OrganizerNotification.TYPE_ATTENDEE_JOINED,
-                                                        eventTitle);
-                                                EventActivityLogHelper.logJoined(eventId, attendeeDisplayName);
-                                                EventActivityLogHelper.logWaitlistPromoted(
-                                                        eventId, attendeeDisplayName);
-                                            }
-
-                                            @Override
-                                            public void onError(String error) {
-                                                attendeeAdded.postValue(true);
-                                                isLoading.postValue(false);
-                                                Log.w(TAG, "Inscrito pero no se actualizó waitlist: " + error);
-                                            }
-                                        });
+                                attendeeAdded.postValue(true);
+                                isLoading.postValue(false);
+                                notifyOrganizerAfterRegistrationChange(
+                                        eventId,
+                                        attendeeDisplayName,
+                                        OrganizerNotification.TYPE_ATTENDEE_JOINED,
+                                        eventTitle);
+                                EventActivityLogHelper.logJoined(eventId, attendeeDisplayName);
+                                EventActivityLogHelper.logWaitlistPromoted(
+                                        eventId, attendeeDisplayName);
                             }
 
                             @Override
@@ -1355,24 +1372,25 @@ public class AttendeeViewModel extends ViewModel {
                     isLoading.postValue(false);
                     return;
                 }
-                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(target.getStatus());
-                target.setStatus(WaitlistToEvent.STATUS_CANCELLED);
-                waitlistRepository.updateWaitlistEntry(target, new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
-                    @Override
-                    public void onSuccess(WaitlistToEvent result) {
-                        isLoading.postValue(false);
-                        EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
-                        if (wasOffered) {
-                            tryPromoteFromWaitlist(eventId);
-                        }
-                    }
+                boolean wasOffered = WaitlistToEvent.STATUS_OFFERED.equals(target.getStatus())
+                        && WaitlistUtils.isValidOffer(target, System.currentTimeMillis());
+                waitlistRepository.cancelEntry(eventId, target.getId(),
+                        new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                            @Override
+                            public void onSuccess(WaitlistToEvent result) {
+                                isLoading.postValue(false);
+                                EventActivityLogHelper.logWaitlistLeft(eventId, attendeeDisplayName);
+                                if (wasOffered) {
+                                    tryPromoteFromWaitlist(eventId);
+                                }
+                            }
 
-                    @Override
-                    public void onError(String error) {
-                        errorMessage.postValue(error);
-                        isLoading.postValue(false);
-                    }
-                });
+                            @Override
+                            public void onError(String error) {
+                                errorMessage.postValue(error);
+                                isLoading.postValue(false);
+                            }
+                        });
             }
 
             @Override
