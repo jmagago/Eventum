@@ -8,7 +8,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.us.eventum.R;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.repositories.AttendeesToEventRepository;
-import com.us.eventum.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
 
 import java.util.ArrayList;
 import java.util.List;

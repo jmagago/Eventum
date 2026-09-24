@@ -96,7 +96,7 @@ public class Organizer implements Serializable {
             this.fechaNacimiento = null;
             return;
         }
-        Date parsed = com.us.eventum.utils.AgeUtils.parseBirthDate(fechaNacimiento);
+        Date parsed = com.us.eventum.core.utils.AgeUtils.parseBirthDate(fechaNacimiento);
         if (parsed == null) {
             this.fechaNacimiento = null;
             return;

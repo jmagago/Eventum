@@ -10,7 +10,7 @@ import com.google.firebase.firestore.Transaction;
 import com.us.eventum.R;
 import com.us.eventum.data.models.Organizer;
 import com.us.eventum.data.repositories.OrganizerRepository;
-import com.us.eventum.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
 
 import java.util.HashMap;
 

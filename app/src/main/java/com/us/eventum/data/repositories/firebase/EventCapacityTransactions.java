@@ -9,7 +9,7 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Transaction;
-import com.us.eventum.utils.EventPrivateAccessCode;
+import com.us.eventum.core.utils.EventPrivateAccessCode;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -208,7 +208,6 @@
     <string name="attendee_empty_discover">No hay eventos disponibles para inscribirte en este momento.</string>
     <string name="attendee_empty_history">Aún no tienes eventos pasados en tu historial.\n\nLos eventos a los que te apuntaste y ya han finalizado aparecerán aquí.</string>
     <string name="attendee_empty_filters">Ningún evento coincide con los filtros.</string>
-    <string name="attendee_history_no_unsubscribe">Ya consta tu asistencia en este evento; no puedes darte de baja desde el historial.</string>
     <!-- Pantalla Home Organizador -->
     <string name="organizer_sort_events">Ordenar eventos próximos</string>
     <string name="sort_date_asc">Fecha (predeterminado)</string>

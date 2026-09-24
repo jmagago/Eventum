@@ -4,7 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.us.eventum.R;
 import com.us.eventum.data.models.AttendeeNotification;
 import com.us.eventum.data.repositories.AttendeeNotificationRepository;
-import com.us.eventum.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
 
 public class FirebaseAttendeeNotificationRepository implements AttendeeNotificationRepository {
 

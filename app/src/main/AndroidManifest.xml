@@ -36,7 +36,7 @@
         tools:targetApi="33">
 
         <activity
-            android:name=".presentation.activities.LoginActivity"
+            android:name=".ui.activities.LoginActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|keyboardHidden">
@@ -47,47 +47,47 @@
         </activity>
 
         <activity
-            android:name=".presentation.activities.AttendeeHomeActivity"
+            android:name=".ui.activities.AttendeeHomeActivity"
             android:exported="false"
             android:label="Eventos disponibles" />
 
         <activity
-            android:name=".presentation.activities.ResetPasswordActivity"
+            android:name=".ui.activities.ResetPasswordActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".presentation.activities.RegisterActivity"
+            android:name=".ui.activities.RegisterActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".presentation.activities.OrganizerHomeActivity"
-            android:exported="true"
+            android:name=".ui.activities.OrganizerHomeActivity"
+            android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden">
         </activity>
 
         <activity
-            android:name=".presentation.activities.SettingsActivity"
+            android:name=".ui.activities.SettingsActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".presentation.activities.EventDetailsActivity"
+            android:name=".ui.activities.EventDetailsActivity"
             android:exported="false"
-            android:parentActivityName=".presentation.activities.OrganizerHomeActivity"
+            android:parentActivityName=".ui.activities.OrganizerHomeActivity"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".presentation.activities.OrganizerHomeActivity" />
+                android:value=".ui.activities.OrganizerHomeActivity" />
         </activity>
 
-        <activity android:name=".presentation.activities.ChangePasswordActivity"
+        <activity android:name=".ui.activities.ChangePasswordActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"/>
 
         <activity
-            android:name=".presentation.activities.QRScannerActivity"
+            android:name=".ui.activities.QRScannerActivity"
             android:exported="false"
             android:theme="@style/QrScannerTheme"/>
 

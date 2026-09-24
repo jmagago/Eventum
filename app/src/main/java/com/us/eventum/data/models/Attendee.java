@@ -40,7 +40,7 @@ public class Attendee implements Serializable {
             try {
                 // Asumir formato dd/MM/yyyy
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
-                        "dd/MM/yyyy", com.us.eventum.utils.LocaleUtils.spanish());
+                        "dd/MM/yyyy", com.us.eventum.core.utils.LocaleUtils.spanish());
                 Date date = sdf.parse(fechaNacimiento);
                 
                 // Crear fecha a medianoche (00:00:00) para evitar incluir hora
@@ -141,7 +141,7 @@ public class Attendee implements Serializable {
             try {
                 // Asumir formato dd/MM/yyyy
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
-                        "dd/MM/yyyy", com.us.eventum.utils.LocaleUtils.spanish());
+                        "dd/MM/yyyy", com.us.eventum.core.utils.LocaleUtils.spanish());
                 Date date = sdf.parse(fechaNacimiento);
                 
                 // Crear fecha a medianoche (00:00:00) para evitar incluir hora
@@ -183,7 +183,6 @@ public class Attendee implements Serializable {
                fechaNacimiento != null;
     }
 
-    // Métodos de compatibilidad para SettingsActivity
     public String getLastName() {
         return primerApellido; // Primer apellido como apellido principal
     }
@@ -245,9 +244,6 @@ public class Attendee implements Serializable {
         return sb.toString().trim();
     }
 
-    // Métodos de compatibilidad para mantener la interfaz existente
-    // Nota: getId() eliminado para evitar duplicación en Firestore
-
     public Timestamp getBirthDate() {
         return fechaNacimiento;
     }
@@ -256,7 +252,7 @@ public class Attendee implements Serializable {
         if (fechaNacimiento == null) {
             return false;
         }
-        return com.us.eventum.utils.AgeUtils.requiresParentalAuthOnEventDay(
+        return com.us.eventum.core.utils.AgeUtils.requiresParentalAuthOnEventDay(
                 fechaNacimiento.toDate(), eventDate);
     }
 }

@@ -11,8 +11,8 @@ import com.us.eventum.R;
 import com.us.eventum.data.models.AttendeesToEvent;
 import com.us.eventum.data.models.WaitlistToEvent;
 import com.us.eventum.data.repositories.WaitlistRepository;
-import com.us.eventum.utils.FirebaseBackendErrorHandler;
-import com.us.eventum.utils.WaitlistUtils;
+import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.core.utils.WaitlistUtils;
 
 import java.util.ArrayList;
 import java.util.Date;

@@ -46,7 +46,6 @@ public class NetworkStateManager {
     public boolean isOnline() {
         boolean actualState = isNetworkAvailable();
         if (isOnline != actualState) {
-            Log.d(TAG, "Estado de red desincronizado. cache=" + isOnline + ", actual=" + actualState);
             updateNetworkState(actualState);
         }
         return isOnline;
@@ -108,7 +107,6 @@ public class NetworkStateManager {
 
     private void updateNetworkState(boolean online) {
         if (this.isOnline != online) {
-            Log.d(TAG, "Cambio de estado de red: " + this.isOnline + " -> " + online);
             this.isOnline = online;
             notifyListeners(online);
         }

@@ -97,7 +97,6 @@ dependencies {
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAuth)
     implementation(libs.firebaseFirestore)
-    implementation(libs.firebaseDatabase)
     implementation(libs.firebaseStorage)
     
     // CameraX (vista previa y análisis de frames para QR)

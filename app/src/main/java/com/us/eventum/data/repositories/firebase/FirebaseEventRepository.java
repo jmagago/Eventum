@@ -16,10 +16,10 @@ import com.us.eventum.R;
 import com.us.eventum.data.models.Event;
 import com.us.eventum.data.models.WaitlistToEvent;
 import com.us.eventum.data.repositories.EventRepository;
-import com.us.eventum.utils.EventImageManager;
-import com.us.eventum.utils.EventPrivateAccessCode;
-import com.us.eventum.utils.FirebaseBackendErrorHandler;
-import com.us.eventum.utils.ParentalAuthManager;
+import com.us.eventum.core.utils.EventImageManager;
+import com.us.eventum.core.utils.EventPrivateAccessCode;
+import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.core.utils.ParentalAuthManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
