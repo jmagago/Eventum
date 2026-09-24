@@ -1,5 +1,7 @@
 package com.us.eventum.core.utils;
 
+import com.us.eventum.R;
+
 import android.app.Activity;
 import android.content.Context;
 
@@ -9,9 +11,6 @@ import com.us.eventum.data.network.NetworkStateManager;
  * Utilidades para manejo de conexión a internet.
  */
 public class NetworkUtils {
-
-    private static final String DEFAULT_OFFLINE_MESSAGE =
-            "Sin conexión a internet. Verifique su conexión de red.";
 
     public static boolean isOnline(Context context) {
         return NetworkStateManager.getInstance(context).isOnline();
@@ -25,7 +24,9 @@ public class NetworkUtils {
         if (isOnline(context)) {
             return true;
         }
-        String message = customMessage != null ? customMessage : DEFAULT_OFFLINE_MESSAGE;
+        String message = customMessage != null
+                ? customMessage
+                : context.getString(R.string.error_no_internet);
         if (context instanceof Activity) {
             ToastUtils.showCustomToast((Activity) context, message, ToastUtils.ToastType.ERROR);
         }

@@ -397,7 +397,7 @@ public final class CreateEventPanelController {
     }
 
     private void finishAfterEventCreated() {
-        ToastUtils.showCustomToast(activity, "Evento creado con éxito", ToastUtils.ToastType.SUCCESS);
+        ToastUtils.showCustomToast(activity, activity.getString(R.string.toast_event_created), ToastUtils.ToastType.SUCCESS);
         eventViewModel.clearOperationStates();
         sharedViewModel.notifyEventsUpdated();
         hide();
@@ -408,7 +408,7 @@ public final class CreateEventPanelController {
 
         if (nombreEventoEditText == null || nombreEventoEditText.getText().toString().trim().isEmpty()) {
             if (nombreEventoLayout != null) {
-                nombreEventoLayout.setError("El nombre del evento es obligatorio");
+                nombreEventoLayout.setError(activity.getString(R.string.error_event_name_required));
             }
             isValid = false;
         } else if (nombreEventoLayout != null) {
@@ -417,7 +417,7 @@ public final class CreateEventPanelController {
 
         if (fechaEventoEditText == null || fechaEventoEditText.getText().toString().trim().isEmpty()) {
             if (fechaEventoLayout != null) {
-                fechaEventoLayout.setError("La fecha es obligatoria");
+                fechaEventoLayout.setError(activity.getString(R.string.error_edit_event_date_required));
             }
             isValid = false;
         } else if (fechaEventoLayout != null) {
@@ -426,7 +426,7 @@ public final class CreateEventPanelController {
 
         if (horaEventoEditText == null || horaEventoEditText.getText().toString().trim().isEmpty()) {
             if (horaEventoLayout != null) {
-                horaEventoLayout.setError("La hora es obligatoria");
+                horaEventoLayout.setError(activity.getString(R.string.error_edit_event_time_required));
             }
             isValid = false;
         } else if (horaEventoLayout != null) {
@@ -435,7 +435,7 @@ public final class CreateEventPanelController {
 
         if (selectedEventType == null || selectedEventType.isEmpty()) {
             if (tipoEventoLayout != null) {
-                tipoEventoLayout.setError("El tipo de evento es obligatorio");
+                tipoEventoLayout.setError(activity.getString(R.string.error_event_type_required));
             }
             isValid = false;
         } else if (tipoEventoLayout != null) {
@@ -444,7 +444,7 @@ public final class CreateEventPanelController {
 
         if (maxParticipantesEditText == null || maxParticipantesEditText.getText().toString().trim().isEmpty()) {
             if (maxParticipantesLayout != null) {
-                maxParticipantesLayout.setError("El número máximo de participantes es obligatorio");
+                maxParticipantesLayout.setError(activity.getString(R.string.error_max_participants_required));
             }
             isValid = false;
         } else {
@@ -452,7 +452,7 @@ public final class CreateEventPanelController {
                 int maxParticipantes = Integer.parseInt(maxParticipantesEditText.getText().toString());
                 if (maxParticipantes <= 0) {
                     if (maxParticipantesLayout != null) {
-                        maxParticipantesLayout.setError("El número debe ser mayor que 0");
+                        maxParticipantesLayout.setError(activity.getString(R.string.error_number_gt_zero));
                     }
                     isValid = false;
                 } else if (maxParticipantesLayout != null) {
@@ -460,7 +460,7 @@ public final class CreateEventPanelController {
                 }
             } catch (NumberFormatException e) {
                 if (maxParticipantesLayout != null) {
-                    maxParticipantesLayout.setError("Debe ser un número válido");
+                    maxParticipantesLayout.setError(activity.getString(R.string.error_number_invalid));
                 }
                 isValid = false;
             }
@@ -468,7 +468,7 @@ public final class CreateEventPanelController {
 
         if (lugarEventoEditText == null || lugarEventoEditText.getText().toString().trim().isEmpty()) {
             if (lugarEventoLayout != null) {
-                lugarEventoLayout.setError("El lugar es obligatorio");
+                lugarEventoLayout.setError(activity.getString(R.string.error_location_required));
             }
             isValid = false;
         } else if (lugarEventoLayout != null) {

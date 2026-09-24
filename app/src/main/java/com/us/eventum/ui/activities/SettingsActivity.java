@@ -99,7 +99,7 @@ public class SettingsActivity extends AppCompatActivity {
                 launchCamera();
             } else {
                 ToastUtils.showCustomToast(this,
-                        "Se necesita permiso de cámara para tomar una foto",
+                        getString(R.string.error_camera_permission_needed),
                         ToastUtils.ToastType.ERROR);
             }
         });
@@ -387,7 +387,7 @@ public class SettingsActivity extends AppCompatActivity {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 Log.e(TAG, "Error al crear el archivo de imagen", ex);
-                ToastUtils.showCustomToast(this, "Error al crear archivo de imagen", ToastUtils.ToastType.ERROR);
+                ToastUtils.showCustomToast(this, getString(R.string.error_create_image_file), ToastUtils.ToastType.ERROR);
                 return;
             }
 
@@ -397,7 +397,7 @@ public class SettingsActivity extends AppCompatActivity {
             takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
             takePictureLauncher.launch(takePictureIntent);
         } else {
-            ToastUtils.showCustomToast(this, "No se encontró una aplicación de cámara", ToastUtils.ToastType.ERROR);
+            ToastUtils.showCustomToast(this, getString(R.string.error_no_camera_app), ToastUtils.ToastType.ERROR);
         }
     }
 
@@ -417,11 +417,11 @@ public class SettingsActivity extends AppCompatActivity {
     private Bitmap decodeBitmapFromUri(Uri imageUri) throws IOException {
         try (InputStream inputStream = getContentResolver().openInputStream(imageUri)) {
             if (inputStream == null) {
-                throw new IOException("No se pudo abrir la imagen");
+                throw new IOException(getString(R.string.error_open_image));
             }
             Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(inputStream);
             if (bitmap == null) {
-                throw new IOException("No se pudo decodificar la imagen");
+                throw new IOException(getString(R.string.error_decode_image));
             }
             return bitmap;
         }
@@ -459,7 +459,7 @@ public class SettingsActivity extends AppCompatActivity {
                     showProgress(false);
                     ProfileImageManager.markProfileImageUpdated(userId);
                     sharedViewModel.notifyProfileImageUpdated();
-                    ToastUtils.showCustomToast(SettingsActivity.this, "Foto de perfil actualizada", ToastUtils.ToastType.SUCCESS);
+                    ToastUtils.showCustomToast(SettingsActivity.this, getString(R.string.toast_profile_photo_updated), ToastUtils.ToastType.SUCCESS);
                 })
                 .addOnFailureListener(e -> {
                     showProgress(false);
@@ -553,7 +553,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void editProfile() {
         // Verificar que el tipo de usuario esté determinado
         if (currentUserType == null) {
-            ToastUtils.showCustomToast(this, "Cargando datos del usuario...", ToastUtils.ToastType.INFO);
+            ToastUtils.showCustomToast(this, getString(R.string.toast_loading_user_data), ToastUtils.ToastType.INFO);
             return;
         }
 
@@ -643,12 +643,12 @@ public class SettingsActivity extends AppCompatActivity {
                     com.us.eventum.core.utils.AttendeeProfileDialogHelper.showSaveConfirm(this, () -> {
                         attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                         dialog.dismiss();
-                        ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                        ToastUtils.showCustomToast(this, getString(R.string.toast_profile_updated), ToastUtils.ToastType.SUCCESS);
                     });
                 } else {
                     attendeeViewModel.updateAttendee(attendee.getUsername(), name, dni, phone, firstSurname, secondSurname, birth);
                     dialog.dismiss();
-                    ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+                    ToastUtils.showCustomToast(this, getString(R.string.toast_profile_updated), ToastUtils.ToastType.SUCCESS);
                 }
             };
 
@@ -702,14 +702,14 @@ public class SettingsActivity extends AppCompatActivity {
             String phone = String.valueOf(phoneInput.getText()).trim();
 
             if (username.isEmpty()) {
-                ToastUtils.showCustomToast(this, "El nombre de la empresa es obligatorio", ToastUtils.ToastType.ERROR);
+                ToastUtils.showCustomToast(this, getString(R.string.error_company_name_required), ToastUtils.ToastType.ERROR);
                 return;
             }
 
             // Para organizador: solo actualizamos username, cif y phone
             organizerViewModel.updateOrganizer(username, cif, phone);
             dialog.dismiss();
-            ToastUtils.showCustomToast(this, "Perfil actualizado", ToastUtils.ToastType.SUCCESS);
+            ToastUtils.showCustomToast(this, getString(R.string.toast_profile_updated), ToastUtils.ToastType.SUCCESS);
         });
 
         dialog.show();
@@ -722,7 +722,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void deleteAccount() {
         if (currentUserType == null) {
-            ToastUtils.showCustomToast(this, "Cargando datos del usuario...", ToastUtils.ToastType.INFO);
+            ToastUtils.showCustomToast(this, getString(R.string.toast_loading_user_data), ToastUtils.ToastType.INFO);
             return;
         }
 
@@ -814,13 +814,13 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void executeAccountDeletion() {
         if (currentUserType == null) {
-            ToastUtils.showCustomToast(this, "Error: Tipo de usuario no determinado",
+            ToastUtils.showCustomToast(this, getString(R.string.error_user_type_unknown),
                     ToastUtils.ToastType.ERROR);
             return;
         }
 
         pendingAccountDeletion = true;
-        ToastUtils.showCustomToast(this, "Eliminando cuenta y datos relacionados...",
+        ToastUtils.showCustomToast(this, getString(R.string.toast_deleting_account),
                 ToastUtils.ToastType.INFO);
 
         if (USER_TYPE_ATTENDEE.equals(currentUserType)) {
@@ -833,7 +833,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void onAccountDeleted() {
         pendingAccountDeletion = false;
         clearSessionLocalData();
-        ToastUtils.showCustomToast(this, "Cuenta eliminada", ToastUtils.ToastType.SUCCESS);
+        ToastUtils.showCustomToast(this, getString(R.string.toast_account_deleted), ToastUtils.ToastType.SUCCESS);
         goToLogin();
     }
 
@@ -857,7 +857,7 @@ public class SettingsActivity extends AppCompatActivity {
         dialogView.findViewById(R.id.btnConfirm).setOnClickListener(v -> {
             clearSessionLocalData();
             authViewModel.logout();
-            ToastUtils.showCustomToast(this, "Sesión cerrada", ToastUtils.ToastType.INFO);
+            ToastUtils.showCustomToast(this, getString(R.string.toast_session_closed), ToastUtils.ToastType.INFO);
             goToLogin();
             dialog.dismiss();
         });

@@ -342,7 +342,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             }
             VibrationUtils.vibrateSuccess(this);
             ToastUtils.showCustomToast(this,
-                    "Te has apuntado al evento correctamente", ToastUtils.ToastType.SUCCESS);
+                    getString(R.string.toast_joined_event), ToastUtils.ToastType.SUCCESS);
             dismissEventDialogIfOpen();
             switchAttendeeTab(TAB_MY_EVENTS);
             attendeeViewModel.clearOperationStates();
@@ -354,7 +354,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             }
             VibrationUtils.vibrateWarning(this);
             ToastUtils.showCustomToast(this,
-                    "Te has dado de baja del evento", ToastUtils.ToastType.WARNING);
+                    getString(R.string.toast_left_event), ToastUtils.ToastType.WARNING);
             dismissEventDialogIfOpen();
             switchAttendeeTab(TAB_DISCOVER);
             attendeeViewModel.clearOperationStates();
@@ -716,7 +716,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
     @Override
     public void onLockIconLongClick(Event event) {
         ToastUtils.showCustomToast(this,
-                "Solo el organizador puede cambiar la privacidad del evento",
+                getString(R.string.toast_only_organizer_privacy),
                 ToastUtils.ToastType.INFO);
     }
 
@@ -762,7 +762,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         layout.addView(emailInput);
 
         EditText phoneInput = new EditText(this);
-        phoneInput.setHint("Teléfono");
+        phoneInput.setHint(getString(R.string.hint_phone));
         phoneInput.setInputType(InputType.TYPE_CLASS_PHONE);
         layout.addView(phoneInput);
 
@@ -797,7 +797,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         }
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Apuntarse al evento")
+                .setTitle(getString(R.string.action_join_event))
                 .setView(layout)
                 .setPositiveButton("Apuntarme", (dialog, which) -> {
                     String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null
@@ -1124,7 +1124,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
         if (userId == null) {
-            showEventPanelToast("Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+            showEventPanelToast(getString(R.string.error_user_unavailable), ToastUtils.ToastType.ERROR);
             return;
         }
         if (AgeUtils.requiresParentalAuthOnEventDay(
@@ -1169,7 +1169,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
         if (userId == null) {
-            showEventPanelToast("Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+            showEventPanelToast(getString(R.string.error_user_unavailable), ToastUtils.ToastType.ERROR);
             return;
         }
         attendeeViewModel.confirmWaitlistOffer(
@@ -1260,7 +1260,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         }
         
         if (userEmail == null || userEmail.trim().isEmpty()) {
-            showEventPanelToast("Error: No se pudo obtener el email del usuario", ToastUtils.ToastType.ERROR);
+            showEventPanelToast(getString(R.string.error_user_email_unavailable), ToastUtils.ToastType.ERROR);
             return;
         }
 
@@ -1268,7 +1268,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 ? eventPanelController.getCurrentEvent()
                 : null;
         if (currentEvent == null) {
-            showEventPanelToast("Error: No se pudo cargar el evento", ToastUtils.ToastType.ERROR);
+            showEventPanelToast(getString(R.string.error_load_event), ToastUtils.ToastType.ERROR);
             return;
         }
 
@@ -1354,7 +1354,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             }
             if (userId == null) {
                 showEventPanelToast(
-                        "Error: No se pudo obtener el usuario", ToastUtils.ToastType.ERROR);
+                        getString(R.string.error_user_unavailable), ToastUtils.ToastType.ERROR);
                 return;
             }
             showParentalAuthDialog(event, attendee, userEmail, userId);

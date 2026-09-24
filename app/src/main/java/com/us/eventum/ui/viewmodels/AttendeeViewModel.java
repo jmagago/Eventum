@@ -1,5 +1,7 @@
 package com.us.eventum.ui.viewmodels;
 
+import com.us.eventum.R;
+
 import android.content.Context;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -144,7 +146,7 @@ public class AttendeeViewModel extends ViewModel {
         }
         String name = attendeeDisplayName != null && !attendeeDisplayName.trim().isEmpty()
                 ? attendeeDisplayName.trim()
-                : "Un asistente";
+                : (appContext != null ? appContext.getString(R.string.notification_organizer_unknown_attendee) : "Un asistente");
         String title = eventTitle != null ? eventTitle.trim() : "";
         OrganizerNotification notification = new OrganizerNotification(
                 organizerId, eventId, title, name, type);
@@ -240,7 +242,7 @@ public class AttendeeViewModel extends ViewModel {
     public void registerAttendee(String email, String password, String username, String nombre, String dni, String phone, 
                                 String primerApellido, String segundoApellido, String fechaNacimiento) {
         if (attendeeRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -249,17 +251,17 @@ public class AttendeeViewModel extends ViewModel {
 
         // Validaciones básicas
         if (email == null || email.trim().isEmpty()) {
-            errorMessage.postValue("El email es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_email_required_alt) : "El email es obligatorio"));
             isLoading.postValue(false);
             return;
         }
         if (password == null || password.length() < 6) {
-            errorMessage.postValue("La contraseña debe tener al menos 6 caracteres");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_password_min_length) : "La contraseña debe tener al menos 6 caracteres"));
             isLoading.postValue(false);
             return;
         }
         if (username == null || username.trim().isEmpty()) {
-            errorMessage.postValue("El nombre de usuario es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_username_required) : "El nombre de usuario es obligatorio"));
             isLoading.postValue(false);
             return;
         }
@@ -271,7 +273,7 @@ public class AttendeeViewModel extends ViewModel {
                 if (isAvailable) {
                     performAttendeeRegistration(email, password, username, nombre, dni, phone, primerApellido, segundoApellido, fechaNacimiento);
                 } else {
-                    errorMessage.postValue("Este nombre de usuario ya está en uso");
+                    errorMessage.postValue((appContext != null ? appContext.getString(R.string.backend_error_username_in_use) : "Este nombre de usuario ya está en uso"));
                     isLoading.postValue(false);
                 }
             }
@@ -344,7 +346,7 @@ public class AttendeeViewModel extends ViewModel {
             if (callback != null) {
                 callback.onResult(false, appContext != null
                         ? appContext.getString(com.us.eventum.R.string.backend_op_check_dni)
-                        : "No se pudo verificar el DNI");
+                        : (appContext != null ? appContext.getString(R.string.backend_op_check_dni) : "No se pudo verificar el DNI"));
             }
             return;
         }
@@ -370,7 +372,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void updateAttendee(String username, String nombre, String dni, String phone, String primerApellido, String segundoApellido, String fechaNacimiento) {
         if (attendeeRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -401,14 +403,14 @@ public class AttendeeViewModel extends ViewModel {
                     if (parsed == null) {
                         errorMessage.postValue(appContext != null
                                 ? appContext.getString(com.us.eventum.R.string.age_birth_date_invalid)
-                                : "Fecha de nacimiento inválida");
+                                : (appContext != null ? appContext.getString(R.string.error_birth_date_invalid_short) : "Fecha de nacimiento inválida"));
                         isLoading.postValue(false);
                         return;
                     }
                     if (!com.us.eventum.core.utils.AgeUtils.isAttendeeAgeValid(parsed, new java.util.Date())) {
                         errorMessage.postValue(appContext != null
                                 ? appContext.getString(com.us.eventum.R.string.age_attendee_min_error)
-                                : "Debes tener al menos 16 años");
+                                : (appContext != null ? appContext.getString(R.string.age_attendee_min_error) : "Debes tener al menos 16 años"));
                         isLoading.postValue(false);
                         return;
                     }
@@ -454,7 +456,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void deleteAccount() {
         if (attendeeRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -562,7 +564,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void clearEventAttendees(String eventId) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -702,7 +704,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void startListeningEventAttendees(String eventId) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -837,7 +839,7 @@ public class AttendeeViewModel extends ViewModel {
                             String organizerId, String eventTitle, String attendeeDisplayName,
                             String parentalAuthUrl) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -887,7 +889,7 @@ public class AttendeeViewModel extends ViewModel {
     public void unsubscribeFromEvent(String eventId, String email, String organizerId,
                                      String eventTitle, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -936,7 +938,7 @@ public class AttendeeViewModel extends ViewModel {
                     }
                 }
                 // Si no se encuentra el usuario inscrito
-                errorMessage.postValue("No estás inscrito en este evento");
+                errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_not_registered_event) : "No estás inscrito en este evento"));
                 isLoading.postValue(false);
             }
 
@@ -958,7 +960,7 @@ public class AttendeeViewModel extends ViewModel {
 
     public void removeAttendeeFromEvent(String attendeeId, String eventId, String attendeeDisplayName) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -994,7 +996,7 @@ public class AttendeeViewModel extends ViewModel {
                     }
                 }
                 // Si no se encuentra el registro, el asistente ya no está en el evento
-                errorMessage.postValue("El asistente no está inscrito en este evento");
+                errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_attendee_not_registered) : "El asistente no está inscrito en este evento"));
                 isLoading.postValue(false);
             }
 
@@ -1012,7 +1014,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void deleteAttendee(String attendeeId) {
         if (attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -1104,7 +1106,7 @@ public class AttendeeViewModel extends ViewModel {
      */
     public void loadScannedAttendeesCount(String eventId, List<String> currentAttendeeIds, AttendeeRepository.RepositoryCallback<Integer> callback) {
         if (attendeesToEventRepository == null) {
-            callback.onError("Repositorio no inicializado");
+            callback.onError((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         
@@ -1197,7 +1199,7 @@ public class AttendeeViewModel extends ViewModel {
     public void joinWaitlist(String eventId, String uid, @Nullable String parentalAuthUrl,
                              @Nullable String attendeeDisplayName) {
         if (waitlistRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         isLoading.postValue(true);
@@ -1226,7 +1228,7 @@ public class AttendeeViewModel extends ViewModel {
 
     public void leaveWaitlist(String eventId, String uid, @Nullable String attendeeDisplayName) {
         if (waitlistRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         isLoading.postValue(true);
@@ -1238,7 +1240,7 @@ public class AttendeeViewModel extends ViewModel {
             public void onSuccess(List<WaitlistToEvent> entries) {
                 WaitlistToEvent active = WaitlistUtils.findActiveEntryForUser(entries, uid);
                 if (active == null || active.getId() == null) {
-                    errorMessage.postValue("No estás en la lista de espera");
+                    errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_not_on_waitlist) : "No estás en la lista de espera"));
                     isLoading.postValue(false);
                     return;
                 }
@@ -1277,7 +1279,7 @@ public class AttendeeViewModel extends ViewModel {
                                      boolean requiresAuth, String organizerId, String eventTitle,
                                      String attendeeDisplayName) {
         if (waitlistRepository == null || attendeesToEventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         isLoading.postValue(true);
@@ -1347,7 +1349,7 @@ public class AttendeeViewModel extends ViewModel {
     public void removeFromWaitlistByOrganizer(String entryId, String eventId,
                                               @Nullable String attendeeDisplayName) {
         if (waitlistRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         isLoading.postValue(true);

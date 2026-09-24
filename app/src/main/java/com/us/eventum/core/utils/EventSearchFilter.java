@@ -1,5 +1,10 @@
 package com.us.eventum.core.utils;
 
+import android.content.Context;
+
+import androidx.annotation.NonNull;
+
+import com.us.eventum.R;
 import com.us.eventum.data.models.Event;
 import com.us.eventum.core.utils.LocaleUtils;
 import java.text.SimpleDateFormat;
@@ -139,29 +144,31 @@ public class EventSearchFilter {
     /**
      * Obtiene un resumen de los filtros activos
      */
-    public String getActiveFiltersSummary() {
+    public String getActiveFiltersSummary(@NonNull Context context) {
         List<String> activeFilters = new ArrayList<>();
         
         if (keywords != null && !keywords.trim().isEmpty()) {
-            activeFilters.add("Título: " + keywords);
+            activeFilters.add(context.getString(R.string.filter_summary_title, keywords));
         }
         
         if (eventType != null && !eventType.trim().isEmpty()) {
-            activeFilters.add("Tipo: " + eventType);
+            activeFilters.add(context.getString(R.string.filter_attendee_summary_type, eventType));
         }
         
         if (location != null && !location.trim().isEmpty()) {
-            activeFilters.add("Lugar: " + location);
+            activeFilters.add(context.getString(R.string.filter_attendee_summary_location, location));
         }
         
         if (dateFrom != null) {
-            activeFilters.add("Desde: " + dateFormat.format(dateFrom));
+            activeFilters.add(context.getString(R.string.filter_attendee_summary_from, dateFormat.format(dateFrom)));
         }
         
         if (dateTo != null) {
-            activeFilters.add("Hasta: " + dateFormat.format(dateTo));
+            activeFilters.add(context.getString(R.string.filter_attendee_summary_to, dateFormat.format(dateTo)));
         }
         
-        return activeFilters.isEmpty() ? "Sin filtros" : String.join(", ", activeFilters);
+        return activeFilters.isEmpty()
+                ? context.getString(R.string.label_no_filters)
+                : String.join(", ", activeFilters);
     }
 }

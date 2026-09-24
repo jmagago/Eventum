@@ -219,7 +219,7 @@ public final class SearchEventsPanelController {
                 || !dateFromStr.isEmpty() || !dateToStr.isEmpty();
 
         if (!hasValidSearch) {
-            showSheetToast("Debe introducir al menos un criterio de búsqueda", ToastUtils.ToastType.WARNING);
+            showSheetToast(activity.getString(R.string.error_search_need_criteria), ToastUtils.ToastType.WARNING);
             return;
         }
 
@@ -236,7 +236,7 @@ public final class SearchEventsPanelController {
                 newFilter.setDateTo(dateFormat.parse(dateToStr));
             }
         } catch (ParseException e) {
-            showSheetToast("Formato de fecha inválido", ToastUtils.ToastType.ERROR);
+            showSheetToast(activity.getString(R.string.error_date_format_invalid), ToastUtils.ToastType.ERROR);
             return;
         }
 

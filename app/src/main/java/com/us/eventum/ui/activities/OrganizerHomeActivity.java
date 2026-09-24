@@ -268,7 +268,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
         eventViewModel.getEventDeleted().observe(this, deleted -> {
             if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Evento eliminado con éxito", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_event_deleted), ToastUtils.ToastType.SUCCESS);
                 eventViewModel.clearOperationStates();
             }
         });
@@ -313,7 +313,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         // Observar limpieza de asistentes del AttendeeViewModel
         attendeeViewModel.getAttendeesCleared().observe(this, cleared -> {
             if (cleared != null && cleared) {
-                ToastUtils.showCustomToast(this, "Lista de asistentes vaciada", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.event_log_action_list_cleared), ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
                 sharedViewModel.notifyEventsUpdated();
                 loadEvents();
@@ -554,9 +554,9 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         tabLayoutMediator = new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> {
                     if (position == 0) {
-                        tab.setText("PRÓXIMOS (" + futureEvents.size() + ")");
+                        tab.setText(getString(R.string.organizer_tab_future, futureEvents.size()));
                     } else {
-                        tab.setText("ARCHIVADOS (" + pastEvents.size() + ")");
+                        tab.setText(getString(R.string.organizer_tab_past, pastEvents.size()));
                     }
                 }
         );
@@ -576,7 +576,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         createEventButton.setOnClickListener(v -> {
             int currentTab = tabLayout.getSelectedTabPosition();
             if (currentTab == 1) { // Archivados
-                ToastUtils.showCustomToast(this, "No se pueden crear eventos desde Archivados. Cambia a Próximos.", ToastUtils.ToastType.INFO);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_cannot_create_from_archived), ToastUtils.ToastType.INFO);
                 return;
             }
             if (createEventPanelController != null) {
@@ -626,11 +626,11 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         TabLayout.Tab pastTab = tabLayout.getTabAt(1);
         
         if (futureTab != null) {
-            futureTab.setText("PRÓXIMOS (" + futureEvents.size() + ")");
+            futureTab.setText(getString(R.string.organizer_tab_future, futureEvents.size()));
         }
         
         if (pastTab != null) {
-            pastTab.setText("ARCHIVADOS (" + pastEvents.size() + ")");
+            pastTab.setText(getString(R.string.organizer_tab_past, pastEvents.size()));
         }
         
         // Actualizar datos en los fragmentos o crear adaptador si es null
@@ -688,7 +688,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
                 return true;
             }
             if (event.getId() == null || event.getId().isEmpty()) {
-                ToastUtils.showCustomToast(this, "Error: evento sin identificador", ToastUtils.ToastType.ERROR);
+                ToastUtils.showCustomToast(this, getString(R.string.error_event_no_id), ToastUtils.ToastType.ERROR);
                 return true;
             }
             intent = new Intent(this, QRScannerActivity.class);
@@ -706,7 +706,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             return true;
         } else if (id == R.id.action_export_attendees_csv) {
             if (event.getId() == null || event.getId().isEmpty()) {
-                ToastUtils.showCustomToast(this, "Error: evento sin identificador", ToastUtils.ToastType.ERROR);
+                ToastUtils.showCustomToast(this, getString(R.string.error_event_no_id), ToastUtils.ToastType.ERROR);
                 return true;
             }
             csvExportHelper.exportForEvent(attendeeViewModel, event.getId(), event.getTitle());
@@ -861,11 +861,11 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             
             // Mostrar indicador de filtros
             filterIndicatorLayout.setVisibility(View.VISIBLE);
-            filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary()));
+            filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary(this)));
             
             // Mostrar mensaje con número de resultados
             if (filteredEvents.isEmpty()) {
-                ToastUtils.showCustomToast(this, "No se encontraron eventos que coincidan con los criterios de búsqueda en esta pestaña", ToastUtils.ToastType.INFO);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_no_events_match_tab), ToastUtils.ToastType.INFO);
             } else {
                 String message = getResources().getQuantityString(
                         R.plurals.search_results_events, filteredEvents.size(), filteredEvents.size());
@@ -893,7 +893,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private void clearSearchFilters() {
         currentSearchFilter.clearFilters();
         applySearchFilters();
-        ToastUtils.showCustomToast(this, "Filtros limpiados", ToastUtils.ToastType.INFO);
+        ToastUtils.showCustomToast(this, getString(R.string.toast_filters_cleared), ToastUtils.ToastType.INFO);
     }
     
     private void updateTabTitles(int futureCount, int pastCount) {

@@ -1,9 +1,12 @@
 package com.us.eventum.core.utils;
 
+import android.content.Context;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.firebase.Timestamp;
+import com.us.eventum.R;
 import com.us.eventum.data.models.Attendee;
 
 import java.text.SimpleDateFormat;
@@ -17,11 +20,11 @@ public final class AttendeeCsvExporter {
     }
 
     @NonNull
-    public static String buildCsvContent(@NonNull List<Attendee> attendees) {
+    public static String buildCsvContent(@NonNull Context context, @NonNull List<Attendee> attendees) {
         StringBuilder sb = new StringBuilder();
         // Excel (Windows): sep=; en la primera línea + UTF-8 con BOM al escribir el archivo
         sb.append("sep=;").append(LINE_SEPARATOR);
-        sb.append("DNI;Primer apellido;Segundo apellido;Nombre;Fecha de nacimiento;Teléfono;Email")
+        sb.append(context.getString(R.string.csv_attendees_header))
                 .append(LINE_SEPARATOR);
         for (Attendee attendee : attendees) {
             sb.append(escapeCsvField(attendee.getDni())).append(';')
@@ -37,11 +40,11 @@ public final class AttendeeCsvExporter {
     }
 
     @NonNull
-    public static String suggestedFilename(@Nullable String eventTitle) {
+    public static String suggestedFilename(@NonNull Context context, @Nullable String eventTitle) {
         if (eventTitle != null && !eventTitle.trim().isEmpty()) {
-            return sanitizeFilename(eventTitle.trim()) + ".csv";
+            return sanitizeFilename(context, eventTitle.trim()) + ".csv";
         }
-        return "asistentes.csv";
+        return context.getString(R.string.csv_attendees_default_filename);
     }
 
     @NonNull
@@ -55,10 +58,10 @@ public final class AttendeeCsvExporter {
     }
 
     @NonNull
-    private static String sanitizeFilename(@NonNull String title) {
+    private static String sanitizeFilename(@NonNull Context context, @NonNull String title) {
         String sanitized = title.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
         if (sanitized.isEmpty()) {
-            return "asistentes";
+            return context.getString(R.string.csv_attendees_basename);
         }
         if (sanitized.length() > 80) {
             sanitized = sanitized.substring(0, 80);

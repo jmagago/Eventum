@@ -123,7 +123,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
 
         authViewModel.getPasswordResetSent().observe(this, sent -> {
             if (sent != null && sent) {
-                ToastUtils.showCustomToast(this, "Correo de recuperación enviado", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_reset_email_sent), ToastUtils.ToastType.SUCCESS);
                 finish();
             }
         });
@@ -133,7 +133,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
         String email = emailEditText.getText().toString().trim();
 
         if (!validateEmail(email)) {
-            emailLayout.setError("Email inválido");
+            emailLayout.setError(getString(R.string.error_email_invalid));
             return;
         }
 

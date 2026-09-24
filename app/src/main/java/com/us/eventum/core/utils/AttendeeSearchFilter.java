@@ -1,5 +1,10 @@
 package com.us.eventum.core.utils;
 
+import android.content.Context;
+
+import androidx.annotation.NonNull;
+
+import com.us.eventum.R;
 import com.us.eventum.data.models.Attendee;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,26 +73,26 @@ public class AttendeeSearchFilter {
     /**
      * Obtener resumen de filtros activos
      */
-    public String getActiveFiltersSummary() {
+    public String getActiveFiltersSummary(@NonNull Context context) {
         List<String> activeFilters = new ArrayList<>();
         
         if (dni != null && !dni.trim().isEmpty()) {
-            activeFilters.add("DNI: " + dni);
+            activeFilters.add(context.getString(R.string.filter_summary_dni, dni));
         }
         if (name != null && !name.trim().isEmpty()) {
-            activeFilters.add("Nombre: " + name);
+            activeFilters.add(context.getString(R.string.filter_summary_name, name));
         }
         if (firstLastName != null && !firstLastName.trim().isEmpty()) {
-            activeFilters.add("Apellido: " + firstLastName);
+            activeFilters.add(context.getString(R.string.filter_summary_lastname, firstLastName));
         }
         if (secondLastName != null && !secondLastName.trim().isEmpty()) {
-            activeFilters.add("2º Apellido: " + secondLastName);
+            activeFilters.add(context.getString(R.string.filter_summary_second_lastname, secondLastName));
         }
         if (email != null && !email.trim().isEmpty()) {
-            activeFilters.add("Email: " + email);
+            activeFilters.add(context.getString(R.string.filter_summary_email, email));
         }
         if (phone != null && !phone.trim().isEmpty()) {
-            activeFilters.add("Teléfono: " + phone);
+            activeFilters.add(context.getString(R.string.filter_summary_phone, phone));
         }
         
         return String.join(", ", activeFilters);

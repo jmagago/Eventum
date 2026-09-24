@@ -1,5 +1,7 @@
 package com.us.eventum.ui.viewmodels;
 
+import com.us.eventum.R;
+
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -66,6 +68,7 @@ public class EventViewModel extends ViewModel {
     private List<Event> cachedUserEvents;
     private List<AttendeesToEvent> latestRegistrations = new ArrayList<>();
     private List<WaitlistToEvent> latestWaitlist = new ArrayList<>();
+    private Context appContext;
 
     // Getters para LiveData
     public LiveData<List<Event>> getEvents() { return events; }
@@ -87,6 +90,9 @@ public class EventViewModel extends ViewModel {
      * Inicializar el repositorio
      */
     public void initializeRepository(Context context) {
+        if (context != null) {
+            appContext = context.getApplicationContext();
+        }
         if (eventRepository == null) {
             eventRepository = new FirebaseEventRepository();
         }
@@ -120,7 +126,7 @@ public class EventViewModel extends ViewModel {
      */
     public void startListeningUserEvents() {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         if (listeningUserEvents) {
@@ -230,7 +236,7 @@ public class EventViewModel extends ViewModel {
      */
     public void startListeningAllEvents() {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         if (listeningAllEvents) {
@@ -537,7 +543,7 @@ public class EventViewModel extends ViewModel {
                            int maxParticipants, String eventType, boolean isPrivate, boolean requiresParentalAuth,
                            @Nullable String privateAccessCode) {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         
@@ -545,31 +551,31 @@ public class EventViewModel extends ViewModel {
         
         // Validaciones
         if (title == null || title.trim().isEmpty()) {
-            errorMessage.postValue("El título es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_title_required) : "El título es obligatorio"));
             isLoading.postValue(false);
             return;
         }
         
         if (description == null || description.trim().isEmpty()) {
-            errorMessage.postValue("La descripción es obligatoria");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_description_required) : "La descripción es obligatoria"));
             isLoading.postValue(false);
             return;
         }
         
         if (date == null) {
-            errorMessage.postValue("La fecha es obligatoria");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_edit_event_date_required) : "La fecha es obligatoria"));
             isLoading.postValue(false);
             return;
         }
         
         if (location == null || location.trim().isEmpty()) {
-            errorMessage.postValue("La ubicación es obligatoria");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_location_required_vm) : "La ubicación es obligatoria"));
             isLoading.postValue(false);
             return;
         }
         
         if (maxParticipants <= 0) {
-            errorMessage.postValue("El número máximo de participantes debe ser mayor a 0");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_max_participants_gt_zero) : "El número máximo de participantes debe ser mayor a 0"));
             isLoading.postValue(false);
             return;
         }
@@ -577,7 +583,7 @@ public class EventViewModel extends ViewModel {
         String normalizedAccessCode = EventPrivateAccessCode.normalize(privateAccessCode);
         if (isPrivate) {
             if (!EventPrivateAccessCode.isValidFormat(privateAccessCode)) {
-                errorMessage.postValue("El código del evento privado debe ser alfanumérico (4-20 caracteres)");
+                errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_private_code_format_hyphen) : "El código del evento privado debe ser alfanumérico (4-20 caracteres)"));
                 isLoading.postValue(false);
                 return;
             }
@@ -617,7 +623,7 @@ public class EventViewModel extends ViewModel {
                            String location, int maxParticipants, String eventType, boolean isPrivate,
                            boolean requiresParentalAuth, @Nullable String privateAccessCode) {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
 
@@ -625,25 +631,25 @@ public class EventViewModel extends ViewModel {
 
         // Validaciones (mismas que en createEvent)
         if (title == null || title.trim().isEmpty()) {
-            errorMessage.postValue("El título es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_title_required) : "El título es obligatorio"));
             isLoading.postValue(false);
             return;
         }
 
         if (date == null) {
-            errorMessage.postValue("La fecha es obligatoria");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_edit_event_date_required) : "La fecha es obligatoria"));
             isLoading.postValue(false);
             return;
         }
 
         if (location == null || location.trim().isEmpty()) {
-            errorMessage.postValue("La ubicación es obligatoria");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_location_required_vm) : "La ubicación es obligatoria"));
             isLoading.postValue(false);
             return;
         }
 
         if (maxParticipants <= 0) {
-            errorMessage.postValue("El número máximo de participantes debe ser mayor a 0");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_max_participants_gt_zero) : "El número máximo de participantes debe ser mayor a 0"));
             isLoading.postValue(false);
             return;
         }
@@ -651,7 +657,7 @@ public class EventViewModel extends ViewModel {
         String normalizedAccessCode = EventPrivateAccessCode.normalize(privateAccessCode);
         if (isPrivate) {
             if (!EventPrivateAccessCode.isValidFormat(privateAccessCode)) {
-                errorMessage.postValue("El código del evento privado debe ser alfanumérico (4-20 caracteres)");
+                errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_private_code_format_hyphen) : "El código del evento privado debe ser alfanumérico (4-20 caracteres)"));
                 isLoading.postValue(false);
                 return;
             }
@@ -694,7 +700,7 @@ public class EventViewModel extends ViewModel {
         eventRepository.updateEvent(eventId, event, new EventRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                eventUpdateMessage.postValue("Evento actualizado correctamente");
+                eventUpdateMessage.postValue((appContext != null ? appContext.getString(R.string.toast_event_updated) : "Evento actualizado correctamente"));
                 eventUpdated.postValue(true);
                 isLoading.postValue(false);
                 EventActivityLogHelper.logEventUpdated(eventId);
@@ -731,13 +737,13 @@ public class EventViewModel extends ViewModel {
      */
     public void updateEventPrivacy(String eventId, boolean isPrivate, @Nullable String privateAccessCode) {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
 
         String normalizedCode = EventPrivateAccessCode.normalize(privateAccessCode);
         if (isPrivate && !EventPrivateAccessCode.isValidFormat(normalizedCode)) {
-            errorMessage.postValue("El código debe ser alfanumérico (4–20 caracteres)");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_private_access_code_format) : "El código debe ser alfanumérico (4–20 caracteres)"));
             return;
         }
 
@@ -747,8 +753,15 @@ public class EventViewModel extends ViewModel {
                 new EventRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                String estado = isPrivate ? "privado" : "público";
-                eventUpdateMessage.postValue("Evento actualizado a '" + estado + "'");
+                String estado = isPrivate
+                        ? (appContext != null ? appContext.getString(R.string.label_privacy_state_private) : "privado")
+                        : (appContext != null ? appContext.getString(R.string.label_privacy_state_public) : "público");
+                if (appContext != null) {
+                    eventUpdateMessage.postValue(
+                            appContext.getString(R.string.toast_event_privacy_updated, estado));
+                } else {
+                    eventUpdateMessage.postValue("Evento actualizado a '" + estado + "'");
+                }
                 eventUpdated.postValue(true);
                 isLoading.postValue(false);
                 updateEventPrivacyInList(eventId, isPrivate, isPrivate ? normalizedCode : null);
@@ -797,7 +810,7 @@ public class EventViewModel extends ViewModel {
      */
     public void deleteEvent(String eventId) {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         
@@ -827,7 +840,7 @@ public class EventViewModel extends ViewModel {
      */
     public void cancelEvent(String eventId) {
         if (eventRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             return;
         }
         if (eventId == null || eventId.isEmpty()) {
@@ -908,7 +921,7 @@ public class EventViewModel extends ViewModel {
         eventRepository.cancelEvent(eventId, new EventRepository.RepositoryCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                eventUpdateMessage.postValue("Evento cancelado");
+                eventUpdateMessage.postValue((appContext != null ? appContext.getString(R.string.event_log_action_event_cancelled) : "Evento cancelado"));
                 eventUpdated.postValue(true);
                 isLoading.postValue(false);
                 EventActivityLogHelper.logEventCancelled(eventId);

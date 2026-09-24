@@ -88,7 +88,7 @@ public class ChangePasswordActivity extends AppCompatActivity {
         // Observar cambio de contraseña exitoso
         authViewModel.getPasswordChanged().observe(this, changed -> {
             if (changed != null && changed) {
-                ToastUtils.showCustomToast(this, "Contraseña actualizada correctamente", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_password_updated), ToastUtils.ToastType.SUCCESS);
                 finish();
             }
         });
@@ -105,27 +105,27 @@ public class ChangePasswordActivity extends AppCompatActivity {
 
         // Validar campos
         if (currentPassword.isEmpty()) {
-            currentPasswordLayout.setError("Ingresa tu contraseña actual");
+            currentPasswordLayout.setError(getString(R.string.error_password_current_required));
             return;
         }
 
         if (newPassword.isEmpty()) {
-            newPasswordLayout.setError("Ingresa una nueva contraseña");
+            newPasswordLayout.setError(getString(R.string.error_password_new_required));
             return;
         }
 
         if (confirmPassword.isEmpty()) {
-            confirmPasswordLayout.setError("Confirma tu nueva contraseña");
+            confirmPasswordLayout.setError(getString(R.string.error_password_confirm_required));
             return;
         }
 
         if (!newPassword.equals(confirmPassword)) {
-            confirmPasswordLayout.setError("Las contraseñas no coinciden");
+            confirmPasswordLayout.setError(getString(R.string.error_passwords_mismatch));
             return;
         }
 
         if (newPassword.length() < 6) {
-            newPasswordLayout.setError("La contraseña debe tener al menos 6 caracteres");
+            newPasswordLayout.setError(getString(R.string.error_password_min_length));
             return;
         }
 

@@ -157,12 +157,12 @@ public class EventsFragment extends Fragment implements EventAdapter.OnEventClic
             
             if (isSearchResult) {
                 noEventsIcon.setImageResource(R.drawable.ic_search_cancelled);
-                noEventsText.setText("No se encontraron eventos que coincidan con los criterios de búsqueda\n\nIntenta ajustar los filtros o limpiar la búsqueda para ver todos los eventos");
+                noEventsText.setText(getString(R.string.empty_events_search_no_match));
             } else {
                 noEventsIcon.setImageResource(R.drawable.ic_calendar);
-                noEventsText.setText(isFuture ?
-                    "Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!" :
-                    "No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí");
+                noEventsText.setText(getString(isFuture
+                        ? R.string.empty_events_upcoming
+                        : R.string.empty_events_past));
             }
         } else {
             eventsRecyclerView.setVisibility(View.VISIBLE);

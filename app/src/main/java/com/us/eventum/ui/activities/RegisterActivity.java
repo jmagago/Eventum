@@ -342,7 +342,7 @@ public class RegisterActivity extends AppCompatActivity {
         if (email.isEmpty()) {
             emailLayout.setError(null);
         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailLayout.setError("Email no válido");
+            emailLayout.setError(getString(R.string.error_email_invalid_alt));
         } else {
             emailLayout.setError(null);
         }
@@ -354,7 +354,7 @@ public class RegisterActivity extends AppCompatActivity {
         if (verifyEmail.isEmpty()) {
             verifyEmailLayout.setError(null);
         } else if (!verifyEmail.equals(email)) {
-            verifyEmailLayout.setError("Los emails no coinciden");
+            verifyEmailLayout.setError(getString(R.string.error_emails_mismatch));
         } else {
             verifyEmailLayout.setError(null);
         }
@@ -377,7 +377,7 @@ public class RegisterActivity extends AppCompatActivity {
         if (confirmPassword.isEmpty()) {
             confirmPasswordLayout.setError(null);
         } else if (!password.equals(confirmPassword)) {
-            confirmPasswordLayout.setError("Las contraseñas no coinciden");
+            confirmPasswordLayout.setError(getString(R.string.error_passwords_mismatch));
         } else {
             confirmPasswordLayout.setError(null);
         }
@@ -419,32 +419,32 @@ public class RegisterActivity extends AppCompatActivity {
         String confirmPassword = confirmPasswordInput.getText().toString();
 
         if (TextUtils.isEmpty(username)) {
-            usernameLayout.setError("El nombre de usuario es obligatorio");
+            usernameLayout.setError(getString(R.string.error_username_required));
             return;
         }
 
         if (username.length() < 3) {
-            usernameLayout.setError("El nombre de usuario debe tener al menos 3 caracteres");
+            usernameLayout.setError(getString(R.string.error_username_min_length));
             return;
         }
 
         if (TextUtils.isEmpty(email)) {
-            emailLayout.setError("El email es obligatorio");
+            emailLayout.setError(getString(R.string.error_email_required_alt));
             return;
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailLayout.setError("Email no válido");
+            emailLayout.setError(getString(R.string.error_email_invalid_alt));
             return;
         }
 
         if (TextUtils.isEmpty(verifyEmail)) {
-            verifyEmailLayout.setError("Debe verificar el email");
+            verifyEmailLayout.setError(getString(R.string.error_email_must_verify));
             return;
         }
 
         if (!verifyEmail.equals(email)) {
-            verifyEmailLayout.setError("Los emails no coinciden");
+            verifyEmailLayout.setError(getString(R.string.error_emails_mismatch));
             return;
         }
 
@@ -459,7 +459,7 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         if (!password.equals(confirmPassword)) {
-            confirmPasswordLayout.setError("Las contraseñas no coinciden");
+            confirmPasswordLayout.setError(getString(R.string.error_passwords_mismatch));
             return;
         }
 
@@ -523,7 +523,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void onRegistrationSuccess() {
         ToastUtils.showCustomToast(RegisterActivity.this,
-                "Registro exitoso. Por favor, verifica tu email antes de iniciar sesión",
+                getString(R.string.toast_register_success_verify_email),
                 ToastUtils.ToastType.SUCCESS);
 
         Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);

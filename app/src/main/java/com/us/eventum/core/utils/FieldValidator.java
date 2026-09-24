@@ -1,5 +1,7 @@
 package com.us.eventum.core.utils;
 
+import com.us.eventum.R;
+
 import android.text.TextWatcher;
 import android.text.Editable;
 import android.widget.TextView;
@@ -19,9 +21,9 @@ public class FieldValidator {
             public void afterTextChanged(Editable s) {
                 String email = s.toString().trim();
                 if (email.isEmpty()) {
-                    AnimationUtils.showErrorWithAnimation(emailLayout, "El email es requerido");
+                    AnimationUtils.showErrorWithAnimation(emailLayout, emailLayout.getContext().getString(R.string.error_email_required));
                 } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    AnimationUtils.showErrorWithAnimation(emailLayout, "Email inválido");
+                    AnimationUtils.showErrorWithAnimation(emailLayout, emailLayout.getContext().getString(R.string.error_email_invalid));
                 } else {
                     AnimationUtils.clearErrorWithAnimation(emailLayout);
                 }
@@ -41,9 +43,9 @@ public class FieldValidator {
             public void afterTextChanged(Editable s) {
                 String name = s.toString().trim();
                 if (name.isEmpty()) {
-                    AnimationUtils.showErrorWithAnimation(nameLayout, "El nombre es requerido");
+                    AnimationUtils.showErrorWithAnimation(nameLayout, nameLayout.getContext().getString(R.string.error_name_required));
                 } else if (name.length() < 2) {
-                    AnimationUtils.showErrorWithAnimation(nameLayout, "El nombre debe tener al menos 2 caracteres");
+                    AnimationUtils.showErrorWithAnimation(nameLayout, nameLayout.getContext().getString(R.string.error_name_min_length));
                 } else {
                     AnimationUtils.clearErrorWithAnimation(nameLayout);
                 }
@@ -63,9 +65,9 @@ public class FieldValidator {
             public void afterTextChanged(Editable s) {
                 String location = s.toString().trim();
                 if (location.isEmpty()) {
-                    AnimationUtils.showErrorWithAnimation(locationLayout, "El lugar es requerido");
+                    AnimationUtils.showErrorWithAnimation(locationLayout, locationLayout.getContext().getString(R.string.error_location_required_short));
                 } else if (location.length() < 2) {
-                    AnimationUtils.showErrorWithAnimation(locationLayout, "El lugar debe tener al menos 2 caracteres");
+                    AnimationUtils.showErrorWithAnimation(locationLayout, locationLayout.getContext().getString(R.string.error_location_min_length));
                 } else {
                     AnimationUtils.clearErrorWithAnimation(locationLayout);
                 }

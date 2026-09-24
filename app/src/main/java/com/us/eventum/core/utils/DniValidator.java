@@ -1,5 +1,7 @@
 package com.us.eventum.core.utils;
 
+import com.us.eventum.R;
+
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.Locale;
@@ -14,9 +16,9 @@ public class DniValidator {
             if (!hasFocus) {
                 String dni = ((android.widget.EditText) v).getText().toString().trim().toUpperCase(Locale.ROOT);
                 if (dni.isEmpty()) {
-                    AnimationUtils.showErrorWithAnimation(dniLayout, "El DNI es requerido");
+                    AnimationUtils.showErrorWithAnimation(dniLayout, dniLayout.getContext().getString(R.string.dni_required));
                 } else if (!isValidDni(dni)) {
-                    AnimationUtils.showErrorWithAnimation(dniLayout, "DNI inválido. La letra no coincide con el número");
+                    AnimationUtils.showErrorWithAnimation(dniLayout, dniLayout.getContext().getString(R.string.dni_invalid_letter));
                 } else {
                     AnimationUtils.clearErrorWithAnimation(dniLayout);
                 }

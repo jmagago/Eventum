@@ -172,7 +172,7 @@ public final class SearchAttendeePanelController {
             View anchor = EventumBottomSheetHelper.toastAnchor(
                     sheet != null ? sheet.root : null, activity);
             ToastUtils.showPanelToast(anchor,
-                    "Debe introducir al menos: DNI, email, teléfono o nombre + primer apellido",
+                    activity.getString(R.string.error_search_attendee_criteria),
                     ToastUtils.ToastType.WARNING);
             return;
         }

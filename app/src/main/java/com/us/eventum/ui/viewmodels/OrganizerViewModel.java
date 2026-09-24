@@ -1,5 +1,7 @@
 package com.us.eventum.ui.viewmodels;
 
+import com.us.eventum.R;
+
 import android.content.Context;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -79,7 +81,7 @@ public class OrganizerViewModel extends ViewModel {
     public void registerOrganizer(String email, String password, String username, String cif, String phone,
                                   String fechaNacimiento) {
         if (organizerRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -88,17 +90,17 @@ public class OrganizerViewModel extends ViewModel {
 
         // Validaciones básicas
         if (email == null || email.trim().isEmpty()) {
-            errorMessage.postValue("El email es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_email_required_alt) : "El email es obligatorio"));
             isLoading.postValue(false);
             return;
         }
         if (password == null || password.length() < 6) {
-            errorMessage.postValue("La contraseña debe tener al menos 6 caracteres");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_password_min_length) : "La contraseña debe tener al menos 6 caracteres"));
             isLoading.postValue(false);
             return;
         }
         if (username == null || username.trim().isEmpty()) {
-            errorMessage.postValue("El nombre de usuario es obligatorio");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_username_required) : "El nombre de usuario es obligatorio"));
             isLoading.postValue(false);
             return;
         }
@@ -114,14 +116,14 @@ public class OrganizerViewModel extends ViewModel {
         if (birthDate == null) {
             errorMessage.postValue(appContext != null
                     ? appContext.getString(com.us.eventum.R.string.age_birth_date_invalid)
-                    : "Fecha de nacimiento inválida");
+                    : (appContext != null ? appContext.getString(R.string.error_birth_date_invalid_short) : "Fecha de nacimiento inválida"));
             isLoading.postValue(false);
             return;
         }
         if (!AgeUtils.isOrganizerAgeValid(birthDate)) {
             errorMessage.postValue(appContext != null
                     ? appContext.getString(com.us.eventum.R.string.age_organizer_min_error)
-                    : "Debes tener al menos 18 años");
+                    : (appContext != null ? appContext.getString(R.string.error_organizer_min_age) : "Debes tener al menos 18 años"));
             isLoading.postValue(false);
             return;
         }
@@ -133,7 +135,7 @@ public class OrganizerViewModel extends ViewModel {
                 if (isAvailable) {
                     performOrganizerRegistration(email, password, username, cif, phone, fechaNacimiento);
                 } else {
-                    errorMessage.postValue("Este nombre de usuario ya está en uso");
+                    errorMessage.postValue((appContext != null ? appContext.getString(R.string.backend_error_username_in_use) : "Este nombre de usuario ya está en uso"));
                     isLoading.postValue(false);
                 }
             }
@@ -203,7 +205,7 @@ public class OrganizerViewModel extends ViewModel {
     public void checkUsernameAvailability(String username, UsernameAvailabilityCallback callback) {
         if (organizerRepository == null) {
             if (callback != null) {
-                callback.onResult(false, "Repositorio no inicializado");
+                callback.onResult(false, (appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             }
             return;
         }
@@ -241,7 +243,7 @@ public class OrganizerViewModel extends ViewModel {
      */
     public void updateOrganizer(String username, String cif, String phone) {
         if (organizerRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }
@@ -302,7 +304,7 @@ public class OrganizerViewModel extends ViewModel {
      */
     public void deleteAccount() {
         if (organizerRepository == null) {
-            errorMessage.postValue("Repositorio no inicializado");
+            errorMessage.postValue((appContext != null ? appContext.getString(R.string.auth_error_repo_not_initialized) : "Repositorio no inicializado"));
             isLoading.postValue(false);
             return;
         }

@@ -289,11 +289,11 @@ public final class EventImageManager {
     private static Bitmap decodeBitmapFromUri(Context context, Uri imageUri) throws IOException {
         try (InputStream inputStream = context.getContentResolver().openInputStream(imageUri)) {
             if (inputStream == null) {
-                throw new IOException("No se pudo abrir la imagen");
+                throw new IOException(context.getString(R.string.error_open_image));
             }
             Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(inputStream);
             if (bitmap == null) {
-                throw new IOException("No se pudo decodificar la imagen");
+                throw new IOException(context.getString(R.string.error_decode_image));
             }
             return bitmap;
         }

@@ -55,7 +55,7 @@ public class LoginActivity extends AppCompatActivity {
         } catch (Exception e) {
             credentialsStore = null;
             ToastUtils.showCustomToast(this,
-                    "No se pudo inicializar el almacenamiento seguro de credenciales",
+                    getString(R.string.error_secure_store_init),
                     ToastUtils.ToastType.WARNING);
         }
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
@@ -190,7 +190,7 @@ public class LoginActivity extends AppCompatActivity {
         // Email no verificado: bloquear navegación y mostrar aviso
         authViewModel.getEmailNotVerified().observe(this, notVerified -> {
             if (Boolean.TRUE.equals(notVerified)) {
-                showErrorStable(emailErrorText, "Debes verificar tu email para continuar. Revisa tu bandeja.");
+                showErrorStable(emailErrorText, getString(R.string.error_email_not_verified_login));
             }
         });
 
@@ -243,7 +243,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Verificar intentos de inicio de sesión
         if (loginAttempts >= AppConfig.MAX_LOGIN_ATTEMPTS) {
-            ToastUtils.showCustomToast(this, "Demasiados intentos fallidos. Por favor, espera unos minutos.", ToastUtils.ToastType.WARNING);
+            ToastUtils.showCustomToast(this, getString(R.string.error_too_many_login_attempts), ToastUtils.ToastType.WARNING);
             return;
         }
 
@@ -257,7 +257,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Validar email
         if (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showErrorStable(emailErrorText, "Email inválido");
+            showErrorStable(emailErrorText, getString(R.string.error_email_invalid));
             isValid = false;
         } else {
             hideErrorStable(emailErrorText);
@@ -265,10 +265,10 @@ public class LoginActivity extends AppCompatActivity {
         
         // Validar contraseña (mínimo 6 caracteres)
         if (password.isEmpty()) {
-            showErrorStable(passwordErrorText, "La contraseña no puede estar vacía");
+            showErrorStable(passwordErrorText, getString(R.string.error_password_empty));
             isValid = false;
         } else if (password.length() < 6) {
-            showErrorStable(passwordErrorText, "La contraseña debe tener al menos 6 caracteres");
+            showErrorStable(passwordErrorText, getString(R.string.error_password_min_length));
             isValid = false;
         } else {
             hideErrorStable(passwordErrorText);

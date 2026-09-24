@@ -5,7 +5,6 @@ import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -218,7 +217,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                         }
                     });
         } else {
-            ToastUtils.showCustomToast(this, "Error al cargar el evento", ToastUtils.ToastType.ERROR);
+            ToastUtils.showCustomToast(this, getString(R.string.error_load_event_alt), ToastUtils.ToastType.ERROR);
             finish();
         }
     }
@@ -365,7 +364,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (updated == null) {
                 if (event != null) {
                     ToastUtils.showCustomToast(this,
-                            "Este evento ya no está disponible",
+                            getString(R.string.toast_event_no_longer_available),
                             ToastUtils.ToastType.WARNING);
                     finish();
                 }
@@ -414,18 +413,9 @@ public class EventDetailsActivity extends AppCompatActivity {
                 updateQRButtonState();
                 
                 // Mostrar/ocultar mensaje cuando no hay asistentes
-                if (attendeesList.isEmpty()) {
-                    if (emptyAttendeesTextView != null) {
-                        emptyAttendeesTextView.setVisibility(View.VISIBLE);
-                    } else {
-                        Log.e("EventDetailsActivity", "emptyAttendeesTextView es null");
-                    }
-                } else {
-                    if (emptyAttendeesTextView != null) {
-                        emptyAttendeesTextView.setVisibility(View.GONE);
-                    } else {
-                        Log.e("EventDetailsActivity", "emptyAttendeesTextView es null");
-                    }
+                if (emptyAttendeesTextView != null) {
+                    emptyAttendeesTextView.setVisibility(
+                            attendeesList.isEmpty() ? View.VISIBLE : View.GONE);
                 }
             }
             if (attendeesSwipeRefresh != null) {
@@ -485,7 +475,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         attendeeViewModel.getAttendeeUpdated().observe(this, updated -> {
             if (updated != null && updated) {
-                ToastUtils.showCustomToast(this, "Asistente actualizado con éxito", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_attendee_updated), ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
             }
         });
@@ -531,7 +521,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         attendeeViewModel.getAttendeeDeleted().observe(this, deleted -> {
             if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Asistente eliminado con éxito", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_attendee_deleted), ToastUtils.ToastType.SUCCESS);
                 attendeeViewModel.clearOperationStates();
             }
         });
@@ -539,7 +529,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Observar limpieza de lista de asistentes
         attendeeViewModel.getAttendeesCleared().observe(this, cleared -> {
             if (cleared != null && cleared) {
-                ToastUtils.showCustomToast(this, "Lista de asistentes vaciada con éxito", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_attendees_cleared_success), ToastUtils.ToastType.SUCCESS);
                 if (event != null) {
                     sharedViewModel.notifyEventsUpdated();
                 }
@@ -574,7 +564,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Observar eliminación de evento
         eventViewModel.getEventDeleted().observe(this, deleted -> {
             if (deleted != null && deleted) {
-                ToastUtils.showCustomToast(this, "Evento eliminado con éxito", ToastUtils.ToastType.SUCCESS);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_event_deleted), ToastUtils.ToastType.SUCCESS);
                 eventViewModel.clearOperationStates();
                 finish(); // Cerrar la actividad
             }
@@ -828,7 +818,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Mostrar estado de autorización parental basado en el evento
         String authStatus = event.getRequiresParentalAuth() ? 
-            "Requiere autorización parental" : "No requiere autorización parental";
+            getString(R.string.label_requires_parental_auth) : getString(R.string.label_no_parental_auth);
         parentalAuthTextView.setText(authStatus);
 
         boolean attendanceVerified = Boolean.TRUE.equals(scannedAttendeesMap.get(attendee.getUid()));
@@ -1220,17 +1210,17 @@ public class EventDetailsActivity extends AppCompatActivity {
             ToastUtils.showCustomToast(this,
                     event != null && event.isCancelled()
                             ? getString(R.string.qr_scanner_event_cancelled)
-                            : "Este evento ya ha finalizado. No es posible verificar asistentes por QR.",
+                            : getString(R.string.error_event_finished_qr),
                     ToastUtils.ToastType.INFO);
             return;
         }
         if (event == null || event.getId() == null) {
-            ToastUtils.showCustomToast(this, "Error: No se puede escanear QR sin un evento válido", ToastUtils.ToastType.ERROR);
+            ToastUtils.showCustomToast(this, getString(R.string.error_qr_no_event), ToastUtils.ToastType.ERROR);
             return;
         }
         
         if (qrScannerLauncher == null) {
-            ToastUtils.showCustomToast(this, "Error: El escáner QR no está disponible", ToastUtils.ToastType.ERROR);
+            ToastUtils.showCustomToast(this, getString(R.string.error_qr_scanner_unavailable), ToastUtils.ToastType.ERROR);
             return;
         }
         
@@ -1279,13 +1269,13 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (filterIndicatorLayout != null) {
                 filterIndicatorLayout.setVisibility(View.VISIBLE);
                 if (filterIndicatorText != null) {
-                    filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary()));
+                    filterIndicatorText.setText(getString(R.string.filters_summary, currentSearchFilter.getActiveFiltersSummary(this)));
                 }
             }
             
             // Mostrar mensaje informativo sobre los resultados
             if (filteredAttendees.isEmpty()) {
-                ToastUtils.showCustomToast(this, "No se encontraron asistentes con esos criterios", ToastUtils.ToastType.WARNING);
+                ToastUtils.showCustomToast(this, getString(R.string.toast_no_attendees_match), ToastUtils.ToastType.WARNING);
             } else {
                 String message = getResources().getQuantityString(
                         R.plurals.search_results_attendees, filteredAttendees.size(), filteredAttendees.size());
@@ -1313,7 +1303,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         currentSearchFilter.clearFilters();
         isSearchActive = false;
         applySearchFilters();
-        ToastUtils.showCustomToast(this, "Filtros limpiados", ToastUtils.ToastType.INFO);
+        ToastUtils.showCustomToast(this, getString(R.string.toast_filters_cleared), ToastUtils.ToastType.INFO);
     }
     
     /**

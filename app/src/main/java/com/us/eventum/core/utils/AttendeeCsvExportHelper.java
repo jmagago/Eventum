@@ -72,7 +72,7 @@ public final class AttendeeCsvExportHelper {
                     ToastUtils.ToastType.WARNING);
             return;
         }
-        pendingCsvContent = AttendeeCsvExporter.buildCsvContent(attendees);
+        pendingCsvContent = AttendeeCsvExporter.buildCsvContent(activity, attendees);
         launchSavePicker(eventTitle);
     }
 
@@ -96,7 +96,7 @@ public final class AttendeeCsvExportHelper {
     }
 
     private void launchSavePicker(@Nullable String eventTitle) {
-        String filename = AttendeeCsvExporter.suggestedFilename(eventTitle);
+        String filename = AttendeeCsvExporter.suggestedFilename(activity, eventTitle);
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("text/csv");
