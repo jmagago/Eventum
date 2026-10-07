@@ -1078,7 +1078,9 @@ public class AttendeeHomeActivity extends AppCompatActivity
         boolean showIcon = event.getRequiresParentalAuth()
                 && isMinor
                 && (isJoined || isOnWaitlist);
+        // En lista de espera no tiene sentido subir el PDF: visible pero deshabilitado/difuminado.
         eventPanelController.setParentalAuthUploadVisible(showIcon);
+        eventPanelController.setParentalAuthUploadEnabled(showIcon && isJoined);
     }
 
     @Nullable

@@ -225,6 +225,9 @@ public final class AttendeeEventPanelController {
         parentalAuthMessage = root.findViewById(R.id.eventParentalAuthMessage);
         if (parentalAuthUploadButton != null) {
             parentalAuthUploadButton.setOnClickListener(v -> {
+                if (!v.isEnabled()) {
+                    return;
+                }
                 if (parentalAuthUploadClickListener != null) {
                     parentalAuthUploadClickListener.run();
                 }
@@ -473,7 +476,7 @@ public final class AttendeeEventPanelController {
             parentalAuthInfoButton.setAlpha(1f);
         }
         if (parentalAuthUploadButton != null) {
-            parentalAuthUploadButton.setAlpha(1f);
+            parentalAuthUploadButton.setAlpha(parentalAuthUploadButton.isEnabled() ? 1f : 0.4f);
         }
         if (parentalAuthMessage != null) {
             parentalAuthMessage.setText(R.string.attendee_panel_parental_auth_required);
@@ -496,6 +499,15 @@ public final class AttendeeEventPanelController {
         if (parentalAuthUploadButton != null) {
             parentalAuthUploadButton.setVisibility(visible ? View.VISIBLE : View.GONE);
         }
+    }
+
+    public void setParentalAuthUploadEnabled(boolean enabled) {
+        if (parentalAuthUploadButton == null) {
+            return;
+        }
+        parentalAuthUploadButton.setEnabled(enabled);
+        parentalAuthUploadButton.setClickable(enabled);
+        parentalAuthUploadButton.setAlpha(enabled ? 1f : 0.4f);
     }
 
     private void setParentalAuthContentAlpha(float alpha) {
