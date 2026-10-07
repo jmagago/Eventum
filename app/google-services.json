@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "889082914827",
+    "project_id": "eventum-qr",
+    "storage_bucket": "eventum-qr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889082914827:android:12222df273bbb90df03f0e",
+        "android_client_info": {
+          "package_name": "com.us.eventum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAWs_kZfSevDBFpGSrV1oV9t_cADfVsaE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
