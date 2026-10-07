@@ -230,10 +230,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         registerButton.setOnClickListener(v -> validateAndRegister(selectedRole));
-        loginLink.setOnClickListener(v -> {
-            startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
-            finish();
-        });
+        loginLink.setOnClickListener(v -> finish());
 
         organizerBirthDateInput.setOnClickListener(v -> showOrganizerBirthDatePicker());
 

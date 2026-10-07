@@ -6,10 +6,16 @@
     android:layout_height="match_parent"
     tools:ignore="MergeRootFrame">
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/registerRoot"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
 
         <View
             android:id="@+id/statusBarStripe"
@@ -377,14 +383,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="24dp"
             android:gravity="center"
             android:orientation="horizontal"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/contentCard"
-            app:layout_constraintVertical_bias="0">
+            app:layout_constraintTop_toBottomOf="@id/contentCard">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -407,6 +411,8 @@
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
 
     <FrameLayout
         android:id="@+id/progressBar"

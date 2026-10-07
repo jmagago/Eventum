@@ -33,6 +33,7 @@ import com.us.eventum.R;
 import com.us.eventum.ui.adapters.AttendeeEventsPagerAdapter;
 import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.Event;
+import com.us.eventum.data.models.WaitlistToEvent;
 import com.us.eventum.ui.fragments.AttendeeEventsFragment;
 import com.us.eventum.ui.viewmodels.EventViewModel;
 import com.us.eventum.ui.viewmodels.AttendeeViewModel;
@@ -44,6 +45,7 @@ import com.us.eventum.core.utils.EventUiMerger;
 import com.us.eventum.core.utils.AttendeeQrPanelController;
 import com.us.eventum.core.utils.EventPrivateAccessCode;
 import com.us.eventum.core.utils.ParentalAuthDialogHelper;
+import com.us.eventum.core.utils.ParentalAuthDocumentHelper;
 import com.us.eventum.core.utils.ToastUtils;
 import com.us.eventum.core.utils.VibrationUtils;
 import com.us.eventum.core.utils.WindowInsetsHelper;
@@ -70,6 +72,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Home del asistente: pestañas Mis eventos, Descubrir e Historial (eventos pasados inscritos).
@@ -185,6 +188,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         setupViewPager();
         setupAttendeeFilters();
         eventPanelController = new AttendeeEventPanelController(this);
+        eventPanelController.setOnParentalAuthUploadClickListener(this::showParentalAuthUploadDialog);
         eventPanelController.setOnHideListener(() -> {
             if (attendeeViewModel != null) {
                 attendeeViewModel.stopListeningEventAttendees();
@@ -345,6 +349,23 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     getString(R.string.toast_joined_event), ToastUtils.ToastType.SUCCESS);
             dismissEventDialogIfOpen();
             switchAttendeeTab(TAB_MY_EVENTS);
+            attendeeViewModel.clearOperationStates();
+        });
+
+        attendeeViewModel.getParentalAuthUploaded().observe(this, uploaded -> {
+            if (!Boolean.TRUE.equals(uploaded)) {
+                return;
+            }
+            VibrationUtils.vibrateSuccess(this);
+            showEventPanelToast(getString(R.string.parental_auth_upload_success),
+                    ToastUtils.ToastType.SUCCESS);
+            Event current = eventPanelController != null ? eventPanelController.getCurrentEvent() : null;
+            if (current != null) {
+                refreshParentalAuthUploadVisibility(
+                        current,
+                        current.isCurrentUserJoined(),
+                        current.isCurrentUserWaitlisted() || current.isCurrentUserWaitlistOffered());
+            }
             attendeeViewModel.clearOperationStates();
         });
 
@@ -863,7 +884,8 @@ public class AttendeeHomeActivity extends AppCompatActivity
     }
 
     private void openEventPanel(Event event, boolean historyMode) {
-        eventPanelController.show(event, historyMode);
+        Attendee currentAttendee = attendeeViewModel.getCurrentAttendee().getValue();
+        eventPanelController.show(event, historyMode, currentAttendee);
 
         MaterialButton showQrButton = eventPanelController.getShowQrButton();
         if (showQrButton != null) {
@@ -927,6 +949,8 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 updateEventPanelActions(event, userEmail, historyMode);
         attendeeViewModel.getAttendees().observe(this, attendeesObserver);
         attendeeViewModel.getCurrentUserWaitlistEntry().observe(this, waitlistObserver);
+        attendeeViewModel.getParentalAuthUrls().observe(this, urls ->
+                updateEventPanelActions(event, userEmail, historyMode));
         updateEventPanelActions(event, userEmail, historyMode);
     }
 
@@ -955,6 +979,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             eventPanelController.setDeclineOfferVisible(false);
             eventPanelController.updateWaitlistStatus(null, 0, null);
             eventPanelController.updatePrivateCodeVisibility(false);
+            eventPanelController.setParentalAuthUploadVisible(false);
             joinButton.setText(event.isCurrentUserJoined()
                     ? R.string.attendee_unsubscribe_short
                     : R.string.attendee_join_event_short);
@@ -969,6 +994,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             eventPanelController.setDeclineOfferVisible(false);
             eventPanelController.updatePrivateCodeVisibility(false);
             eventPanelController.updateWaitlistStatus(null, 0, null);
+            refreshParentalAuthUploadVisibility(event, true, false);
             joinButton.setOnClickListener(v -> unsubscribeFromEvent(event, userEmail));
             return;
         }
@@ -992,6 +1018,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     0,
                     expiresAt);
             eventPanelController.updatePrivateCodeVisibility(false);
+            refreshParentalAuthUploadVisibility(event, false, true);
             eventPanelController.setDeclineOfferVisible(true);
             MaterialButton declineButton = eventPanelController.getDeclineOfferButton();
             if (declineButton != null) {
@@ -1011,6 +1038,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
                     position,
                     null);
             eventPanelController.updatePrivateCodeVisibility(false);
+            refreshParentalAuthUploadVisibility(event, false, true);
             joinButton.setText(R.string.waitlist_leave);
             joinButton.setEnabled(true);
             joinButton.setAlpha(1f);
@@ -1019,6 +1047,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
         }
 
         eventPanelController.updateWaitlistStatus(null, 0, null);
+        eventPanelController.setParentalAuthUploadVisible(false);
         if (isEventFull) {
             joinButton.setText(R.string.waitlist_join);
             joinButton.setEnabled(true);
@@ -1033,6 +1062,48 @@ public class AttendeeHomeActivity extends AppCompatActivity
         joinButton.setAlpha(1f);
         eventPanelController.updatePrivateCodeVisibility(event.getPrivateEvent());
         joinButton.setOnClickListener(v -> subscribeToEvent(userEmail));
+    }
+
+    private void refreshParentalAuthUploadVisibility(@NonNull Event event,
+                                                     boolean isJoined,
+                                                     boolean isOnWaitlist) {
+        if (eventPanelController == null) {
+            return;
+        }
+        Attendee attendee = attendeeViewModel.getCurrentAttendee().getValue();
+        Date eventDate = event.getDate();
+        boolean isMinor = attendee != null
+                && eventDate != null
+                && attendee.isRequiresParentalAuthorization(eventDate);
+        boolean showIcon = event.getRequiresParentalAuth()
+                && isMinor
+                && (isJoined || isOnWaitlist);
+        eventPanelController.setParentalAuthUploadVisible(showIcon);
+    }
+
+    @Nullable
+    private String resolveCurrentParentalAuthUrl() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+        if (userId == null) {
+            return null;
+        }
+        Map<String, String> urls = attendeeViewModel.getParentalAuthUrls().getValue();
+        if (urls != null) {
+            String url = urls.get(userId);
+            if (url != null && !url.trim().isEmpty()) {
+                return url.trim();
+            }
+        }
+        WaitlistToEvent waitlistEntry = attendeeViewModel.getCurrentUserWaitlistEntry().getValue();
+        if (waitlistEntry != null) {
+            String waitlistUrl = waitlistEntry.getParentalAuthUrl();
+            if (waitlistUrl != null && !waitlistUrl.trim().isEmpty()) {
+                return waitlistUrl.trim();
+            }
+        }
+        return null;
     }
 
     private void declineWaitlistOffer(Event event) {
@@ -1140,21 +1211,18 @@ public class AttendeeHomeActivity extends AppCompatActivity
     }
 
     private void showParentalAuthDialogForWaitlist(Event event, Attendee attendee, String userId) {
-        parentalAuthDialogHandle = ParentalAuthDialogHelper.show(
-                this, event, userId, new ParentalAuthDialogHelper.Callback() {
-                    @Override
-                    public void onUploadSuccess(@NonNull String parentalAuthUrl) {
-                        attendeeViewModel.joinWaitlist(
-                                event.getId(), userId, parentalAuthUrl, attendee.getSortedNameLabel());
-                    }
+        ParentalAuthDialogHelper.showJoinReminder(this, new ParentalAuthDialogHelper.JoinCallback() {
+            @Override
+            public void onAccepted() {
+                attendeeViewModel.joinWaitlist(
+                        event.getId(), userId, null, attendee.getSortedNameLabel());
+            }
 
-                    @Override
-                    public void onCancelled() {
-                        // Sin acción
-                    }
-                });
-        parentalAuthDialogHandle.setOnSelectFileClickListener(
-                v -> parentalAuthPickerLauncher.launch(new String[]{"image/*", "application/pdf"}));
+            @Override
+            public void onCancelled() {
+                // Sin acción
+            }
+        });
     }
 
     private void executeConfirmWaitlistWithProfile(Event event, String userEmail, Attendee attendee) {
@@ -1365,11 +1433,75 @@ public class AttendeeHomeActivity extends AppCompatActivity
     }
 
     private void showParentalAuthDialog(Event event, Attendee attendee, String userEmail, String userId) {
-        parentalAuthDialogHandle = ParentalAuthDialogHelper.show(
-                this, event, userId, new ParentalAuthDialogHelper.Callback() {
+        ParentalAuthDialogHelper.showJoinReminder(this, new ParentalAuthDialogHelper.JoinCallback() {
+            @Override
+            public void onAccepted() {
+                completeEventSubscription(event, userEmail, userId, attendee, null);
+            }
+
+            @Override
+            public void onCancelled() {
+                // Sin acción
+            }
+        });
+    }
+
+    private void showParentalAuthUploadDialog() {
+        Event event = eventPanelController != null ? eventPanelController.getCurrentEvent() : null;
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+        if (event == null || event.getId() == null || userId == null) {
+            showEventPanelToast(getString(R.string.error_user_unavailable), ToastUtils.ToastType.ERROR);
+            return;
+        }
+        if (!NetworkUtils.checkConnectionAndShowMessage(this)) {
+            return;
+        }
+
+        String existingUrl = resolveCurrentParentalAuthUrl();
+        if (existingUrl != null) {
+            showParentalAuthManageDialog(event, userId, existingUrl);
+            return;
+        }
+        openParentalAuthUploadPicker(event, userId);
+    }
+
+    private void showParentalAuthManageDialog(@NonNull Event event,
+                                              @NonNull String userId,
+                                              @NonNull String parentalAuthUrl) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_parental_auth_manage, null);
+        MaterialButton viewButton = dialogView.findViewById(R.id.parentalAuthManageViewButton);
+        MaterialButton reuploadButton = dialogView.findViewById(R.id.parentalAuthManageReuploadButton);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.parentalAuthManageCancelButton);
+
+        AlertDialog dialog = new AlertDialog.Builder(this, R.style.CustomTransparentDialog)
+                .setView(dialogView)
+                .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        viewButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            ParentalAuthDocumentHelper.viewWithSystemViewer(this, parentalAuthUrl);
+        });
+        reuploadButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            openParentalAuthUploadPicker(event, userId);
+        });
+        dialog.show();
+    }
+
+    private void openParentalAuthUploadPicker(@NonNull Event event, @NonNull String userId) {
+        parentalAuthDialogHandle = ParentalAuthDialogHelper.showUpload(
+                this, event, userId, new ParentalAuthDialogHelper.UploadCallback() {
                     @Override
                     public void onUploadSuccess(@NonNull String parentalAuthUrl) {
-                        completeEventSubscription(event, userEmail, userId, attendee, parentalAuthUrl);
+                        attendeeViewModel.updateParentalAuthUrl(
+                                event.getId(), userId, parentalAuthUrl);
                     }
 
                     @Override

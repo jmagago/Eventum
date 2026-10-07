@@ -15,7 +15,11 @@
 
     <!-- Ajustes y perfil -->
     <string name="settings_title">Ajustes</string>
+    <string name="settings_go_home">Ir al inicio</string>
     <string name="change_password_title">Cambiar contraseña</string>
+    <string name="change_password_subtitle">Actualiza tu contraseña</string>
+    <string name="change_password_description">Introduce tu contraseña actual y la nueva. Debe tener al menos 6 caracteres.</string>
+    <string name="change_password_back">Volver</string>
     <string name="create_event_title">Crear evento</string>
     <string name="profile_photo_dialog_title">Cambiar foto de perfil</string>
     <string name="profile_photo_dialog_subtitle">Haz una foto ahora o elige una de la galería.</string>
@@ -543,12 +547,20 @@
     <string name="hint_organizer_birth_date_required">Fecha de nacimiento (dd/MM/yyyy) *</string>
     <string name="event_minor_not_allowed">Este evento no admite menores de 18 años</string>
     <string name="parental_auth_dialog_title">Autorización parental</string>
-    <string name="parental_auth_dialog_message">Tendrás menos de 18 años el día del evento. Debes subir un documento de autorización parental (imagen o PDF) para inscribirte.</string>
+    <string name="parental_auth_join_reminder_message">Tendrás menos de 18 años el día del evento. Recuerda que debes subir un documento de autorización parental (imagen o PDF) antes de asistir.</string>
+    <string name="parental_auth_accept_and_join">Aceptar y apuntarse</string>
+    <string name="parental_auth_upload_dialog_title">Subir autorización</string>
+    <string name="parental_auth_upload_dialog_message">Selecciona el documento de autorización parental (imagen o PDF) que quieres subir para este evento.</string>
     <string name="parental_auth_select_file">Seleccionar documento</string>
     <string name="parental_auth_file_selected">Documento seleccionado</string>
-    <string name="parental_auth_upload_and_join">Subir y inscribirme</string>
+    <string name="parental_auth_upload_document">Subir documento</string>
     <string name="parental_auth_upload_error">No se pudo subir la autorización parental</string>
     <string name="parental_auth_file_required">Selecciona un documento de autorización parental</string>
+    <string name="parental_auth_upload_success">Autorización parental subida correctamente</string>
+    <string name="parental_auth_document_missing">Este asistente aún no ha subido la autorización parental</string>
+    <string name="parental_auth_manage_message">Ya has subido una autorización parental. ¿Quieres visualizarla o subir un documento nuevo?</string>
+    <string name="parental_auth_reupload">Volver a subir</string>
+    <string name="cd_parental_auth_upload">Gestión de autorización parental</string>
     <string name="edit_organizer_profile_title">Editar perfil</string>
     <string name="edit_organizer_profile_message">Como organizador, puedes actualizar el nombre de tu empresa y otros datos opcionales.</string>
     <string name="hint_company_name_required">Nombre de la empresa *</string>
@@ -639,6 +651,19 @@
     <string name="toast_attendees_cleared_success">Lista de asistentes vaciada con éxito</string>
     <string name="toast_event_deleted">Evento eliminado con éxito</string>
     <string name="label_requires_parental_auth">Requiere autorización parental</string>
+    <string name="attendee_panel_parental_auth_required">Este evento requiere autorización parental</string>
+    <string name="attendee_panel_parental_auth_info_adult">Al ser mayor de edad no necesitas presentar una autorización parental</string>
+    <string name="attendee_panel_parental_auth_info_minor">Al ser menor de edad necesitas subir una autorización parental para asistir a este evento</string>
+    <string name="cd_parental_auth_info">Información sobre autorización parental</string>
+    <string name="cd_parental_auth_document">Documento de autorización parental</string>
+    <string name="parental_auth_organizer_dialog_title">Autorización parental</string>
+    <string name="parental_auth_organizer_dialog_message">Documento de autorización parental de %1$s</string>
+    <string name="parental_auth_view">Visualizar</string>
+    <string name="parental_auth_saving">Descargando autorización parental…</string>
+    <string name="parental_auth_save_started">Descarga iniciada. El archivo se guardará en Descargas</string>
+    <string name="parental_auth_save_error">No se pudo guardar la autorización parental</string>
+    <string name="parental_auth_opening">Abriendo documento…</string>
+    <string name="parental_auth_view_error">No se pudo abrir la autorización parental</string>
     <string name="label_no_parental_auth">No requiere autorización parental</string>
     <string name="error_event_finished_qr">Este evento ya ha finalizado. No es posible verificar asistentes por QR.</string>
     <string name="error_qr_no_event">Error: No se puede escanear QR sin un evento válido</string>

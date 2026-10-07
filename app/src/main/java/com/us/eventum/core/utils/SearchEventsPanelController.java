@@ -121,6 +121,7 @@ public final class SearchEventsPanelController {
             return;
         }
         String[] eventTypes = {
+                "Boda", "Comunión", "Reunión", "Cumpleaños", "Festival",
                 "Concierto", "Graduación", "Fiesta", "Despedida",
                 "Aniversario", "Conferencia", "Seminario", "Taller",
                 "Exposición", "Feria", "Congreso", "Ceremonia", "Otro"

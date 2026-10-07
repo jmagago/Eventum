@@ -293,9 +293,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void navigateToRegister() {
-        Intent intent = new Intent(this, RegisterActivity.class);
-        startActivity(intent);
-        finish();
+        startActivity(new Intent(this, RegisterActivity.class));
     }
 
     private void showProgress(boolean show) {

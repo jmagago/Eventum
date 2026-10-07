@@ -70,6 +70,18 @@
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/parentalAuthIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_parental_auth_document"
+            android:padding="2dp"
+            android:src="@drawable/ic_id_card"
+            android:visibility="gone"
+            app:tint="@color/colorAccent" />
+
+        <ImageView
             android:id="@+id/chevronIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"

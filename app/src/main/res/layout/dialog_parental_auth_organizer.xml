@@ -23,16 +23,17 @@
             <ImageView
                 android:layout_width="56dp"
                 android:layout_height="56dp"
-                android:contentDescription="@string/cd_parental_auth_upload"
-                android:src="@drawable/ic_upload_file"
+                android:contentDescription="@string/cd_parental_auth_document"
+                android:src="@drawable/ic_id_card"
                 app:tint="@color/colorWhite" />
 
             <TextView
+                android:id="@+id/parentalAuthOrganizerTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:text="@string/parental_auth_upload_dialog_title"
+                android:text="@string/parental_auth_organizer_dialog_title"
                 android:textColor="@color/colorWhite"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -46,58 +47,40 @@
             android:padding="24dp">
 
             <TextView
+                android:id="@+id/parentalAuthOrganizerMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
-                android:text="@string/parental_auth_upload_dialog_message"
                 android:textColor="@color/colorPrimaryText"
-                android:textSize="15sp" />
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/selectParentalAuthButton"
-                style="@style/Widget.Eventum.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="20dp"
-                android:minWidth="0dp"
-                android:paddingHorizontal="20dp"
-                android:text="@string/parental_auth_select_file"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/colorAccent"
-                app:icon="@drawable/ic_upload_file"
-                app:iconGravity="textStart"
-                app:iconPadding="8dp"
-                app:iconTint="@android:color/white" />
-
-            <TextView
-                android:id="@+id/parentalAuthFileName"
+                android:id="@+id/parentalAuthViewButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:textColor="@color/colorSecondaryText"
-                android:textSize="13sp"
-                android:visibility="gone" />
-
-            <ProgressBar
-                android:id="@+id/parentalAuthProgress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
+                android:layout_marginTop="24dp"
+                android:backgroundTint="@color/colorAccent"
+                android:text="@string/parental_auth_view"
+                android:textAllCaps="false"
+                android:textColor="@color/colorWhite"
+                android:textSize="14sp"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_description"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/colorWhite" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/cancelParentalAuthButton"
+                    android:id="@+id/parentalAuthCancelButton"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -111,16 +94,21 @@
                     app:strokeColor="@color/colorPrimary" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/uploadParentalAuthButton"
+                    android:id="@+id/parentalAuthSaveButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:backgroundTint="@color/colorAccent"
-                    android:text="@string/parental_auth_upload_document"
+                    android:text="@string/save"
                     android:textAllCaps="false"
-                    android:textColor="@color/colorWhite"
+                    android:textColor="@color/colorPrimary"
                     android:textSize="14sp"
-                    app:cornerRadius="20dp" />
+                    app:cornerRadius="20dp"
+                    app:icon="@drawable/ic_download"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp"
+                    app:iconTint="@color/colorPrimary"
+                    app:strokeColor="@color/colorPrimary" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

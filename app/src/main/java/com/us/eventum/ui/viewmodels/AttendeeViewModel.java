@@ -3,6 +3,7 @@ package com.us.eventum.ui.viewmodels;
 import com.us.eventum.R;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -625,6 +626,7 @@ public class AttendeeViewModel extends ViewModel {
         attendeeDeleted.postValue(false);
         waitlistJoined.postValue(false);
         waitlistLeft.postValue(false);
+        parentalAuthUploaded.postValue(false);
         usernameAvailable.postValue(false);
         qrCheckInResult.postValue(null);
         errorMessage.postValue(null);
@@ -650,6 +652,8 @@ public class AttendeeViewModel extends ViewModel {
 
     private MutableLiveData<List<Attendee>> attendees = new MutableLiveData<>();
     private MutableLiveData<Map<String, Boolean>> scannedAttendeesMapLiveData = new MutableLiveData<>();
+    private MutableLiveData<Map<String, String>> parentalAuthUrlsLiveData = new MutableLiveData<>();
+    private MutableLiveData<Boolean> parentalAuthUploaded = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeAdded = new MutableLiveData<>();
     private MutableLiveData<Boolean> attendeeDeleted = new MutableLiveData<>();
     private MutableLiveData<Boolean> waitlistJoined = new MutableLiveData<>();
@@ -670,9 +674,121 @@ public class AttendeeViewModel extends ViewModel {
         return scannedAttendeesMapLiveData;
     }
 
+    public LiveData<Map<String, String>> getParentalAuthUrls() {
+        return parentalAuthUrlsLiveData;
+    }
+
+    public LiveData<Boolean> getParentalAuthUploaded() {
+        return parentalAuthUploaded;
+    }
+
     /** Evita que un observer reciba la lista de un evento anterior al abrir otro diálogo. */
     public void clearAttendeesList() {
         attendees.setValue(null);
+        parentalAuthUrlsLiveData.setValue(new HashMap<>());
+    }
+
+    /**
+     * Guarda la URL de autorización parental en la inscripción (o lista de espera) del usuario.
+     */
+    public void updateParentalAuthUrl(@NonNull String eventId,
+                                      @NonNull String userId,
+                                      @NonNull String parentalAuthUrl) {
+        if (attendeesToEventRepository == null) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(R.string.auth_error_repo_not_initialized)
+                    : "Repositorio no inicializado");
+            return;
+        }
+        String url = parentalAuthUrl.trim();
+        if (url.isEmpty()) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(R.string.parental_auth_upload_error)
+                    : "Error");
+            return;
+        }
+        isLoading.postValue(true);
+        errorMessage.postValue(null);
+        parentalAuthUploaded.postValue(false);
+
+        attendeesToEventRepository.loadAttendeesToEvent(eventId,
+                new AttendeesToEventRepository.RepositoryCallback<List<AttendeesToEvent>>() {
+                    @Override
+                    public void onSuccess(List<AttendeesToEvent> result) {
+                        if (result != null) {
+                            for (AttendeesToEvent row : result) {
+                                if (row != null && userId.equals(row.getUserId())) {
+                                    row.setParentalAuthUrl(url);
+                                    attendeesToEventRepository.updateAttendeeToEvent(row,
+                                            new AttendeesToEventRepository.RepositoryCallback<AttendeesToEvent>() {
+                                                @Override
+                                                public void onSuccess(AttendeesToEvent updated) {
+                                                    Map<String, String> urls = parentalAuthUrlsLiveData.getValue();
+                                                    if (urls == null) {
+                                                        urls = new HashMap<>();
+                                                    } else {
+                                                        urls = new HashMap<>(urls);
+                                                    }
+                                                    urls.put(userId, url);
+                                                    parentalAuthUrlsLiveData.postValue(urls);
+                                                    parentalAuthUploaded.postValue(true);
+                                                    isLoading.postValue(false);
+                                                }
+
+                                                @Override
+                                                public void onError(String error) {
+                                                    errorMessage.postValue(error);
+                                                    isLoading.postValue(false);
+                                                }
+                                            });
+                                    return;
+                                }
+                            }
+                        }
+                        updateParentalAuthUrlOnWaitlist(eventId, userId, url);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        updateParentalAuthUrlOnWaitlist(eventId, userId, url);
+                    }
+                });
+    }
+
+    private void updateParentalAuthUrlOnWaitlist(@NonNull String eventId,
+                                                 @NonNull String userId,
+                                                 @NonNull String url) {
+        if (waitlistRepository == null) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(R.string.parental_auth_upload_error)
+                    : "Error");
+            isLoading.postValue(false);
+            return;
+        }
+        WaitlistToEvent entry = currentUserWaitlistEntry.getValue();
+        if (entry == null || !eventId.equals(entry.getEventId()) || !userId.equals(entry.getUserId())) {
+            errorMessage.postValue(appContext != null
+                    ? appContext.getString(R.string.parental_auth_upload_error)
+                    : "Error");
+            isLoading.postValue(false);
+            return;
+        }
+        entry.setParentalAuthUrl(url);
+        waitlistRepository.updateWaitlistEntry(entry,
+                new WaitlistRepository.RepositoryCallback<WaitlistToEvent>() {
+                    @Override
+                    public void onSuccess(WaitlistToEvent result) {
+                        currentUserWaitlistEntry.postValue(result);
+                        parentalAuthUploaded.postValue(true);
+                        isLoading.postValue(false);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        errorMessage.postValue(error);
+                        isLoading.postValue(false);
+                    }
+                });
     }
 
     public LiveData<Boolean> getAttendeeAdded() {
@@ -718,6 +834,7 @@ public class AttendeeViewModel extends ViewModel {
         listeningEventAttendees = true;
         listeningAttendeesEventId = eventId;
         attendees.setValue(null);
+        parentalAuthUrlsLiveData.setValue(new HashMap<>());
         isLoading.postValue(true);
         errorMessage.postValue(null);
 
@@ -753,14 +870,20 @@ public class AttendeeViewModel extends ViewModel {
 
     private void handleAttendeesToEventSnapshot(List<AttendeesToEvent> result) {
         Map<String, Boolean> scanned = new HashMap<>();
+        Map<String, String> parentalAuthUrls = new HashMap<>();
         if (result != null) {
             for (AttendeesToEvent row : result) {
                 if (row != null && row.getUserId() != null) {
                     scanned.put(row.getUserId(), row.isScannedQR());
+                    String parentalAuthUrl = row.getParentalAuthUrl();
+                    if (parentalAuthUrl != null && !parentalAuthUrl.trim().isEmpty()) {
+                        parentalAuthUrls.put(row.getUserId(), parentalAuthUrl.trim());
+                    }
                 }
             }
         }
         scannedAttendeesMapLiveData.postValue(scanned);
+        parentalAuthUrlsLiveData.postValue(parentalAuthUrls);
 
         List<Attendee> attendeeList = new java.util.ArrayList<>();
         if (result == null || result.isEmpty()) {

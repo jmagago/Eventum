@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,6 +19,7 @@ import com.us.eventum.data.models.Attendee;
 import com.us.eventum.core.utils.ProfileImageManager;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +28,19 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
 
     private List<Attendee> attendees = new ArrayList<>();
     private OnAttendeeClickListener onAttendeeClickListener;
+    private OnParentalAuthClickListener onParentalAuthClickListener;
     private Map<String, Boolean> scannedAttendeesMap = new HashMap<>();
+    private Map<String, String> parentalAuthUrls = new HashMap<>();
+    private boolean eventRequiresParentalAuth;
+    @Nullable
+    private Date eventDate;
 
     public interface OnAttendeeClickListener {
         void onAttendeeClick(Attendee attendee);
+    }
+
+    public interface OnParentalAuthClickListener {
+        void onParentalAuthClick(@NonNull Attendee attendee, @Nullable String parentalAuthUrl);
     }
 
     public AttendeeAdapter(OnAttendeeClickListener onAttendeeClickListener) {
@@ -94,6 +105,20 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         boolean isScanned = scannedAttendeesMap.getOrDefault(attendee.getUid(), false);
         applyVerifiedCardStyle(holder, isScanned);
 
+        String parentalAuthUrl = parentalAuthUrls.get(attendee.getUid());
+        boolean showParentalAuthIcon = shouldShowParentalAuthIcon(attendee);
+        if (showParentalAuthIcon) {
+            holder.parentalAuthIcon.setVisibility(View.VISIBLE);
+            holder.parentalAuthIcon.setOnClickListener(v -> {
+                if (onParentalAuthClickListener != null) {
+                    onParentalAuthClickListener.onParentalAuthClick(attendee, parentalAuthUrl);
+                }
+            });
+        } else {
+            holder.parentalAuthIcon.setVisibility(View.GONE);
+            holder.parentalAuthIcon.setOnClickListener(null);
+        }
+
         holder.itemView.setOnClickListener(v -> {
             if (onAttendeeClickListener != null) {
                 onAttendeeClickListener.onAttendeeClick(attendee);
@@ -129,6 +154,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         TextView dniTextView;
         TextView emailTextView;
         TextView phoneTextView;
+        ImageView parentalAuthIcon;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -138,6 +164,7 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             dniTextView = itemView.findViewById(R.id.attendeeDniTextView);
             emailTextView = itemView.findViewById(R.id.attendeeEmailTextView);
             phoneTextView = itemView.findViewById(R.id.attendeePhoneTextView);
+            parentalAuthIcon = itemView.findViewById(R.id.parentalAuthIcon);
         }
     }
 
@@ -145,11 +172,33 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
         this.onAttendeeClickListener = onAttendeeClickListener;
     }
 
+    public void setOnParentalAuthClickListener(@Nullable OnParentalAuthClickListener listener) {
+        this.onParentalAuthClickListener = listener;
+    }
+
     public void setScannedAttendeesMap(Map<String, Boolean> scannedAttendeesMap) {
         this.scannedAttendeesMap = scannedAttendeesMap != null ? scannedAttendeesMap : new HashMap<>();
         if (!this.attendees.isEmpty()) {
             notifyItemRangeChanged(0, this.attendees.size());
         }
+    }
+
+    public void setParentalAuthData(boolean eventRequiresParentalAuth,
+                                    @Nullable Date eventDate,
+                                    @Nullable Map<String, String> urls) {
+        this.eventRequiresParentalAuth = eventRequiresParentalAuth;
+        this.eventDate = eventDate;
+        this.parentalAuthUrls = urls != null ? new HashMap<>(urls) : new HashMap<>();
+        if (!this.attendees.isEmpty()) {
+            notifyItemRangeChanged(0, this.attendees.size());
+        }
+    }
+
+    private boolean shouldShowParentalAuthIcon(@NonNull Attendee attendee) {
+        if (!eventRequiresParentalAuth || eventDate == null) {
+            return false;
+        }
+        return attendee.isRequiresParentalAuthorization(eventDate);
     }
 
     private void notifyListSizeChanged(int oldSize, int newSize) {

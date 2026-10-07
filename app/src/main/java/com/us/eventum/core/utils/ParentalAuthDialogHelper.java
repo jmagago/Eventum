@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.button.MaterialButton;
 import com.us.eventum.R;
@@ -16,7 +17,13 @@ import com.us.eventum.data.models.Event;
 
 public final class ParentalAuthDialogHelper {
 
-    public interface Callback {
+    public interface JoinCallback {
+        void onAccepted();
+
+        void onCancelled();
+    }
+
+    public interface UploadCallback {
         void onUploadSuccess(@NonNull String parentalAuthUrl);
 
         void onCancelled();
@@ -65,7 +72,7 @@ public final class ParentalAuthDialogHelper {
         }
 
         private void startUpload(@NonNull Activity activity, @NonNull Event event,
-                                 @NonNull String userId, @NonNull Callback callback) {
+                                 @NonNull String userId, @NonNull UploadCallback callback) {
             if (selectedUri[0] == null) {
                 AttendeeProfileDialogHelper.showError(
                         dialogView,
@@ -104,11 +111,37 @@ public final class ParentalAuthDialogHelper {
     private ParentalAuthDialogHelper() {
     }
 
+    /** Aviso al apuntarse: sin selección de archivo. */
+    public static void showJoinReminder(@NonNull Activity activity, @NonNull JoinCallback callback) {
+        View dialogView = activity.getLayoutInflater()
+                .inflate(R.layout.dialog_parental_auth_join_reminder, null);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.parentalAuthJoinCancelButton);
+        MaterialButton acceptButton = dialogView.findViewById(R.id.parentalAuthJoinAcceptButton);
+
+        AlertDialog dialog = new AlertDialog.Builder(activity, R.style.CustomTransparentDialog)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+        AttendeeProfileDialogHelper.applyTransparentWindow(dialog);
+
+        cancelButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            callback.onCancelled();
+        });
+        acceptButton.setOnClickListener(v -> {
+            dialog.dismiss();
+            callback.onAccepted();
+        });
+        dialog.setOnCancelListener(d -> callback.onCancelled());
+        dialog.show();
+    }
+
+    /** Subida del documento desde el panel del evento. */
     @NonNull
-    public static Handle show(@NonNull Activity activity,
-                              @NonNull Event event,
-                              @NonNull String userId,
-                              @NonNull Callback callback) {
+    public static Handle showUpload(@NonNull Activity activity,
+                                    @NonNull Event event,
+                                    @NonNull String userId,
+                                    @NonNull UploadCallback callback) {
         View dialogView = activity.getLayoutInflater().inflate(R.layout.dialog_parental_auth_upload, null);
         MaterialButton selectButton = dialogView.findViewById(R.id.selectParentalAuthButton);
         MaterialButton uploadButton = dialogView.findViewById(R.id.uploadParentalAuthButton);
@@ -116,9 +149,10 @@ public final class ParentalAuthDialogHelper {
         TextView fileNameView = dialogView.findViewById(R.id.parentalAuthFileName);
         ProgressBar progressBar = dialogView.findViewById(R.id.parentalAuthProgress);
 
-        Dialog dialog = new Dialog(activity);
-        dialog.setContentView(dialogView);
-        dialog.setCancelable(true);
+        AlertDialog dialog = new AlertDialog.Builder(activity, R.style.CustomTransparentDialog)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
         AttendeeProfileDialogHelper.applyTransparentWindow(dialog);
 
         Handle handle = new Handle(dialog, dialogView, selectButton, uploadButton,

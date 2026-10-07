@@ -219,6 +219,25 @@ public class SettingsActivity extends AppCompatActivity {
         btnChangePassword.setOnClickListener(v -> changePassword());
         btnDeleteAccount.setOnClickListener(v -> deleteAccount());
         btnLogout.setOnClickListener(v -> logout());
+
+        View homeButton = findViewById(R.id.homeButton);
+        if (homeButton != null) {
+            homeButton.setOnClickListener(v -> goToHome());
+        }
+    }
+
+    private void goToHome() {
+        String userType = currentUserType;
+        if (userType == null || userType.isEmpty()) {
+            userType = getIntent().getStringExtra(EXTRA_USER_TYPE);
+        }
+        Class<?> homeClass = USER_TYPE_ATTENDEE.equals(userType)
+                ? AttendeeHomeActivity.class
+                : OrganizerHomeActivity.class;
+        Intent intent = new Intent(this, homeClass);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     private void observeViewModel() {

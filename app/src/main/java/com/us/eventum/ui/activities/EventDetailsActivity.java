@@ -87,6 +87,7 @@ import com.us.eventum.data.models.OrganizerNotification;
 import com.us.eventum.core.utils.AttendeeCsvExportHelper;
 import com.us.eventum.core.utils.AttendeeSearchFilter;
 import com.us.eventum.core.utils.EditEventPanelController;
+import com.us.eventum.core.utils.ParentalAuthDocumentHelper;
 import com.us.eventum.core.utils.SearchAttendeePanelController;
 import com.us.eventum.core.utils.QrCheckInResult;
 import com.us.eventum.data.models.WaitlistToEvent;
@@ -116,6 +117,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private List<Attendee> attendees = new ArrayList<>();
     private int activeWaitlistCount;
     private TextView dateTextView, locationTextView, descriptionTextView;
+    private TextView parentalAuthTextView;
     private TextView eventTimeTextView;
     private TextView emptyAttendeesTextView;
     private ImageView eventPrivateIconDetails;
@@ -142,6 +144,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private List<Attendee> allAttendees = new ArrayList<>(); // Lista completa de asistentes
     private List<Attendee> filteredAttendees = new ArrayList<>(); // Lista filtrada
     private Map<String, Boolean> scannedAttendeesMap = new HashMap<>(); // Map de asistentes escaneados (userId -> isScanned)
+    private Map<String, String> parentalAuthUrls = new HashMap<>();
     
     // Elementos del indicador de filtros
     private LinearLayout filterIndicatorLayout;
@@ -260,6 +263,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         eventTimeTextView = findViewById(R.id.eventTimeTextView);
         locationTextView = findViewById(R.id.eventLocationTextView);
         descriptionTextView = findViewById(R.id.eventDescriptionTextView);
+        parentalAuthTextView = findViewById(R.id.eventParentalAuthTextView);
         emptyAttendeesTextView = findViewById(R.id.emptyAttendeesTextView);
         eventPrivateIconDetails = findViewById(R.id.eventPrivateIconDetails);
         eventCancelledBanner = findViewById(R.id.eventCancelledBanner);
@@ -388,6 +392,14 @@ public class EventDetailsActivity extends AppCompatActivity {
                 attendeeAdapter.setScannedAttendeesMap(scannedAttendeesMap);
             }
             updateAttendeesCount();
+        });
+
+        attendeeViewModel.getParentalAuthUrls().observe(this, map -> {
+            parentalAuthUrls.clear();
+            if (map != null) {
+                parentalAuthUrls.putAll(map);
+            }
+            refreshParentalAuthIcons();
         });
 
         attendeeViewModel.getAttendees().observe(this, attendeesList -> {
@@ -585,7 +597,81 @@ public class EventDetailsActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         attendeesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         attendeeAdapter = new AttendeeAdapter(attendee -> showAttendeeDetails(attendee));
+        attendeeAdapter.setOnParentalAuthClickListener(this::onParentalAuthIconClick);
         attendeesRecyclerView.setAdapter(attendeeAdapter);
+        refreshParentalAuthIcons();
+    }
+
+    private void refreshParentalAuthIcons() {
+        if (attendeeAdapter == null || event == null) {
+            return;
+        }
+        attendeeAdapter.setParentalAuthData(
+                event.getRequiresParentalAuth(),
+                event.getDate(),
+                parentalAuthUrls);
+    }
+
+    private void onParentalAuthIconClick(@NonNull Attendee attendee, @Nullable String parentalAuthUrl) {
+        if (parentalAuthUrl == null || parentalAuthUrl.trim().isEmpty()) {
+            ToastUtils.showCustomToast(this,
+                    getString(R.string.parental_auth_document_missing),
+                    ToastUtils.ToastType.WARNING);
+            return;
+        }
+        showParentalAuthDocumentDialog(attendee, parentalAuthUrl.trim());
+    }
+
+    private void showParentalAuthDocumentDialog(@NonNull Attendee attendee, @NonNull String parentalAuthUrl) {
+        String displayName = attendee.getSortedNameLabel();
+        if (displayName == null || displayName.trim().isEmpty()) {
+            displayName = getString(R.string.label_parental_auth);
+        }
+        String fileName = "autorizacion_parental_"
+                + displayName.replaceAll("\\s+", "_")
+                + resolveParentalAuthExtension(parentalAuthUrl);
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_parental_auth_organizer, null);
+        TextView messageView = dialogView.findViewById(R.id.parentalAuthOrganizerMessage);
+        MaterialButton cancelButton = dialogView.findViewById(R.id.parentalAuthCancelButton);
+        MaterialButton saveButton = dialogView.findViewById(R.id.parentalAuthSaveButton);
+        MaterialButton viewButton = dialogView.findViewById(R.id.parentalAuthViewButton);
+
+        messageView.setText(getString(R.string.parental_auth_organizer_dialog_message, displayName));
+
+        AlertDialog dialog = new AlertDialog.Builder(this, R.style.CustomTransparentDialog)
+                .setView(dialogView)
+                .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        saveButton.setOnClickListener(v -> {
+            ParentalAuthDocumentHelper.saveToDownloads(this, parentalAuthUrl, fileName);
+            dialog.dismiss();
+        });
+        viewButton.setOnClickListener(v -> {
+            ParentalAuthDocumentHelper.viewWithSystemViewer(this, parentalAuthUrl);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    @NonNull
+    private static String resolveParentalAuthExtension(@NonNull String url) {
+        String lower = url.toLowerCase(Locale.ROOT);
+        int query = lower.indexOf('?');
+        String path = query >= 0 ? lower.substring(0, query) : lower;
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) {
+            return ".jpg";
+        }
+        if (path.endsWith(".png")) {
+            return ".png";
+        }
+        return ".pdf";
     }
 
     private void setupAttendeesSwipeRefresh() {
@@ -651,6 +737,8 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     private void displayEventDetails() {
         if (event == null) return;
+
+        refreshParentalAuthIcons();
         
         // Crear formato de fecha más completo
         SimpleDateFormat fullDateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", com.us.eventum.core.utils.LocaleUtils.spanish());
@@ -746,6 +834,11 @@ public class EventDetailsActivity extends AppCompatActivity {
             if (descriptionSpacer != null) {
                 descriptionSpacer.setVisibility(View.GONE);
             }
+        }
+
+        if (parentalAuthTextView != null) {
+            parentalAuthTextView.setVisibility(
+                    event.getRequiresParentalAuth() ? View.VISIBLE : View.GONE);
         }
     }
 

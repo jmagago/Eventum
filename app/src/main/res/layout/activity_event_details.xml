@@ -188,6 +188,19 @@
                     app:drawableStartCompat="@drawable/ic_description"
                     app:drawableTint="@color/colorPrimary" />
 
+                <TextView
+                    android:id="@+id/eventParentalAuthTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:drawablePadding="8dp"
+                    android:text="@string/label_requires_parental_auth"
+                    android:textColor="@color/colorSecondaryText"
+                    android:textSize="16sp"
+                    android:visibility="gone"
+                    app:drawableStartCompat="@drawable/ic_id_card"
+                    app:drawableTint="@color/colorAccent" />
+
                 </LinearLayout>
 
             </RelativeLayout>

@@ -16,6 +16,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.us.eventum.R;
+import com.us.eventum.data.models.Attendee;
 import com.us.eventum.data.models.Event;
 
 import java.text.SimpleDateFormat;
@@ -36,6 +37,16 @@ public final class AttendeeEventPanelController {
     private TextView dateText;
     private TextView timeText;
     private TextView locationText;
+    private View parentalAuthNotice;
+    private View parentalAuthIconContainer;
+    private TextView parentalAuthTitle;
+    private ImageView parentalAuthInfoButton;
+    private ImageView parentalAuthUploadButton;
+    private TextView parentalAuthMessage;
+    @Nullable
+    private Attendee currentAttendee;
+    @Nullable
+    private Runnable parentalAuthUploadClickListener;
     private TextView participantsText;
     private TextView eventTypeText;
     private View privateBadge;
@@ -117,17 +128,23 @@ public final class AttendeeEventPanelController {
     }
 
     public void show(@NonNull Event event, boolean historyMode) {
+        show(event, historyMode, null);
+    }
+
+    public void show(@NonNull Event event, boolean historyMode, @Nullable Attendee attendee) {
         ensureDialog();
         if (sheet == null) {
             return;
         }
         currentEvent = event;
+        currentAttendee = attendee;
         this.historyMode = historyMode;
         bindEvent(event);
 
         sheet.dialog.setOnDismissListener(d -> {
             stopOfferCountdown();
             currentEvent = null;
+            currentAttendee = null;
             boundImageEventId = null;
             if (onHideListener != null) {
                 onHideListener.run();
@@ -200,6 +217,19 @@ public final class AttendeeEventPanelController {
         dateText = root.findViewById(R.id.eventDate);
         timeText = root.findViewById(R.id.eventTime);
         locationText = root.findViewById(R.id.eventLocation);
+        parentalAuthNotice = root.findViewById(R.id.eventParentalAuthNotice);
+        parentalAuthIconContainer = root.findViewById(R.id.eventParentalAuthIconContainer);
+        parentalAuthTitle = root.findViewById(R.id.eventParentalAuthTitle);
+        parentalAuthInfoButton = root.findViewById(R.id.eventParentalAuthInfoButton);
+        parentalAuthUploadButton = root.findViewById(R.id.eventParentalAuthUploadButton);
+        parentalAuthMessage = root.findViewById(R.id.eventParentalAuthMessage);
+        if (parentalAuthUploadButton != null) {
+            parentalAuthUploadButton.setOnClickListener(v -> {
+                if (parentalAuthUploadClickListener != null) {
+                    parentalAuthUploadClickListener.run();
+                }
+            });
+        }
         participantsText = root.findViewById(R.id.eventParticipants);
         eventTypeText = root.findViewById(R.id.eventType);
         privateBadge = root.findViewById(R.id.eventPrivateBadge);
@@ -401,6 +431,7 @@ public final class AttendeeEventPanelController {
         if (locationText != null) {
             locationText.setText(event.getLocation());
         }
+        bindParentalAuthNotice(event);
         refreshEventStats(event);
         if (eventTypeText != null) {
             eventTypeText.setText(event.getEventType());
@@ -412,6 +443,71 @@ public final class AttendeeEventPanelController {
             cancelledBadge.setVisibility(event.isCancelled() ? View.VISIBLE : View.GONE);
         }
         updatePrivateCodeVisibility(!historyMode && !event.isCancelled() && event.getPrivateEvent());
+    }
+
+    private void bindParentalAuthNotice(@NonNull Event event) {
+        if (parentalAuthNotice == null) {
+            return;
+        }
+        if (!event.getRequiresParentalAuth()) {
+            parentalAuthNotice.setVisibility(View.GONE);
+            setParentalAuthContentAlpha(1f);
+            setParentalAuthUploadVisible(false);
+            if (parentalAuthInfoButton != null) {
+                parentalAuthInfoButton.setOnClickListener(null);
+            }
+            return;
+        }
+
+        parentalAuthNotice.setVisibility(View.VISIBLE);
+        // El borde/tarjeta se mantiene a opacidad plena; solo se difumina el contenido.
+        parentalAuthNotice.setAlpha(1f);
+
+        Date eventDate = event.getDate() != null ? event.getDate() : new Date();
+        boolean requiresForAttendee = currentAttendee != null
+                && currentAttendee.isRequiresParentalAuthorization(eventDate);
+
+        // Mayores: contenido difuminado; la "i" se mantiene nítida.
+        setParentalAuthContentAlpha(requiresForAttendee ? 1f : 0.45f);
+        if (parentalAuthInfoButton != null) {
+            parentalAuthInfoButton.setAlpha(1f);
+        }
+        if (parentalAuthUploadButton != null) {
+            parentalAuthUploadButton.setAlpha(1f);
+        }
+        if (parentalAuthMessage != null) {
+            parentalAuthMessage.setText(R.string.attendee_panel_parental_auth_required);
+        }
+
+        if (parentalAuthInfoButton != null) {
+            int messageRes = requiresForAttendee
+                    ? R.string.attendee_panel_parental_auth_info_minor
+                    : R.string.attendee_panel_parental_auth_info_adult;
+            parentalAuthInfoButton.setOnClickListener(v ->
+                    showPanelToast(activity.getString(messageRes), ToastUtils.ToastType.INFO));
+        }
+    }
+
+    public void setOnParentalAuthUploadClickListener(@Nullable Runnable listener) {
+        parentalAuthUploadClickListener = listener;
+    }
+
+    public void setParentalAuthUploadVisible(boolean visible) {
+        if (parentalAuthUploadButton != null) {
+            parentalAuthUploadButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setParentalAuthContentAlpha(float alpha) {
+        if (parentalAuthIconContainer != null) {
+            parentalAuthIconContainer.setAlpha(alpha);
+        }
+        if (parentalAuthTitle != null) {
+            parentalAuthTitle.setAlpha(alpha);
+        }
+        if (parentalAuthMessage != null) {
+            parentalAuthMessage.setAlpha(alpha);
+        }
     }
 
     private void bindEventImage(@NonNull Event event) {

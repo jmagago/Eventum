@@ -82,6 +82,16 @@
                     app:chipStrokeWidth="0dp"
                     tools:visibility="visible" />
 
+                <ImageView
+                    android:id="@+id/homeButton"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/settings_go_home"
+                    android:src="@drawable/ic_home"
+                    app:tint="@color/white" />
+
             </LinearLayout>
 
             <androidx.cardview.widget.CardView

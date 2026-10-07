@@ -23,8 +23,8 @@
             <ImageView
                 android:layout_width="56dp"
                 android:layout_height="56dp"
-                android:contentDescription="@string/cd_parental_auth_upload"
-                android:src="@drawable/ic_upload_file"
+                android:contentDescription="@string/cd_parental_auth_document"
+                android:src="@drawable/ic_id_card"
                 app:tint="@color/colorWhite" />
 
             <TextView
@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:text="@string/parental_auth_upload_dialog_title"
+                android:text="@string/parental_auth_dialog_title"
                 android:textColor="@color/colorWhite"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -50,44 +50,9 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
-                android:text="@string/parental_auth_upload_dialog_message"
+                android:text="@string/parental_auth_join_reminder_message"
                 android:textColor="@color/colorPrimaryText"
                 android:textSize="15sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/selectParentalAuthButton"
-                style="@style/Widget.Eventum.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="20dp"
-                android:minWidth="0dp"
-                android:paddingHorizontal="20dp"
-                android:text="@string/parental_auth_select_file"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/colorAccent"
-                app:icon="@drawable/ic_upload_file"
-                app:iconGravity="textStart"
-                app:iconPadding="8dp"
-                app:iconTint="@android:color/white" />
-
-            <TextView
-                android:id="@+id/parentalAuthFileName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:textColor="@color/colorSecondaryText"
-                android:textSize="13sp"
-                android:visibility="gone" />
-
-            <ProgressBar
-                android:id="@+id/parentalAuthProgress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -97,7 +62,7 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/cancelParentalAuthButton"
+                    android:id="@+id/parentalAuthJoinCancelButton"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -111,15 +76,15 @@
                     app:strokeColor="@color/colorPrimary" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/uploadParentalAuthButton"
+                    android:id="@+id/parentalAuthJoinAcceptButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:backgroundTint="@color/colorAccent"
-                    android:text="@string/parental_auth_upload_document"
+                    android:text="@string/parental_auth_accept_and_join"
                     android:textAllCaps="false"
                     android:textColor="@color/colorWhite"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     app:cornerRadius="20dp" />
             </LinearLayout>
         </LinearLayout>
