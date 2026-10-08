@@ -57,7 +57,6 @@ import com.us.eventum.core.utils.SecureCredentialsStore;
 import com.us.eventum.core.utils.ToastUtils;
 import com.us.eventum.core.utils.ProfileImageManager;
 import com.us.eventum.core.utils.WindowInsetsHelper;
-import com.us.eventum.ui.viewmodels.SharedViewModel;
 import com.us.eventum.ui.viewmodels.AuthViewModel;
 import com.us.eventum.ui.viewmodels.OrganizerViewModel;
 import com.us.eventum.ui.viewmodels.AttendeeViewModel;
@@ -75,6 +74,7 @@ import java.util.Locale;
 public class SettingsActivity extends AppCompatActivity {
 
     public static final String EXTRA_USER_TYPE = "extra_user_type";
+    public static final String EXTRA_PROFILE_IMAGE_UPDATED_AT = "extra_profile_image_updated_at";
     public static final String USER_TYPE_ORGANIZER = "ORGANIZER";
     public static final String USER_TYPE_ATTENDEE = "ATTENDEE";
 
@@ -85,7 +85,6 @@ public class SettingsActivity extends AppCompatActivity {
     private CircleImageView profileImageView;
     private CircularProgressIndicator progressIndicator;
     private Uri photoUri;
-    private SharedViewModel sharedViewModel;
     private AuthViewModel authViewModel;
     private OrganizerViewModel organizerViewModel;
     private AttendeeViewModel attendeeViewModel;
@@ -134,7 +133,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         // Inicializar ViewModels
-        sharedViewModel = SharedViewModel.getInstance();
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         organizerViewModel = new ViewModelProvider(this).get(OrganizerViewModel.class);
         attendeeViewModel = new ViewModelProvider(this).get(AttendeeViewModel.class);
@@ -227,16 +225,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void goToHome() {
-        String userType = currentUserType;
-        if (userType == null || userType.isEmpty()) {
-            userType = getIntent().getStringExtra(EXTRA_USER_TYPE);
-        }
-        Class<?> homeClass = USER_TYPE_ATTENDEE.equals(userType)
-                ? AttendeeHomeActivity.class
-                : OrganizerHomeActivity.class;
-        Intent intent = new Intent(this, homeClass);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        startActivity(intent);
+        // Solo finish: Home abrió Settings con Activity Result; hay que devolver el result.
+        // startActivity(CLEAR_TOP) impedía que Home recibiera EXTRA_PROFILE_IMAGE_UPDATED_AT.
         finish();
     }
 
@@ -254,6 +244,7 @@ public class SettingsActivity extends AppCompatActivity {
                 currentUserType = USER_TYPE_ATTENDEE;
                 updateUserInfo(attendee.getUsername(), attendee.getEmail(), USER_TYPE_ATTENDEE);
                 updateProfileIncompleteBadge(attendee);
+                ProfileImageManager.loadProfileImage(this, profileImageView, attendee.getImageUpdatedAt());
             }
         });
 
@@ -468,16 +459,19 @@ public class SettingsActivity extends AppCompatActivity {
                 .circleCrop()
                 .into(profileImageView);
 
-            // Actualizar cache para sincronización inmediata
-            ProfileImageManager.updateCurrentUri(imageUri.toString(), profileImageView);
-
             // Subir la imagen comprimida
             UploadTask uploadTask = profileRef.putBytes(data);
             uploadTask
                 .addOnSuccessListener(taskSnapshot -> {
                     showProgress(false);
-                    ProfileImageManager.markProfileImageUpdated(userId);
-                    sharedViewModel.notifyProfileImageUpdated();
+                    long version = System.currentTimeMillis();
+                    if (USER_TYPE_ATTENDEE.equals(currentUserType) && attendeeViewModel != null) {
+                        attendeeViewModel.persistProfileImageUpdatedAt(userId, version);
+                    }
+                    ProfileImageManager.loadProfileImage(SettingsActivity.this, profileImageView, version);
+                    Intent result = new Intent();
+                    result.putExtra(EXTRA_PROFILE_IMAGE_UPDATED_AT, version);
+                    setResult(RESULT_OK, result);
                     ToastUtils.showCustomToast(SettingsActivity.this, getString(R.string.toast_profile_photo_updated), ToastUtils.ToastType.SUCCESS);
                 })
                 .addOnFailureListener(e -> {
@@ -499,9 +493,14 @@ public class SettingsActivity extends AppCompatActivity {
         if (firebaseManager.getAuth().getCurrentUser() == null) {
             return;
         }
-
-        // Cargar directamente desde Firebase Storage (online-only)
-        ProfileImageManager.loadProfileImage(this, profileImageView);
+        long version = 0L;
+        if (USER_TYPE_ATTENDEE.equals(currentUserType) && attendeeViewModel != null) {
+            Attendee attendee = attendeeViewModel.getCurrentAttendee().getValue();
+            if (attendee != null) {
+                version = attendee.getImageUpdatedAt();
+            }
+        }
+        ProfileImageManager.loadProfileImage(this, profileImageView, version);
     }
 
     private void showProgress(boolean show) {

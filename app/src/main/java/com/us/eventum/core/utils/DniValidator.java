@@ -56,24 +56,4 @@ public class DniValidator {
         
         return letter == correctLetter;
     }
-    
-    public static String formatDni(String dni) {
-        if (dni == null) return "";
-        
-        // Eliminar espacios y convertir a mayúsculas
-        String cleanDni = dni.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
-        
-        // Si tiene 8 dígitos, añadir la letra calculada
-        if (cleanDni.matches("\\d{8}")) {
-            try {
-                int number = Integer.parseInt(cleanDni);
-                char letter = DNI_LETTERS.charAt(number % 23);
-                return cleanDni + letter;
-            } catch (NumberFormatException e) {
-                return cleanDni;
-            }
-        }
-        
-        return cleanDni;
-    }
 }

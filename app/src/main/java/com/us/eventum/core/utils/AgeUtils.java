@@ -30,10 +30,6 @@ public final class AgeUtils {
         return age;
     }
 
-    public static int calculateAgeToday(@NonNull Date birthDate) {
-        return calculateAge(birthDate, new Date());
-    }
-
     @Nullable
     public static Date parseBirthDate(@Nullable String birthDateText) {
         if (birthDateText == null || birthDateText.trim().isEmpty()) {

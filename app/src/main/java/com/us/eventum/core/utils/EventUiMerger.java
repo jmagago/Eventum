@@ -40,6 +40,7 @@ public final class EventUiMerger {
         target.setRequiresParentalAuth(source.getRequiresParentalAuth());
         target.setCancelled(source.isCancelled());
         target.setCancelledAt(source.getCancelledAt());
+        target.setImageUpdatedAt(source.getImageUpdatedAt());
     }
 
     /** Estado derivado de inscripciones y lista de espera (no persistido en {@code events}). */
@@ -80,7 +81,8 @@ public final class EventUiMerger {
                 || !Objects.equals(before.getPrivateAccessCodeHash(), after.getPrivateAccessCodeHash())
                 || before.getRequiresParentalAuth() != after.getRequiresParentalAuth()
                 || before.isCancelled() != after.isCancelled()
-                || !datesEqual(before.getCancelledAt(), after.getCancelledAt());
+                || !datesEqual(before.getCancelledAt(), after.getCancelledAt())
+                || before.getImageUpdatedAt() != after.getImageUpdatedAt();
     }
 
     /** Título, descripción, fecha, lugar o tipo: lo que un asistente debe enterarse. */

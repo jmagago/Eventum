@@ -40,7 +40,7 @@ public final class EditEventPanelController {
     public interface SaveListener {
         void onEventSaved(@NonNull Event event, @Nullable Uri newImageUri);
 
-        default void onEventImageUploadComplete(@NonNull String eventId) {
+        default void onEventImageUploadComplete(@NonNull String eventId, long imageUpdatedAt) {
         }
 
         int getMinParticipantsAllowed();
@@ -234,7 +234,7 @@ public final class EditEventPanelController {
         }
         updatePrivateAccessCodeVisibility();
         if (eventFormImageView != null) {
-            EventImageManager.loadEventImage(activity, eventFormImageView, event.getId());
+            EventImageManager.loadEventImage(activity, eventFormImageView, event);
         }
 
         updateSaveButtonState(false);
@@ -607,24 +607,24 @@ public final class EditEventPanelController {
 
             Uri imageToUpload = pendingImageUri;
             if (imageChanged && eventId != null) {
-                EventImageManager.setPendingLocalPreview(eventId, imageToUpload);
-                EventImageManager.markEventImageUpdated(eventId);
                 EventImageManager.uploadEventImage(activity, imageToUpload, eventId,
                         new EventImageManager.UploadCallback() {
                             @Override
                             public void onSuccess() {
-                                EventImageManager.markEventImageUpdated(eventId);
-                                EventImageManager.clearPendingLocalPreview(eventId);
+                                long version = System.currentTimeMillis();
+                                if (currentEvent != null) {
+                                    currentEvent.setImageUpdatedAt(version);
+                                }
+                                eventViewModel.persistEventImageUpdatedAt(eventId, version);
                                 activity.runOnUiThread(() -> {
                                     if (saveListener != null) {
-                                        saveListener.onEventImageUploadComplete(eventId);
+                                        saveListener.onEventImageUploadComplete(eventId, version);
                                     }
                                 });
                             }
 
                             @Override
                             public void onError(String message) {
-                                EventImageManager.clearPendingLocalPreview(eventId);
                                 activity.runOnUiThread(() ->
                                         ToastUtils.showCustomToast(activity, message, ToastUtils.ToastType.WARNING));
                             }

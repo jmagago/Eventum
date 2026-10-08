@@ -240,7 +240,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         toolbarTitleTextView.setText(event.getTitle());
         CircleImageView toolbarEventImageView = findViewById(R.id.toolbarEventImageView);
         if (toolbarEventImageView != null) {
-            EventImageManager.loadEventImage(this, toolbarEventImageView, event.getId());
+            EventImageManager.loadEventImage(this, toolbarEventImageView, event);
         }
         initializeViews();
         setupRecyclerView();
@@ -864,7 +864,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         MaterialButton deleteButton = dialogView.findViewById(R.id.dialog_delete_button);
 
         nameTextView.setText(attendee.getFullNameLabel());
-        ProfileImageManager.loadProfileImageForUserId(this, profileImageView, attendee.getUid(), available -> {
+        ProfileImageManager.loadProfileImageForUserId(this, profileImageView, attendee, available -> {
             profileImageView.setClickable(available);
             profileImageView.setFocusable(available);
             if (available) {
@@ -874,7 +874,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 profileImageView.setBackgroundResource(ripple.resourceId);
                 profileImageView.setOnClickListener(v ->
                         ProfileImageManager.showFullScreenProfileImage(
-                                EventDetailsActivity.this, attendee.getUid()));
+                                EventDetailsActivity.this, attendee));
             } else {
                 profileImageView.setBackground(null);
                 profileImageView.setOnClickListener(null);
@@ -1197,12 +1197,15 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onEventImageUploadComplete(@NonNull String eventId) {
+            public void onEventImageUploadComplete(@NonNull String eventId, long imageUpdatedAt) {
+                if (event != null) {
+                    event.setImageUpdatedAt(imageUpdatedAt);
+                }
                 sharedViewModel.notifyEventsUpdated();
                 CircleImageView toolbarEventImageView = findViewById(R.id.toolbarEventImageView);
-                if (toolbarEventImageView != null) {
+                if (toolbarEventImageView != null && event != null) {
                     EventImageManager.loadEventImage(EventDetailsActivity.this,
-                            toolbarEventImageView, eventId);
+                            toolbarEventImageView, event);
                 }
             }
 

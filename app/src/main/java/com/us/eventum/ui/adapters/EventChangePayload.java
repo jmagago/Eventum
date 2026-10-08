@@ -4,7 +4,8 @@ import com.us.eventum.data.models.Event;
 import com.us.eventum.core.utils.EventUiMerger;
 
 /**
- * Actualización parcial de una tarjeta de evento sin recargar la imagen.
+ * Actualización parcial de una tarjeta de evento.
+ * La imagen se rebinda siempre (usa {@code imageUpdatedAt} como signature).
  */
 public final class EventChangePayload {
 

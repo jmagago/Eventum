@@ -369,6 +369,34 @@ public class AttendeeViewModel extends ViewModel {
     }
 
     /**
+     * Persiste {@code imageUpdatedAt} tras subir la foto de perfil.
+     */
+    public void persistProfileImageUpdatedAt(@NonNull String uid, long imageUpdatedAt) {
+        if (attendeeRepository == null || uid.trim().isEmpty() || imageUpdatedAt <= 0L) {
+            return;
+        }
+        String normalizedUid = uid.trim();
+        attendeeRepository.updateAttendeeImageUpdatedAt(normalizedUid, imageUpdatedAt,
+                new AttendeeRepository.RepositoryCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        Attendee current = currentAttendee.getValue();
+                        if (current != null && normalizedUid.equals(current.getUid())) {
+                            current.setImageUpdatedAt(imageUpdatedAt);
+                            currentAttendee.postValue(current);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        android.util.Log.w("AttendeeViewModel",
+                                "No se pudo guardar imageUpdatedAt: " + error);
+                        errorMessage.postValue(error);
+                    }
+                });
+    }
+
+    /**
      * Actualizar asistente
      */
     public void updateAttendee(String username, String nombre, String dni, String phone, String primerApellido, String segundoApellido, String fechaNacimiento) {

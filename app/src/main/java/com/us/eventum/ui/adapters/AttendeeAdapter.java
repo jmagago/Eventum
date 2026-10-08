@@ -97,10 +97,10 @@ public class AttendeeAdapter extends RecyclerView.Adapter<AttendeeAdapter.ViewHo
             holder.phoneTextView.setVisibility(View.GONE);
         }
 
-        ProfileImageManager.loadProfileImageForUserId(
+        ProfileImageManager.loadProfileImage(
                 holder.itemView.getContext(),
                 holder.profileImageView,
-                attendee.getUid());
+                attendee);
 
         boolean isScanned = scannedAttendeesMap.getOrDefault(attendee.getUid(), false);
         applyVerifiedCardStyle(holder, isScanned);

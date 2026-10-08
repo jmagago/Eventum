@@ -76,6 +76,11 @@ public interface EventRepository {
      * @param callback Callback para manejar el resultado
      */
     void updateEvent(String eventId, Event event, RepositoryCallback<Void> callback);
+
+    /**
+     * Actualiza solo {@code imageUpdatedAt} tras subir/reemplazar la foto en Storage.
+     */
+    void updateEventImageUpdatedAt(String eventId, long imageUpdatedAt, RepositoryCallback<Void> callback);
     
     /**
      * Actualizar solo el estado de privacidad de un evento

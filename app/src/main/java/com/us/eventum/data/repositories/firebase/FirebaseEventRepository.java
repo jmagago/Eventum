@@ -248,6 +248,23 @@ public class FirebaseEventRepository implements EventRepository {
     }
 
     @Override
+    public void updateEventImageUpdatedAt(String eventId, long imageUpdatedAt,
+                                          RepositoryCallback<Void> callback) {
+        if (eventId == null || eventId.trim().isEmpty()) {
+            if (callback != null) {
+                callback.onError("eventId vacío");
+            }
+            return;
+        }
+        db.collection("events").document(eventId.trim())
+                .update("imageUpdatedAt", imageUpdatedAt)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
+                .addOnFailureListener(e ->
+                        callback.onError(FirebaseBackendErrorHandler.getErrorMessage(
+                                e, R.string.backend_op_update_event)));
+    }
+
+    @Override
     public void updateEventPrivacy(String eventId, boolean isPrivate, String privateAccessCode,
                                    RepositoryCallback<Void> callback) {
         String plaintext = isPrivate ? EventPrivateAccessCode.normalize(privateAccessCode) : null;

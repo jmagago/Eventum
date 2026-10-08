@@ -39,6 +39,8 @@ public class Event implements Parcelable {
     private Date waitlistOfferExpiresAt;
     /** Solo UI: personas en lista de espera activa del evento. */
     private int waitlistCount;
+    /** Epoch millis de la última foto en Storage; signature de Glide / invalidación de lista. */
+    private long imageUpdatedAt;
 
     public Event() {
         // Constructor vacío requerido para Firestore
@@ -296,6 +298,16 @@ public class Event implements Parcelable {
         this.waitlistCount = waitlistCount;
     }
 
+    @PropertyName("imageUpdatedAt")
+    public long getImageUpdatedAt() {
+        return imageUpdatedAt;
+    }
+
+    @PropertyName("imageUpdatedAt")
+    public void setImageUpdatedAt(long imageUpdatedAt) {
+        this.imageUpdatedAt = imageUpdatedAt;
+    }
+
     @Exclude
     public boolean isCurrentUserOnWaitlist() {
         return currentUserWaitlisted || currentUserWaitlistOffered;
@@ -346,6 +358,7 @@ public class Event implements Parcelable {
         cancelled = in.readByte() != 0;
         long cancelledAtMillis = in.readLong();
         cancelledAt = cancelledAtMillis != -1 ? new Date(cancelledAtMillis) : null;
+        imageUpdatedAt = in.readLong();
     }
 
     public static final Creator<Event> CREATOR = new Creator<Event>() {
@@ -389,6 +402,7 @@ public class Event implements Parcelable {
         dest.writeInt(waitlistCount);
         dest.writeByte((byte) (cancelled ? 1 : 0));
         dest.writeLong(cancelledAt != null ? cancelledAt.getTime() : -1);
+        dest.writeLong(imageUpdatedAt);
     }
 }
 

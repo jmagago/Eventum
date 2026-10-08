@@ -124,6 +124,20 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     private AttendeeCsvExportHelper csvExportHelper;
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
+    private long lastKnownProfileImageUpdatedAt;
+    private final ActivityResultLauncher<Intent> settingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != RESULT_OK || result.getData() == null
+                        || profileImageView == null) {
+                    return;
+                }
+                long version = result.getData().getLongExtra(
+                        SettingsActivity.EXTRA_PROFILE_IMAGE_UPDATED_AT, 0L);
+                if (version > lastKnownProfileImageUpdatedAt) {
+                    lastKnownProfileImageUpdatedAt = version;
+                    ProfileImageManager.loadProfileImage(this, profileImageView, version);
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,9 +211,6 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
 
         notificationWatcher = new OrganizerNotificationWatcher(this);
         NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher);
-
-        // Configurar observador de actualización de imagen de perfil
-        setupProfileImageObserver();
     }
 
     private void setupPanelBackHandler() {
@@ -344,7 +355,9 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
     protected void onResume() {
         super.onResume();
         loadEvents();
-        ProfileImageManager.loadProfileImage(this, profileImageView);
+        if (profileImageView != null) {
+            ProfileImageManager.loadProfileImage(this, profileImageView, lastKnownProfileImageUpdatedAt);
+        }
     }
 
     @Override
@@ -362,16 +375,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         }
         super.onStop();
     }
-    
-    private void setupProfileImageObserver() {
-        sharedViewModel.getProfileImageUpdated().observe(this, profileImageUpdated -> {
-            if (profileImageUpdated) {
-                ProfileImageManager.loadProfileImage(this, profileImageView);
-                sharedViewModel.resetProfileImageUpdated();
-            }
-        });
-    }
-    
+
     private void initializeViews() {
         createEventButton = findViewById(R.id.createEventFab);
         searchEventsButton = findViewById(R.id.searchEventsFab);
@@ -570,7 +574,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
         settingsButton.setOnClickListener(v -> {
             Intent intent = new Intent(OrganizerHomeActivity.this, SettingsActivity.class);
             intent.putExtra(SettingsActivity.EXTRA_USER_TYPE, SettingsActivity.USER_TYPE_ORGANIZER);
-            startActivity(intent);
+            settingsLauncher.launch(intent);
         });
 
         createEventButton.setOnClickListener(v -> {
@@ -735,7 +739,7 @@ public class OrganizerHomeActivity extends AppCompatActivity implements EventsPa
             }
 
             @Override
-            public void onEventImageUploadComplete(@NonNull String eventId) {
+            public void onEventImageUploadComplete(@NonNull String eventId, long imageUpdatedAt) {
                 sharedViewModel.notifyEventsUpdated();
             }
 

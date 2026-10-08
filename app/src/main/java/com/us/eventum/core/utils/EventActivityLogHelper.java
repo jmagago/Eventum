@@ -20,12 +20,6 @@ public final class EventActivityLogHelper {
     private EventActivityLogHelper() {
     }
 
-    public static void setRepository(EventActivityLogRepository repo) {
-        if (repo != null) {
-            repository = repo;
-        }
-    }
-
     public static void logJoined(String eventId, @Nullable String attendeeName) {
         append(eventId, EventActivityLog.TYPE_JOINED, attendeeName, null);
     }

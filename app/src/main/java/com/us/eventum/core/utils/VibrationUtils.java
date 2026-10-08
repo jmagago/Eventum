@@ -13,7 +13,6 @@ public final class VibrationUtils {
 
     private static final long PULSE_SHORT_MS = 80L;
     private static final long PULSE_MEDIUM_MS = 120L;
-    private static final long PULSE_LONG_MS = 180L;
 
     private VibrationUtils() {
     }
@@ -31,11 +30,6 @@ public final class VibrationUtils {
     /** Error o QR inválido */
     public static void vibrateError(Context context) {
         vibratePattern(context, new long[]{0, PULSE_SHORT_MS, 50, PULSE_SHORT_MS, 50, PULSE_SHORT_MS});
-    }
-
-    /** Escaneo QR (cualquier resultado definitivo) */
-    public static void vibrateScanResult(Context context) {
-        vibrateOneShot(context, PULSE_LONG_MS, VibrationEffect.DEFAULT_AMPLITUDE);
     }
 
     /** Notificación del organizador (pulso breve) */

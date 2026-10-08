@@ -60,19 +60,6 @@ public final class FirebaseAuthErrorHandler {
         return resolveString(context, R.string.auth_error_generic, null);
     }
 
-    @NonNull
-    public static AuthErrorField getDisplayField(@Nullable Exception exception) {
-        FirebaseAuthException authException = findAuthException(exception);
-        if (authException != null) {
-            return getDisplayFieldByCode(authException.getErrorCode());
-        }
-        String message = exception != null ? exception.getMessage() : null;
-        if (message != null) {
-            return getDisplayFieldByCode(extractCodeFromMessage(message));
-        }
-        return AuthErrorField.GENERAL;
-    }
-
     /**
      * Indica en qué campo del formulario de login mostrar el error (email, contraseña o toast general).
      */
@@ -122,11 +109,6 @@ public final class FirebaseAuthErrorHandler {
     @NonNull
     public static String getNullFirebaseUserMessage(@Nullable Context context) {
         return resolveString(context, R.string.auth_error_null_firebase_user, null);
-    }
-
-    @NonNull
-    public static String getRepoNotInitializedMessage(@Nullable Context context) {
-        return resolveString(context, R.string.auth_error_repo_not_initialized, null);
     }
 
     @Nullable
@@ -196,34 +178,6 @@ public final class FirebaseAuthErrorHandler {
             normalized = normalized.substring("ERROR_".length());
         }
         return normalized;
-    }
-
-    @NonNull
-    private static AuthErrorField getDisplayFieldByCode(String errorCode) {
-        String normalized = normalizeErrorCode(errorCode);
-        switch (normalized) {
-            case "INVALID_EMAIL":
-            case "MISSING_EMAIL":
-            case "EMAIL_ALREADY_IN_USE":
-            case "EMAIL_EXISTS":
-            case "EMAIL_NOT_VERIFIED":
-            case "ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL":
-                return AuthErrorField.EMAIL;
-            case "USER_NOT_FOUND":
-                return AuthErrorField.EMAIL;
-            case "WRONG_PASSWORD":
-            case "MISSING_PASSWORD":
-            case "INVALID_LOGIN_CREDENTIALS":
-            case "INVALID_CREDENTIAL":
-            case "INVALID_PASSWORD":
-            case "REJECTED_CREDENTIAL":
-                return AuthErrorField.PASSWORD;
-            default:
-                if (normalized.contains("INVALID") && normalized.contains("CREDENTIAL")) {
-                    return AuthErrorField.PASSWORD;
-                }
-                return AuthErrorField.GENERAL;
-        }
     }
 
     @NonNull

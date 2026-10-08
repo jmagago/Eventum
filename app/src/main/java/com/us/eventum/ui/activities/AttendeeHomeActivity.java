@@ -56,8 +56,6 @@ import com.us.eventum.core.utils.AttendeeNotificationWatcher;
 import com.us.eventum.core.utils.AttendeeNotificationDispatcher;
 import com.us.eventum.core.utils.AttendeeNotificationHelper;
 import com.us.eventum.data.models.AttendeeNotification;
-import com.us.eventum.ui.viewmodels.SharedViewModel;
-
 import android.app.Dialog;
 import android.app.DatePickerDialog;
 import android.database.Cursor;
@@ -87,7 +85,8 @@ public class AttendeeHomeActivity extends AppCompatActivity
     private EventViewModel eventViewModel;
     private AttendeeViewModel attendeeViewModel;
     private CircleImageView profileImageView;
-    private SharedViewModel sharedViewModel = SharedViewModel.getInstance();
+    /** Evita que un reload del asistente con imageUpdatedAt antiguo pise la foto nueva. */
+    private long lastKnownProfileImageUpdatedAt;
     private EventDialogContext eventDialogContext;
     private AttendeeEventPanelController eventPanelController;
     private AttendeeQrPanelController qrPanelController;
@@ -106,6 +105,25 @@ public class AttendeeHomeActivity extends AppCompatActivity
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), this::onParentalAuthFilePicked);
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
+    private final ActivityResultLauncher<Intent> settingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+                    return;
+                }
+                long version = result.getData().getLongExtra(
+                        SettingsActivity.EXTRA_PROFILE_IMAGE_UPDATED_AT, 0L);
+                if (version > 0L) {
+                    lastKnownProfileImageUpdatedAt = version;
+                    Attendee current = attendeeViewModel != null
+                            ? attendeeViewModel.getCurrentAttendee().getValue() : null;
+                    if (current != null) {
+                        current.setImageUpdatedAt(version);
+                    }
+                    if (profileImageView != null) {
+                        ProfileImageManager.loadProfileImage(this, profileImageView, version);
+                    }
+                }
+            });
 
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
@@ -157,15 +175,6 @@ public class AttendeeHomeActivity extends AppCompatActivity
 
         // Referencia a imagen de perfil y carga inicial
         profileImageView = findViewById(R.id.profileImageView);
-        ProfileImageManager.loadProfileImage(this, profileImageView);
-
-        // Observar actualización de imagen de perfil desde Settings
-        sharedViewModel.getProfileImageUpdated().observe(this, updated -> {
-            if (updated != null && updated) {
-                ProfileImageManager.loadProfileImage(this, profileImageView);
-                sharedViewModel.resetProfileImageUpdated();
-            }
-        });
 
         // Pintar datos de usuario en header
         // Usar attendeeViewModel para datos de usuario
@@ -179,6 +188,13 @@ public class AttendeeHomeActivity extends AppCompatActivity
                 roleTv.setText(R.string.role_attendee);
                 roleTv.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
                 roleTv.setBackgroundResource(R.drawable.bg_role_badge_attendee);
+                long version = Math.max(attendee.getImageUpdatedAt(), lastKnownProfileImageUpdatedAt);
+                if (version > lastKnownProfileImageUpdatedAt) {
+                    lastKnownProfileImageUpdatedAt = version;
+                }
+                if (profileImageView != null) {
+                    ProfileImageManager.loadProfileImage(this, profileImageView, version);
+                }
             }
         });
         attendeeViewModel.loadCurrentAttendee();
@@ -271,9 +287,6 @@ public class AttendeeHomeActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if (profileImageView != null) {
-            ProfileImageManager.loadProfileImage(this, profileImageView);
-        }
         if (qrPanelController != null) {
             qrPanelController.onHostResume();
         }
@@ -864,7 +877,7 @@ public class AttendeeHomeActivity extends AppCompatActivity
             settingsButton.setOnClickListener(v -> {
                 Intent intent = new Intent(this, SettingsActivity.class);
                 intent.putExtra(SettingsActivity.EXTRA_USER_TYPE, SettingsActivity.USER_TYPE_ATTENDEE);
-                startActivity(intent);
+                settingsLauncher.launch(intent);
             });
         }
     }

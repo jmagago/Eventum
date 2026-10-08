@@ -104,6 +104,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             notifyItemChanged(position);
             return;
         }
+        // Foto: imageUpdatedAt en Firestore → rebind completo (Glide signature).
+        if (oldEvent.getImageUpdatedAt() != newEvent.getImageUpdatedAt()) {
+            notifyItemChanged(position);
+            return;
+        }
         if (oldEvent == newEvent) {
             notifyItemChanged(position, new EventChangePayload(EventChangePayload.FLAG_STATS));
             return;
@@ -191,6 +196,9 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         if (stats) {
             holder.bindStats(event);
         }
+        // Tras un fallo de carga o subida posterior, las actualizaciones parciales
+        // también deben reintentar la miniatura (EventImageManager evita trabajo de más).
+        holder.bindImage(event);
     }
 
     @Override
@@ -258,18 +266,22 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
         public void bind(Event event) {
             bindMetadata(event);
-            if (eventImageView != null) {
-                String eventId = event.getId();
-                Object imageTag = eventImageView.getTag(R.id.tag_image_load_key);
-                if (imageTag != null && eventId != null
-                        && !imageTag.toString().startsWith(eventId + "#")) {
-                    eventImageView.setImageResource(R.mipmap.ic_launcher);
-                    eventImageView.setTag(R.id.tag_image_load_key, null);
-                }
-                EventImageManager.loadEventImage(itemView.getContext(), eventImageView, eventId);
-            }
-
+            bindImage(event);
             bindStats(event);
+        }
+
+        void bindImage(Event event) {
+            if (eventImageView == null || event == null) {
+                return;
+            }
+            String eventId = event.getId();
+            Object imageTag = eventImageView.getTag(R.id.tag_image_load_key);
+            if (imageTag != null && eventId != null
+                    && !imageTag.toString().startsWith(eventId + "#")) {
+                eventImageView.setImageResource(R.mipmap.ic_launcher);
+                eventImageView.setTag(R.id.tag_image_load_key, null);
+            }
+            EventImageManager.loadEventImage(itemView.getContext(), eventImageView, event);
         }
 
         void bindMetadata(Event event) {

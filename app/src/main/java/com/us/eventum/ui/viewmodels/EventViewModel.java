@@ -207,10 +207,12 @@ public class EventViewModel extends ViewModel {
         }
         eventRepository.stopEventListener();
         listeningSingleEvent = false;
-        observedEvent.postValue(null);
+        // No publicar null aquí: el detalle lo interpreta como "evento eliminado"
+        // (toast + finish). Solo onEventRemoved debe limpiar observedEvent.
     }
 
     public void restartListeningEvent(@NonNull String eventId) {
+        // Reinicia el listener sin vaciar observedEvent (p. ej. pull-to-refresh).
         stopListeningEvent();
         startListeningEvent(eventId);
     }
@@ -555,12 +557,9 @@ public class EventViewModel extends ViewModel {
             isLoading.postValue(false);
             return;
         }
-        
-        if (description == null || description.trim().isEmpty()) {
-            errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_description_required) : "La descripción es obligatoria"));
-            isLoading.postValue(false);
-            return;
-        }
+
+        // Descripción opcional (como indica el formulario).
+        String normalizedDescription = description != null ? description.trim() : "";
         
         if (date == null) {
             errorMessage.postValue((appContext != null ? appContext.getString(R.string.error_edit_event_date_required) : "La fecha es obligatoria"));
@@ -591,7 +590,7 @@ public class EventViewModel extends ViewModel {
             normalizedAccessCode = null;
         }
 
-        Event event = new Event(title, description, date, location, userId, maxParticipants, eventType);
+        Event event = new Event(title, normalizedDescription, date, location, userId, maxParticipants, eventType);
         event.setPrivateEvent(isPrivate);
         event.setRequiresParentalAuth(requiresParentalAuth);
         event.setPrivateAccessCode(normalizedAccessCode);
@@ -691,6 +690,48 @@ public class EventViewModel extends ViewModel {
                 persistUpdatedEvent(eventId, event, null);
             }
         });
+    }
+
+    /**
+     * Persiste {@code imageUpdatedAt} tras subir la foto; el listener de lista rebinda la miniatura.
+     */
+    public void persistEventImageUpdatedAt(@NonNull String eventId, long imageUpdatedAt) {
+        if (eventRepository == null || eventId.trim().isEmpty() || imageUpdatedAt <= 0L) {
+            return;
+        }
+        eventRepository.updateEventImageUpdatedAt(eventId.trim(), imageUpdatedAt,
+                new EventRepository.RepositoryCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        patchCachedEventImageUpdatedAt(eventId.trim(), imageUpdatedAt);
+                        if (sharedViewModel != null) {
+                            sharedViewModel.notifyEventsUpdated();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.w("EventViewModel", "No se pudo guardar imageUpdatedAt: " + error);
+                        errorMessage.postValue(error);
+                    }
+                });
+    }
+
+    private void patchCachedEventImageUpdatedAt(@NonNull String eventId, long imageUpdatedAt) {
+        List<Event> current = events.getValue();
+        if (current != null) {
+            for (Event event : current) {
+                if (eventId.equals(event.getId())) {
+                    event.setImageUpdatedAt(imageUpdatedAt);
+                }
+            }
+            events.postValue(current);
+        }
+        Event observed = observedEvent.getValue();
+        if (observed != null && eventId.equals(observed.getId())) {
+            observed.setImageUpdatedAt(imageUpdatedAt);
+            observedEvent.postValue(observed);
+        }
     }
 
     private void persistUpdatedEvent(String eventId, Event event, @Nullable Event previous) {

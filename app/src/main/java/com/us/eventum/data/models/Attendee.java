@@ -18,6 +18,8 @@ public class Attendee implements Serializable {
     private String segundoApellido;
     private Timestamp fechaNacimiento;
     private String usernameLower; // Para búsquedas case-insensitive
+    /** Epoch millis de la última foto en Storage; signature de Glide / invalidación de lista. */
+    private long imageUpdatedAt;
 
     public Attendee() {
         // Constructor vacío requerido para Firestore
@@ -168,6 +170,14 @@ public class Attendee implements Serializable {
 
     public void setUsernameLower(String usernameLower) {
         this.usernameLower = usernameLower;
+    }
+
+    public long getImageUpdatedAt() {
+        return imageUpdatedAt;
+    }
+
+    public void setImageUpdatedAt(long imageUpdatedAt) {
+        this.imageUpdatedAt = imageUpdatedAt;
     }
 
     /**

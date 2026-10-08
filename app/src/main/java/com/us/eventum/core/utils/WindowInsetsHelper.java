@@ -34,41 +34,6 @@ public final class WindowInsetsHelper {
         });
     }
 
-    public static void applyBottomNavigationBarPadding(@NonNull View view) {
-        final int baseLeft = view.getPaddingLeft();
-        final int baseTop = view.getPaddingTop();
-        final int baseRight = view.getPaddingRight();
-        final int baseBottom = view.getPaddingBottom();
-
-        ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
-            Insets navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
-            v.setPadding(baseLeft, baseTop, baseRight, baseBottom + navBars.bottom);
-            return windowInsets;
-        });
-        ViewCompat.requestApplyInsets(view);
-    }
-
-    /**
-     * Reserva espacio sobre la barra de navegación del sistema en paneles overlay inferiores.
-     */
-    public static void applyPanelBottomInset(@NonNull View panel) {
-        ViewGroup.LayoutParams params = panel.getLayoutParams();
-        if (!(params instanceof ViewGroup.MarginLayoutParams)) {
-            return;
-        }
-
-        ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
-        final int baseBottomMargin = marginParams.bottomMargin;
-
-        ViewCompat.setOnApplyWindowInsetsListener(panel, (v, windowInsets) -> {
-            Insets navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
-            marginParams.bottomMargin = baseBottomMargin + navBars.bottom;
-            v.setLayoutParams(marginParams);
-            return windowInsets;
-        });
-        ViewCompat.requestApplyInsets(panel);
-    }
-
     public static void applyBottomNavigationBarMargin(@NonNull View view) {
         ViewGroup.LayoutParams params = view.getLayoutParams();
         if (!(params instanceof ViewGroup.MarginLayoutParams)) {

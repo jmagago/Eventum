@@ -380,6 +380,8 @@ public final class CreateEventPanelController {
                             new EventImageManager.UploadCallback() {
                                 @Override
                                 public void onSuccess() {
+                                    eventViewModel.persistEventImageUpdatedAt(
+                                            eventId, System.currentTimeMillis());
                                     finishAfterEventCreated();
                                 }
 

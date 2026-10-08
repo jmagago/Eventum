@@ -97,6 +97,22 @@ public class FirebaseAttendeeRepository implements AttendeeRepository {
     }
 
     @Override
+    public void updateAttendeeImageUpdatedAt(String uid, long imageUpdatedAt,
+                                             RepositoryCallback<Void> callback) {
+        if (uid == null || uid.trim().isEmpty()) {
+            if (callback != null) {
+                callback.onError("uid vacío");
+            }
+            return;
+        }
+        db.collection("attendees").document(uid.trim())
+                .update("imageUpdatedAt", imageUpdatedAt)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(
+                        FirebaseBackendErrorHandler.getErrorMessage(e, R.string.backend_op_update_attendee)));
+    }
+
+    @Override
     public void deleteAttendee(String uid, RepositoryCallback<Void> callback) {
         if (mAuth.getCurrentUser() == null) {
             callback.onError(FirebaseBackendErrorHandler.getNotAuthenticatedMessage(null));

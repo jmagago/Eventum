@@ -531,7 +531,7 @@ public final class AttendeeEventPanelController {
             eventImageView.setImageResource(R.mipmap.ic_launcher);
             eventImageView.setTag(R.id.tag_image_load_key, null);
         }
-        EventImageManager.loadEventImage(activity, eventImageView, eventId, available -> {
+        EventImageManager.loadEventImage(activity, eventImageView, event, available -> {
             if (eventId != null) {
                 boundImageEventId = eventId;
             }
@@ -543,7 +543,7 @@ public final class AttendeeEventPanelController {
                         android.R.attr.selectableItemBackgroundBorderless, ripple, true);
                 eventImageView.setBackgroundResource(ripple.resourceId);
                 eventImageView.setOnClickListener(v ->
-                        EventImageManager.showFullScreenEventImage(activity, eventId));
+                        EventImageManager.showFullScreenEventImage(activity, event));
             } else {
                 eventImageView.setBackground(null);
                 eventImageView.setOnClickListener(null);

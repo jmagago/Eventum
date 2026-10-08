@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel;
 public class SharedViewModel extends ViewModel {
     private static SharedViewModel instance;
     private final MutableLiveData<Boolean> eventsUpdated = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> profileImageUpdated = new MutableLiveData<>(false);
 
     private SharedViewModel() {
         // Constructor privado para singleton
@@ -24,10 +23,6 @@ public class SharedViewModel extends ViewModel {
         return eventsUpdated;
     }
 
-    public LiveData<Boolean> getProfileImageUpdated() {
-        return profileImageUpdated;
-    }
-
     public void notifyEventsUpdated() {
         eventsUpdated.postValue(true);
     }
@@ -35,12 +30,4 @@ public class SharedViewModel extends ViewModel {
     public void resetEventsUpdated() {
         eventsUpdated.postValue(false);
     }
-
-    public void notifyProfileImageUpdated() {
-        profileImageUpdated.postValue(true);
-    }
-
-    public void resetProfileImageUpdated() {
-        profileImageUpdated.postValue(false);
-    }
-} 
+}

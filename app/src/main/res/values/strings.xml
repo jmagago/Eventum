@@ -510,7 +510,6 @@
     <string name="dni_invalid_letter">DNI inválido. La letra no coincide con el número</string>
     <string name="dni_already_in_use">Este DNI ya está registrado</string>
     <string name="hint_phone_required">Teléfono *</string>
-    <string name="hint_birth_date_compact">Nacim. (dd/MM/yyyy) *</string>
     <string name="helper_date_format">Formato: dd/MM/yyyy</string>
     <string name="helper_time_format_24h">Formato 24h: HH:mm</string>
     <string name="helper_location_brief">Dirección o referencia breve</string>
@@ -529,7 +528,6 @@
     <string name="cd_nav_logout">Ir a cerrar sesión</string>
     <string name="cd_logout_icon">Icono de cerrar sesión</string>
     <string name="cd_delete_icon">Icono de eliminar</string>
-    <string name="cd_change_password_icon">Icono de cambiar contraseña</string>
     <string name="cd_register_organizer_icon">Icono de organizador</string>
     <string name="cd_register_attendee_icon">Icono de asistente</string>
     <string name="complete_profile_message_long">Estos datos son obligatorios para inscribirte y no se podrán cambiar después.</string>
@@ -582,7 +580,6 @@
     <string name="cd_delete_account_icon">Icono de eliminar cuenta</string>
     <string name="cd_event_menu">Menú del evento</string>
     <string name="event_no_attendees">No hay asistentes registrados para este evento</string>
-    <string name="toast_message_placeholder">Mensaje de notificación</string>
     <string name="label_version">Versión</string>
     <string name="label_build">Compilación</string>
     <string name="label_tutor">Tutor</string>
@@ -681,11 +678,9 @@
     <string name="error_number_invalid">Debe ser un número válido</string>
     <string name="toast_event_updated">Evento actualizado correctamente</string>
     <string name="error_title_required">El título es obligatorio</string>
-    <string name="error_description_required">La descripción es obligatoria</string>
     <string name="error_location_required_vm">La ubicación es obligatoria</string>
     <string name="error_max_participants_gt_zero">El número máximo de participantes debe ser mayor a 0</string>
     <string name="error_private_code_format_hyphen">El código del evento privado debe ser alfanumérico (4-20 caracteres)</string>
-    <string name="label_event_public">público</string>
     <string name="label_privacy_state_private">privado</string>
     <string name="label_privacy_state_public">público</string>
     <string name="toast_event_privacy_updated">Evento actualizado a \'%1$s\'</string>
@@ -700,15 +695,10 @@
     <string name="error_date_format_invalid">Formato de fecha inválido</string>
     <string name="error_search_attendee_criteria">Debe introducir al menos: DNI, email, teléfono o nombre + primer apellido</string>
     <string name="label_no_filters">Sin filtros</string>
-    <string name="label_title_prefix">Título: </string>
-    <string name="label_email_prefix">Email: </string>
-    <string name="label_phone_prefix">Teléfono: </string>
     <string name="error_not_registered_event">No estás inscrito en este evento</string>
     <string name="error_attendee_not_registered">El asistente no está inscrito en este evento</string>
     <string name="error_not_on_waitlist">No estás en la lista de espera</string>
     <string name="error_no_internet">Sin conexión a internet. Verifique su conexión de red.</string>
-    <string name="error_crypto_key">No se pudo obtener la clave de cifrado</string>
-    <string name="error_verification_email_prefix">No se pudo enviar el correo de verificación. </string>
     <string name="empty_events_search_no_match">No se encontraron eventos que coincidan con los criterios de búsqueda\n\nIntenta ajustar los filtros o limpiar la búsqueda para ver todos los eventos</string>
     <string name="empty_events_upcoming">Aún no has creado ningún evento\n\n¡Crea tu primer evento y comienza a gestionarlos de manera sencilla y eficiente!</string>
     <string name="empty_events_past">No tienes eventos pasados\n\nLos eventos que hayas completado aparecerán aquí</string>

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.Log;
 import android.view.View;
@@ -14,116 +15,95 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.signature.ObjectKey;
-
-import android.graphics.drawable.Drawable;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
 import com.us.eventum.R;
-import com.us.eventum.core.utils.FirebaseBackendErrorHandler;
+import com.us.eventum.data.models.Event;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 /**
  * Imágenes de evento en Storage: {@code event_images/{eventId}.jpg}.
+ * La versión de caché es {@link Event#getImageUpdatedAt()} (Firestore).
  */
 public final class EventImageManager {
 
     private static final String TAG = "EventImageManager";
 
-    private static final ConcurrentHashMap<String, Long> imageVersions = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Uri> pendingLocalPreviews = new ConcurrentHashMap<>();
+    /** Cache URL remota por {@code eventId#imageUpdatedAt}. */
     private static final ConcurrentHashMap<String, String> resolvedUrls = new ConcurrentHashMap<>();
 
     public interface ImageAvailabilityCallback {
         void onResult(boolean available);
     }
 
+    public interface UploadCallback {
+        void onSuccess();
+
+        void onError(String message);
+    }
+
     private EventImageManager() {
     }
 
-    public static void markEventImageUpdated(@Nullable String eventId) {
-        if (eventId != null && !eventId.trim().isEmpty()) {
-            String normalizedId = eventId.trim();
-            imageVersions.put(normalizedId, System.currentTimeMillis());
-            resolvedUrls.keySet().removeIf(key -> key.startsWith(normalizedId + "#"));
-        }
+    public static void loadEventImage(Context context, ImageView target, @Nullable Event event) {
+        loadEventImage(context, target, event, null);
     }
 
-    public static void setPendingLocalPreview(@Nullable String eventId, @Nullable Uri uri) {
-        if (eventId == null || eventId.trim().isEmpty() || uri == null) {
-            return;
-        }
-        pendingLocalPreviews.put(eventId.trim(), uri);
-    }
-
-    public static void clearPendingLocalPreview(@Nullable String eventId) {
-        if (eventId != null && !eventId.trim().isEmpty()) {
-            pendingLocalPreviews.remove(eventId.trim());
-        }
-    }
-
-    @Nullable
-    public static Uri getPendingLocalPreview(@Nullable String eventId) {
-        if (eventId == null || eventId.trim().isEmpty()) {
-            return null;
-        }
-        return pendingLocalPreviews.get(eventId.trim());
-    }
-
-    public static void loadEventImage(Context context, ImageView target, @Nullable String eventId) {
-        loadEventImage(context, target, eventId, null);
-    }
-
-    public static void deleteEventImage(@Nullable String eventId) {
-        if (eventId == null || eventId.trim().isEmpty()) {
-            return;
-        }
-        FirebaseStorage.getInstance().getReference()
-                .child("event_images/" + eventId.trim() + ".jpg")
-                .delete()
-                .addOnFailureListener(e -> Log.w(TAG, "No se pudo borrar la imagen del evento", e));
-    }
-
-    public static void loadEventImage(Context context, ImageView target, @Nullable String eventId,
+    public static void loadEventImage(Context context, ImageView target, @Nullable Event event,
                                       @Nullable ImageAvailabilityCallback callback) {
+        if (event == null) {
+            loadInternal(context, target, null, 0L, callback);
+            return;
+        }
+        loadInternal(context, target, event.getId(), event.getImageUpdatedAt(), callback);
+    }
+
+    private static void loadInternal(Context context, ImageView target, @Nullable String eventId,
+                                     long imageUpdatedAt, @Nullable ImageAvailabilityCallback callback) {
+        if (target == null) {
+            notifyAvailability(callback, false);
+            return;
+        }
         if (eventId == null || eventId.trim().isEmpty()) {
             target.setImageResource(R.mipmap.ic_launcher);
             notifyAvailability(callback, false);
             return;
         }
+
         String normalizedId = eventId.trim();
-        Uri pendingUri = getPendingLocalPreview(normalizedId);
-        if (pendingUri != null) {
-            loadLocalPreview(context, target, pendingUri);
-            notifyAvailability(callback, true);
-            return;
-        }
-        long version = imageVersions.getOrDefault(normalizedId, 0L);
+        long version = Math.max(0L, imageUpdatedAt);
         String loadKey = normalizedId + "#" + version;
-        if (loadKey.equals(target.getTag(R.id.tag_image_load_key)) && target.getDrawable() != null) {
+
+        String cachedUrl = resolvedUrls.get(loadKey);
+        if (cachedUrl != null
+                && loadKey.equals(target.getTag(R.id.tag_image_load_key))
+                && target.getDrawable() != null) {
             notifyAvailability(callback, true);
             return;
         }
+
         Object previousTag = target.getTag(R.id.tag_image_load_key);
         if (previousTag != null && !loadKey.equals(previousTag)) {
             target.setImageResource(R.mipmap.ic_launcher);
         }
         target.setTag(R.id.tag_image_load_key, loadKey);
 
-        String cachedUrl = resolvedUrls.get(loadKey);
         if (cachedUrl != null) {
-            applyRemoteImage(context, target, cachedUrl, version, callback);
+            applyRemoteImage(target, cachedUrl, version, callback);
             return;
         }
 
@@ -135,7 +115,7 @@ public final class EventImageManager {
                         return;
                     }
                     resolvedUrls.put(loadKey, uri.toString());
-                    applyRemoteImage(context, target, uri.toString(), version, callback);
+                    applyRemoteImage(target, uri.toString(), version, callback);
                 })
                 .addOnFailureListener(e -> {
                     if (!loadKey.equals(target.getTag(R.id.tag_image_load_key))) {
@@ -146,29 +126,27 @@ public final class EventImageManager {
                 });
     }
 
-    private static void applyRemoteImage(Context context, ImageView target, String url, long version,
-                                         @Nullable ImageAvailabilityCallback callback) {
-        Glide.with(context)
-                .load(url)
-                .signature(new ObjectKey(version))
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .error(R.mipmap.ic_launcher)
-                .dontAnimate()
-                .centerCrop()
-                .into(target);
-        notifyAvailability(callback, true);
-    }
-
-    private static void notifyAvailability(@Nullable ImageAvailabilityCallback callback, boolean available) {
-        if (callback != null) {
-            callback.onResult(available);
+    public static void deleteEventImage(@Nullable String eventId) {
+        if (eventId == null || eventId.trim().isEmpty()) {
+            return;
         }
+        String normalizedId = eventId.trim();
+        resolvedUrls.keySet().removeIf(key -> key.startsWith(normalizedId + "#"));
+        FirebaseStorage.getInstance().getReference()
+                .child("event_images/" + normalizedId + ".jpg")
+                .delete()
+                .addOnFailureListener(e -> Log.w(TAG, "No se pudo borrar la imagen del evento", e));
     }
 
-    /**
-     * Muestra la foto del evento ampliada a pantalla completa (tocar para cerrar).
-     */
-    public static void showFullScreenEventImage(@NonNull Context context, @Nullable String eventId) {
+    public static void showFullScreenEventImage(@NonNull Context context, @Nullable Event event) {
+        if (event == null) {
+            return;
+        }
+        showFullScreenInternal(context, event.getId(), event.getImageUpdatedAt());
+    }
+
+    private static void showFullScreenInternal(@NonNull Context context, @Nullable String eventId,
+                                               long imageUpdatedAt) {
         if (!(context instanceof Activity)) {
             return;
         }
@@ -178,22 +156,26 @@ public final class EventImageManager {
         }
 
         String normalizedId = eventId.trim();
-        Uri pendingUri = getPendingLocalPreview(normalizedId);
-        if (pendingUri != null) {
-            openFullScreenEventDialog(activity, normalizedId, pendingUri.toString(), true);
+        long version = Math.max(0L, imageUpdatedAt);
+        String loadKey = normalizedId + "#" + version;
+        String cachedUrl = resolvedUrls.get(loadKey);
+        if (cachedUrl != null) {
+            openFullScreenEventDialog(activity, cachedUrl, version);
             return;
         }
 
         StorageReference ref = FirebaseStorage.getInstance().getReference()
                 .child("event_images/" + normalizedId + ".jpg");
         ref.getDownloadUrl()
-                .addOnSuccessListener(uri ->
-                        openFullScreenEventDialog(activity, normalizedId, uri.toString(), false))
+                .addOnSuccessListener(uri -> {
+                    resolvedUrls.put(loadKey, uri.toString());
+                    openFullScreenEventDialog(activity, uri.toString(), version);
+                })
                 .addOnFailureListener(e -> { /* sin foto: no abrir */ });
     }
 
-    private static void openFullScreenEventDialog(@NonNull Activity activity, @NonNull String eventId,
-                                                  @NonNull String imageUrl, boolean isLocalUri) {
+    private static void openFullScreenEventDialog(@NonNull Activity activity, @NonNull String imageUrl,
+                                                  long version) {
         if (activity.isFinishing()) {
             return;
         }
@@ -203,11 +185,8 @@ public final class EventImageManager {
         ProgressBar loading = FullScreenZoomImageHelper.loading(dialog);
         dialog.show();
 
-        long version = imageVersions.getOrDefault(eventId, 0L);
-        Object loadSource = isLocalUri ? Uri.parse(imageUrl) : imageUrl;
-        // with(Activity) está deprecado en Glide 5
         Glide.with(imageView)
-                .load(loadSource)
+                .load(imageUrl)
                 .signature(new ObjectKey(version))
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .listener(new RequestListener<Drawable>() {
@@ -238,18 +217,20 @@ public final class EventImageManager {
     }
 
     public static void loadLocalPreview(Context context, ImageView target, Uri uri) {
-        Glide.with(context)
+        if (target == null || uri == null) {
+            return;
+        }
+        RequestBuilder<Drawable> request = Glide.with(target)
                 .load(uri)
                 .placeholder(R.mipmap.ic_launcher)
                 .error(R.mipmap.ic_launcher)
-                .centerCrop()
-                .into(target);
-    }
-
-    public interface UploadCallback {
-        void onSuccess();
-
-        void onError(String message);
+                .dontAnimate();
+        if (target instanceof CircleImageView) {
+            request = request.circleCrop();
+        } else {
+            request = request.centerCrop();
+        }
+        request.into(target);
     }
 
     public static void uploadEventImage(Context context, Uri imageUri, String eventId,
@@ -283,6 +264,29 @@ public final class EventImageManager {
             if (callback != null) {
                 callback.onError(FirebaseBackendErrorHandler.getProcessImageFailedMessage(context));
             }
+        }
+    }
+
+    private static void applyRemoteImage(ImageView target, String url, long version,
+                                         @Nullable ImageAvailabilityCallback callback) {
+        RequestBuilder<Drawable> request = Glide.with(target)
+                .load(url)
+                .signature(new ObjectKey(version))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .error(R.mipmap.ic_launcher)
+                .dontAnimate();
+        if (target instanceof CircleImageView) {
+            request = request.circleCrop();
+        } else {
+            request = request.centerCrop();
+        }
+        request.into(target);
+        notifyAvailability(callback, true);
+    }
+
+    private static void notifyAvailability(@Nullable ImageAvailabilityCallback callback, boolean available) {
+        if (callback != null) {
+            callback.onResult(available);
         }
     }
 
